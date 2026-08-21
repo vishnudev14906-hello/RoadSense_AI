@@ -1,0 +1,208 @@
+{
+  "model_name": "Custom Deep CNN Road Damage Classifier",
+  "architecture": "4-Layer Conv2D + BatchNorm + MaxPool + Dense + Dropout(0.45)",
+  "pre_trained_weights_used": false,
+  "transfer_learning_used": false,
+  "classes": [
+    "Normal Road",
+    "Crack",
+    "Pothole",
+    "Severe Road Damage"
+  ],
+  "input_resolution": "128x128 RGB",
+  "dataset_split": {
+    "total": 160,
+    "train": 112,
+    "validation": 24,
+    "test": 24
+  },
+  "test_metrics": {
+    "accuracy": 1.0,
+    "precision_weighted": 1.0,
+    "recall_weighted": 1.0,
+    "f1_weighted": 1.0
+  },
+  "confusion_matrix": {
+    "labels": [
+      "Normal Road",
+      "Crack",
+      "Pothole",
+      "Severe Road Damage"
+    ],
+    "matrix": [
+      [
+        9,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        8,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        3,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        4
+      ]
+    ]
+  },
+  "classification_report": {
+    "Normal Road": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 9.0
+    },
+    "Crack": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 8.0
+    },
+    "Pothole": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 3.0
+    },
+    "Severe Road Damage": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 4.0
+    },
+    "accuracy": 1.0,
+    "macro avg": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 24.0
+    },
+    "weighted avg": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 24.0
+    }
+  },
+  "training_curves": {
+    "train_loss": [
+      1.741,
+      0.6408,
+      0.6194,
+      0.3405,
+      0.3855,
+      0.4147,
+      0.3377,
+      0.2548,
+      0.2486,
+      0.417,
+      0.2367,
+      0.1669,
+      0.1937,
+      0.2128,
+      0.0698,
+      0.0929,
+      0.0473,
+      0.0471,
+      0.0434,
+      0.0656,
+      0.1429,
+      0.1609,
+      0.0796,
+      0.0478,
+      0.0388
+    ],
+    "val_loss": [
+      1.0347,
+      0.6205,
+      0.3322,
+      0.349,
+      0.3136,
+      0.2925,
+      0.2907,
+      0.2741,
+      0.2696,
+      0.2584,
+      0.222,
+      0.1612,
+      0.1043,
+      0.0563,
+      0.0895,
+      0.032,
+      0.013,
+      0.0131,
+      0.0162,
+      0.0084,
+      0.0015,
+      0.0017,
+      0.0079,
+      0.0098,
+      0.0052
+    ],
+    "train_acc": [
+      42.86,
+      77.68,
+      76.79,
+      84.82,
+      83.93,
+      77.68,
+      84.82,
+      86.61,
+      86.61,
+      82.14,
+      91.96,
+      92.86,
+      92.86,
+      87.5,
+      99.11,
+      97.32,
+      99.11,
+      98.21,
+      98.21,
+      98.21,
+      95.54,
+      94.64,
+      97.32,
+      97.32,
+      99.11
+    ],
+    "val_acc": [
+      41.67,
+      75.0,
+      83.33,
+      87.5,
+      83.33,
+      83.33,
+      83.33,
+      87.5,
+      83.33,
+      91.67,
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0
+    ]
+  }
+}

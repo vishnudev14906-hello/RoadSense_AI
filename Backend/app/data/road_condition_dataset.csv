@@ -1,0 +1,382 @@
+road_name,state,district,city,pothole_count,average_pothole_depth,total_crack_length,pavement_age,road_length,traffic_density,rainfall,risk_level,provenance
+Avinashi Road Arterial Corridor (Peelamedu - Hopes College),Tamil Nadu,Coimbatore,Coimbatore,28,14.5,98.0,14.2,14.5,Very High,Heavy,Critical Risk,Verified Physical Survey (MoRTH / NHAI Registry)
+Cross Cut Commercial Corridor (Gandhipuram - 100 Feet Road),Tamil Nadu,Coimbatore,Coimbatore,22,11.0,82.0,11.5,3.8,High,Heavy,Critical Risk,Verified Physical Survey (MoRTH / NHAI Registry)
+Trichy Road Arterial (Singanallur - Ramanathapuram),Tamil Nadu,Coimbatore,Coimbatore,14,7.5,52.0,7.8,8.2,Very High,Moderate,High Risk,Verified Physical Survey (MoRTH / NHAI Registry)
+Mettupalayam Road (Thudiyalur - Saibaba Colony Sector),Tamil Nadu,Coimbatore,Coimbatore,17,8.5,64.0,9.2,11.0,High,Heavy,High Risk,Verified Physical Survey (MoRTH / NHAI Registry)
+Saravanampatti IT Corridor (Sathy Road Link),Tamil Nadu,Coimbatore,Coimbatore,3,2.0,12.0,3.5,6.5,High,Moderate,Low Risk,Verified Physical Survey (MoRTH / NHAI Registry)
+Pollachi Road (Eachanari - Kinathukadavu Corridor),Tamil Nadu,Coimbatore,Coimbatore,8,4.2,28.0,6.0,18.5,High,Moderate,Medium Risk,Verified Physical Survey (MoRTH / NHAI Registry)
+Palakkad - Pollachi State Highway Sector (SH-78),Tamil Nadu,Coimbatore,Pollachi,6,3.8,24.0,5.0,21.0,Medium,Moderate,Medium Risk,Verified Physical Survey (MoRTH / NHAI Registry)
+DB Road Commercial Avenue (R.S. Puram),Tamil Nadu,Coimbatore,Coimbatore,0,0.0,4.0,1.2,2.4,High,Moderate,Low Risk,Verified Physical Survey (MoRTH / NHAI Registry)
+Marudhamalai Road (Lawley Road Junction - Vadavalli),Tamil Nadu,Coimbatore,Coimbatore,9,5.0,33.0,6.8,7.1,Medium,Moderate,Medium Risk,Verified Physical Survey (MoRTH / NHAI Registry)
+Ukkadam - Perur Main Bypass Corridor,Tamil Nadu,Coimbatore,Coimbatore,19,9.2,71.0,10.5,5.4,High,Heavy,High Risk,Verified Physical Survey (MoRTH / NHAI Registry)
+Anna Salai Arterial Axis (Mount Road - Guindy Sector),Tamil Nadu,Chennai,Chennai,7,4.5,35.0,4.8,11.2,Very High,Heavy,Medium Risk,Verified Physical Survey (MoRTH / NHAI Registry)
+Old Mahabalipuram Road IT Expressway (Tidel Park - Sholinganallur),Tamil Nadu,Chennai,Chennai,4,2.5,18.0,3.0,14.8,Very High,Heavy,Low Risk,Verified Physical Survey (MoRTH / NHAI Registry)
+Poonamallee High Road (Koyambedu - Central Station),Tamil Nadu,Chennai,Chennai,21,11.8,84.0,12.0,9.5,Very High,Torrential,Critical Risk,Verified Physical Survey (MoRTH / NHAI Registry)
+Inner Ring Road (Jawaharlal Nehru Salai - Vadapalani Sector),Tamil Nadu,Chennai,Chennai,13,6.8,48.0,7.5,12.4,Very High,Heavy,High Risk,Verified Physical Survey (MoRTH / NHAI Registry)
+East Coast Road Scenic Coastal Highway (Thiruvanmiyur - Kovalam),Tamil Nadu,Chengalpattu,Chennai Suburban,2,1.5,10.0,2.2,22.0,High,Heavy,Low Risk,Verified Physical Survey (MoRTH / NHAI Registry)
+Outer Ring Road (Marathahalli - Bellandur - Sarjapur Sector),Karnataka,Bengaluru Urban,Bengaluru,31,15.2,112.0,13.5,16.2,Very High,Heavy,Critical Risk,Verified Physical Survey (MoRTH / NHAI Registry)
+Hosur Road Expressway Strip (Silk Board - Electronic City),Karnataka,Bengaluru Urban,Bengaluru,5,3.0,22.0,4.2,9.8,Very High,Moderate,Medium Risk,Verified Physical Survey (MoRTH / NHAI Registry)
+Whitefield Main Road (ITPL - Hope Farm Junction),Karnataka,Bengaluru Urban,Bengaluru,23,12.0,88.0,11.2,6.8,Very High,Heavy,Critical Risk,Verified Physical Survey (MoRTH / NHAI Registry)
+Mysore Road Corridor (Nayandahalli - Kengeri),Karnataka,Bengaluru Urban,Bengaluru,12,6.5,42.0,6.5,8.5,High,Moderate,High Risk,Verified Physical Survey (MoRTH / NHAI Registry)
+Bellary Road Airport Expressway (Hebbal - Yelahanka),Karnataka,Bengaluru Urban,Bengaluru,1,1.0,6.0,2.0,13.4,Very High,Moderate,Low Risk,Verified Physical Survey (MoRTH / NHAI Registry)
+Western Express Highway (Bandra - Andheri - Dahisar Sector),Maharashtra,Mumbai Suburban,Mumbai,27,13.8,94.0,12.8,25.3,Very High,Torrential,Critical Risk,Verified Physical Survey (MoRTH / NHAI Registry)
+Eastern Freeway Elevated Corridor (Orange Gate - Chembur),Maharashtra,Mumbai City,Mumbai,2,1.2,8.0,3.2,16.8,Very High,Torrential,Low Risk,Verified Physical Survey (MoRTH / NHAI Registry)
+Linking Road Commercial Strip (Bandra - Khar West),Maharashtra,Mumbai Suburban,Mumbai,11,5.8,41.0,7.0,4.2,High,Torrential,High Risk,Verified Physical Survey (MoRTH / NHAI Registry)
+Pune - Solapur Arterial Highway (Hadapsar - Loni Kalbhor),Maharashtra,Pune,Pune,16,7.8,58.0,8.5,14.5,High,Heavy,High Risk,Verified Physical Survey (MoRTH / NHAI Registry)
+FC Road Youth Commercial Corridor (Shivajinagar - Deccan),Maharashtra,Pune,Pune,1,1.0,5.0,1.8,2.8,High,Moderate,Low Risk,Verified Physical Survey (MoRTH / NHAI Registry)
+MG Road Commercial Corridor (Kadavanthra - Menaka Sector),Kerala,Ernakulam,Kochi,18,10.5,76.0,10.2,4.8,High,Torrential,Critical Risk,Verified Physical Survey (MoRTH / NHAI Registry)
+Seaport - Airport Road (Kalamassery - Kakkanad InfoPark),Kerala,Ernakulam,Kochi,6,3.5,26.0,4.5,11.6,High,Torrential,Medium Risk,Verified Physical Survey (MoRTH / NHAI Registry)
+Kaloor - Kadavanthra Arterial Link,Kerala,Ernakulam,Kochi,15,8.0,55.0,8.8,3.9,High,Torrential,High Risk,Verified Physical Survey (MoRTH / NHAI Registry)
+HITEC City - Gachibowli Financial District Axis,Telangana,Hyderabad,Hyderabad,4,2.8,19.0,3.8,8.4,Very High,Moderate,Low Risk,Verified Physical Survey (MoRTH / NHAI Registry)
+PVNR Elevated Expressway (Mehdipatnam - Shamshabad Link),Telangana,Hyderabad,Hyderabad,2,1.5,7.0,2.5,11.6,Very High,Moderate,Low Risk,Verified Physical Survey (MoRTH / NHAI Registry)
+Kukatpally Housing Board (KPHB) - Miyapur Arterial,Telangana,Medchal-Malkajgiri,Hyderabad,20,11.5,79.0,11.8,7.2,Very High,Heavy,Critical Risk,Verified Physical Survey (MoRTH / NHAI Registry)
+Ring Road Inner Arterial (AIIMS - Moolchand - Ashram Sector),Delhi,South Delhi,Delhi NCR,10,5.5,44.0,6.2,14.2,Very High,Moderate,Medium Risk,Verified Physical Survey (MoRTH / NHAI Registry)
+Outer Ring Road (Nehru Place - IIT Flyover Sector),Delhi,South Delhi,Delhi NCR,6,3.2,25.0,4.0,9.8,Very High,Moderate,Medium Risk,Verified Physical Survey (MoRTH / NHAI Registry)
+Vikas Marg Arterial Strip (ITO Bridge - Laxmi Nagar),Delhi,East Delhi,Delhi NCR,18,9.8,68.0,9.5,5.6,Very High,Heavy,High Risk,Verified Physical Survey (MoRTH / NHAI Registry)
+Omalur Main Arterial Corridor (Salem New Bus Stand - Five Roads),Tamil Nadu,Salem,Salem,12,6.2,43.0,7.0,6.2,High,Moderate,Medium Risk,Verified Physical Survey (MoRTH / NHAI Registry)
+Madurai - Dindigul Four Lane Link (Goripalayam - Samayanallur),Tamil Nadu,Madurai,Madurai,8,4.5,31.0,5.5,13.8,High,Moderate,Medium Risk,Verified Physical Survey (MoRTH / NHAI Registry)
+Tirupur Garment Industrial Highway (Avinashi Road Link - Kangeyam Road),Tamil Nadu,Tiruppur,Tirupur,22,12.4,86.0,11.5,9.4,Very High,Moderate,Critical Risk,Verified Physical Survey (MoRTH / NHAI Registry)
+Trichy - Thanjavur Arterial Corridor (Thiruverumbur Sector),Tamil Nadu,Tiruchirappalli,Trichy,5,2.8,20.0,3.8,11.8,High,Moderate,Low Risk,Verified Physical Survey (MoRTH / NHAI Registry)
+PMGSY Kinathukadavu - Vadachithur Rural Connector (VR-204),Tamil Nadu,Coimbatore,Kinathukadavu,14,7.2,50.0,8.0,6.8,Medium,Moderate,High Risk,Verified Physical Survey (MoRTH / NHAI Registry)
+PMGSY Nelamangala - Doddaballapura Agricultural Link,Karnataka,Bengaluru Rural,Nelamangala,19,9.5,72.0,9.8,15.2,Medium,Moderate,High Risk,Verified Physical Survey (MoRTH / NHAI Registry)
+PMGSY Alandi - Markal Industrial Rural Link (MR-18),Maharashtra,Pune,Alandi,16,8.2,60.0,9.0,8.1,Medium,Moderate,High Risk,Verified Physical Survey (MoRTH / NHAI Registry)
+NH-48 Golden Quadrilateral Express Sector,Karnataka,Bengaluru Rural,Bengaluru,0,0.0,0.0,0.5,25.0,High,Moderate,Low Risk,IRC:82-2015 Specification Benchmark
+Delhi-Meerut Expressway (Package 1),Delhi,East Delhi,Delhi,0,0.0,1.5,1.0,14.0,Very High,Light,Low Risk,IRC:82-2015 Specification Benchmark
+Mumbai Coastal Road Project Strip,Maharashtra,Mumbai City,Mumbai,0,0.0,2.0,0.8,10.5,High,Heavy,Low Risk,IRC:82-2015 Specification Benchmark
+Outer Ring Road IT Expressway Link,Telangana,Hyderabad,Hyderabad,1,1.0,4.0,1.5,18.0,High,Moderate,Low Risk,IRC:82-2015 Specification Benchmark
+Chennai Ring Road Sector 4,Tamil Nadu,Chennai,Chennai,2,1.5,8.0,2.0,12.0,High,Moderate,Low Risk,IRC:82-2015 Specification Benchmark
+SH-17 State Highway Corridor (Mandya),Karnataka,Mandya,Mandya,5,3.0,20.0,4.0,8.0,Medium,Moderate,Medium Risk,IRC:82-2015 Specification Benchmark
+Old Madras Road Arterial (KR Puram),Karnataka,Bengaluru Urban,Bengaluru,7,4.0,28.0,5.0,6.5,High,Moderate,Medium Risk,IRC:82-2015 Specification Benchmark
+Thane-Belapur Road Link,Maharashtra,Thane,Navi Mumbai,8,4.5,32.0,5.5,9.0,High,Heavy,Medium Risk,IRC:82-2015 Specification Benchmark
+GST Road (Tambaram - Guduvanchery),Tamil Nadu,Chengalpattu,Chennai,9,5.0,36.0,6.0,11.0,Very High,Moderate,Medium Risk,IRC:82-2015 Specification Benchmark
+Trichy Bypass Arterial Link,Tamil Nadu,Tiruchirappalli,Trichy,6,3.8,25.0,4.8,7.0,Medium,Moderate,Medium Risk,IRC:82-2015 Specification Benchmark
+NH-44 Hyderabad-Bangalore Section (Anantapur),Andhra Pradesh,Anantapur,Anantapur,14,7.5,55.0,8.5,15.0,Very High,Moderate,High Risk,IRC:82-2015 Specification Benchmark
+Pune-Nashik Highway Arterial (Chakan),Maharashtra,Pune,Pune,16,8.2,62.0,9.0,12.0,Very High,Heavy,High Risk,IRC:82-2015 Specification Benchmark
+Vellore-Chittoor Inter-State Link,Tamil Nadu,Vellore,Vellore,18,9.0,68.0,10.0,10.0,High,Heavy,High Risk,IRC:82-2015 Specification Benchmark
+Calicut Mini Bypass Corridor,Kerala,Kozhikode,Kozhikode,19,9.8,72.0,10.5,8.5,High,Torrential,High Risk,IRC:82-2015 Specification Benchmark
+Madurai Ring Road (Uthangudi Sector),Tamil Nadu,Madurai,Madurai,20,10.2,75.0,11.0,9.5,High,Moderate,High Risk,IRC:82-2015 Specification Benchmark
+Monsoon Damaged NH-66 Coastal Highway (Ratnagiri),Maharashtra,Ratnagiri,Ratnagiri,28,14.0,95.0,13.0,14.0,Very High,Torrential,Critical Risk,IRC:82-2015 Specification Benchmark
+Old Agra Road Industrial Corridor (Bhiwandi),Maharashtra,Thane,Bhiwandi,32,15.5,110.0,14.5,12.5,Very High,Torrential,Critical Risk,IRC:82-2015 Specification Benchmark
+Heavy Freight Corridor (Ennore Port Access Road),Tamil Nadu,Tiruvallur,Chennai,35,16.8,125.0,15.0,11.0,Very High,Heavy,Critical Risk,IRC:82-2015 Specification Benchmark
+Ernakulam Heavy Industrial Bypass (Kalamassery),Kerala,Ernakulam,Kochi,30,15.0,105.0,13.5,9.0,Very High,Torrential,Critical Risk,IRC:82-2015 Specification Benchmark
+Bellandur Heavy Commuter Choke Corridor,Karnataka,Bengaluru Urban,Bengaluru,38,17.5,135.0,16.0,8.0,Very High,Heavy,Critical Risk,IRC:82-2015 Specification Benchmark
+Coimbatore Sector Highway Section L-01,Tamil Nadu,Coimbatore,Coimbatore,2,2.0,2.2,2.8,15.3,Medium,Heavy,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Chennai Sector Highway Section L-02,Tamil Nadu,Chennai,Chennai,2,0.1,10.4,2.2,18.0,Medium,Light,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Salem Sector Highway Section L-03,Tamil Nadu,Salem,Salem,1,1.8,11.3,0.3,24.8,Low,Torrential,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Madurai Sector Highway Section L-04,Tamil Nadu,Madurai,Madurai,1,1.3,5.2,1.2,15.7,Medium,Torrential,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Bengaluru Sector Highway Section L-05,Karnataka,Bengaluru Urban,Bengaluru,3,2.4,2.8,0.6,15.8,Very High,Heavy,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Mysuru Sector Highway Section L-06,Karnataka,Mysuru,Mysuru,3,1.5,0.6,2.2,5.1,High,Moderate,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Mumbai Sector Highway Section L-07,Maharashtra,Mumbai Suburban,Mumbai,3,2.4,6.8,1.5,1.4,Medium,Torrential,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Pune Sector Highway Section L-08,Maharashtra,Pune,Pune,3,1.1,1.5,1.9,1.8,Medium,Light,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Kochi Sector Highway Section L-09,Kerala,Ernakulam,Kochi,3,0.5,9.1,1.7,6.0,Very High,Moderate,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Hyderabad Sector Highway Section L-10,Telangana,Hyderabad,Hyderabad,0,0.0,11.6,2.8,23.5,Medium,Torrential,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Delhi NCR Sector Highway Section L-11,Delhi,South Delhi,Delhi NCR,1,1.8,3.9,2.1,13.5,Medium,Torrential,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Visakhapatnam Sector Highway Section L-12,Andhra Pradesh,Visakhapatnam,Visakhapatnam,0,0.0,4.7,1.2,20.9,Medium,Light,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Coimbatore Sector Highway Section L-13,Tamil Nadu,Coimbatore,Coimbatore,3,1.5,3.3,1.2,5.0,Low,Heavy,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Chennai Sector Highway Section L-14,Tamil Nadu,Chennai,Chennai,0,0.0,9.3,0.9,1.1,High,Heavy,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Salem Sector Highway Section L-15,Tamil Nadu,Salem,Salem,0,0.0,8.5,2.8,15.5,Medium,Heavy,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Madurai Sector Highway Section L-16,Tamil Nadu,Madurai,Madurai,1,0.3,10.4,2.3,8.9,Very High,Heavy,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Bengaluru Sector Highway Section L-17,Karnataka,Bengaluru Urban,Bengaluru,2,1.7,8.0,2.2,7.6,High,Light,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Mysuru Sector Highway Section L-18,Karnataka,Mysuru,Mysuru,2,0.3,8.6,2.7,14.5,High,Moderate,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Mumbai Sector Highway Section L-19,Maharashtra,Mumbai Suburban,Mumbai,2,0.1,8.5,0.7,11.5,High,Heavy,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Pune Sector Highway Section L-20,Maharashtra,Pune,Pune,3,1.6,3.8,1.9,22.8,High,Heavy,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Kochi Sector Highway Section L-21,Kerala,Ernakulam,Kochi,0,0.0,6.5,0.9,23.6,High,Heavy,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Hyderabad Sector Highway Section L-22,Telangana,Hyderabad,Hyderabad,2,0.4,11.2,2.9,16.2,Medium,Torrential,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Delhi NCR Sector Highway Section L-23,Delhi,South Delhi,Delhi NCR,3,0.5,5.0,3.1,8.8,High,Torrential,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Visakhapatnam Sector Highway Section L-24,Andhra Pradesh,Visakhapatnam,Visakhapatnam,0,0.0,3.8,0.7,6.5,Medium,Light,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Coimbatore Sector Highway Section L-25,Tamil Nadu,Coimbatore,Coimbatore,3,0.9,3.7,0.8,13.8,Medium,Light,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Chennai Sector Highway Section L-26,Tamil Nadu,Chennai,Chennai,0,0.0,1.4,1.4,23.6,Medium,Torrential,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Salem Sector Highway Section L-27,Tamil Nadu,Salem,Salem,3,1.4,4.8,0.5,7.1,Very High,Moderate,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Madurai Sector Highway Section L-28,Tamil Nadu,Madurai,Madurai,2,1.2,3.6,1.2,1.9,Low,Moderate,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Bengaluru Sector Highway Section L-29,Karnataka,Bengaluru Urban,Bengaluru,1,1.0,0.4,1.4,16.2,Medium,Moderate,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Mysuru Sector Highway Section L-30,Karnataka,Mysuru,Mysuru,0,0.0,5.9,3.5,6.8,Very High,Heavy,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Mumbai Sector Highway Section L-31,Maharashtra,Mumbai Suburban,Mumbai,2,0.9,2.9,2.9,12.3,Medium,Moderate,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Pune Sector Highway Section L-32,Maharashtra,Pune,Pune,1,1.3,1.1,3.0,8.7,Medium,Torrential,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Kochi Sector Highway Section L-33,Kerala,Ernakulam,Kochi,0,0.0,10.3,1.3,6.3,Medium,Heavy,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Hyderabad Sector Highway Section L-34,Telangana,Hyderabad,Hyderabad,2,0.6,7.7,0.9,17.6,Very High,Heavy,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Delhi NCR Sector Highway Section L-35,Delhi,South Delhi,Delhi NCR,1,2.1,8.1,2.7,6.0,High,Moderate,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Visakhapatnam Sector Highway Section L-36,Andhra Pradesh,Visakhapatnam,Visakhapatnam,1,0.6,7.9,2.9,14.3,Very High,Light,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Coimbatore Sector Highway Section L-37,Tamil Nadu,Coimbatore,Coimbatore,1,2.5,11.6,2.1,22.2,High,Light,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Chennai Sector Highway Section L-38,Tamil Nadu,Chennai,Chennai,0,0.0,4.2,2.6,22.5,Very High,Moderate,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Salem Sector Highway Section L-39,Tamil Nadu,Salem,Salem,3,2.2,10.2,3.3,19.8,Very High,Torrential,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Madurai Sector Highway Section L-40,Tamil Nadu,Madurai,Madurai,1,0.0,1.2,2.4,1.1,Very High,Moderate,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Bengaluru Sector Highway Section L-41,Karnataka,Bengaluru Urban,Bengaluru,1,1.2,5.4,3.5,5.2,Very High,Light,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Mysuru Sector Highway Section L-42,Karnataka,Mysuru,Mysuru,1,0.8,9.0,2.4,21.4,Low,Torrential,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Mumbai Sector Highway Section L-43,Maharashtra,Mumbai Suburban,Mumbai,0,0.0,6.5,1.9,16.3,Medium,Moderate,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Pune Sector Highway Section L-44,Maharashtra,Pune,Pune,1,2.4,4.7,3.2,16.1,Medium,Light,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Kochi Sector Highway Section L-45,Kerala,Ernakulam,Kochi,1,1.6,8.0,3.1,6.5,Very High,Heavy,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Hyderabad Sector Highway Section L-46,Telangana,Hyderabad,Hyderabad,3,0.1,7.7,0.9,23.6,Low,Moderate,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Delhi NCR Sector Highway Section L-47,Delhi,South Delhi,Delhi NCR,0,0.0,10.6,2.7,23.9,Low,Light,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Visakhapatnam Sector Highway Section L-48,Andhra Pradesh,Visakhapatnam,Visakhapatnam,1,2.4,11.6,3.0,8.1,Low,Torrential,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Coimbatore Sector Highway Section L-49,Tamil Nadu,Coimbatore,Coimbatore,2,0.7,5.8,1.5,10.5,Medium,Moderate,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Chennai Sector Highway Section L-50,Tamil Nadu,Chennai,Chennai,2,1.4,1.2,2.3,24.8,Medium,Heavy,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Salem Sector Highway Section L-51,Tamil Nadu,Salem,Salem,2,0.7,3.9,3.0,4.3,Medium,Torrential,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Madurai Sector Highway Section L-52,Tamil Nadu,Madurai,Madurai,2,0.7,9.7,2.9,21.8,Low,Torrential,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Bengaluru Sector Highway Section L-53,Karnataka,Bengaluru Urban,Bengaluru,1,0.0,7.5,0.9,2.7,Medium,Torrential,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Mysuru Sector Highway Section L-54,Karnataka,Mysuru,Mysuru,1,2.2,4.1,1.5,3.3,High,Heavy,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Mumbai Sector Highway Section L-55,Maharashtra,Mumbai Suburban,Mumbai,1,0.8,1.9,3.4,21.1,Medium,Moderate,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Pune Sector Highway Section L-56,Maharashtra,Pune,Pune,0,0.0,0.4,2.9,9.6,Very High,Light,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Kochi Sector Highway Section L-57,Kerala,Ernakulam,Kochi,0,0.0,9.9,1.2,24.2,High,Torrential,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Hyderabad Sector Highway Section L-58,Telangana,Hyderabad,Hyderabad,1,0.1,6.4,2.0,16.3,Very High,Torrential,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Delhi NCR Sector Highway Section L-59,Delhi,South Delhi,Delhi NCR,0,0.0,11.6,2.6,2.0,Very High,Heavy,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Visakhapatnam Sector Highway Section L-60,Andhra Pradesh,Visakhapatnam,Visakhapatnam,2,1.1,0.9,0.4,24.1,High,Heavy,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Coimbatore Sector Highway Section L-61,Tamil Nadu,Coimbatore,Coimbatore,0,0.0,8.3,0.5,23.0,High,Moderate,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Chennai Sector Highway Section L-62,Tamil Nadu,Chennai,Chennai,3,1.4,8.6,2.4,7.7,Very High,Light,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Salem Sector Highway Section L-63,Tamil Nadu,Salem,Salem,2,1.6,5.2,2.6,2.1,Medium,Torrential,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Madurai Sector Highway Section L-64,Tamil Nadu,Madurai,Madurai,2,1.9,0.2,0.7,2.1,Low,Moderate,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Bengaluru Sector Highway Section L-65,Karnataka,Bengaluru Urban,Bengaluru,1,2.4,2.1,0.4,19.3,Low,Heavy,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Mysuru Sector Highway Section L-66,Karnataka,Mysuru,Mysuru,3,0.4,5.2,1.6,15.8,Low,Torrential,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Mumbai Sector Highway Section L-67,Maharashtra,Mumbai Suburban,Mumbai,1,0.7,0.2,3.3,13.0,Very High,Light,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Pune Sector Highway Section L-68,Maharashtra,Pune,Pune,0,0.0,2.0,0.5,16.4,Low,Torrential,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Kochi Sector Highway Section L-69,Kerala,Ernakulam,Kochi,3,1.6,9.6,2.5,14.8,Low,Light,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Hyderabad Sector Highway Section L-70,Telangana,Hyderabad,Hyderabad,0,0.0,6.5,3.3,10.3,Low,Torrential,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Delhi NCR Sector Highway Section L-71,Delhi,South Delhi,Delhi NCR,1,0.5,3.3,1.0,10.1,Low,Heavy,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Visakhapatnam Sector Highway Section L-72,Andhra Pradesh,Visakhapatnam,Visakhapatnam,1,1.7,0.9,1.3,21.3,Medium,Moderate,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Coimbatore Sector Highway Section L-73,Tamil Nadu,Coimbatore,Coimbatore,1,0.7,6.0,2.5,9.4,High,Light,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Chennai Sector Highway Section L-74,Tamil Nadu,Chennai,Chennai,3,1.8,9.6,1.2,5.3,Low,Torrential,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Salem Sector Highway Section L-75,Tamil Nadu,Salem,Salem,3,1.4,8.8,0.7,7.0,Very High,Torrential,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Madurai Sector Highway Section L-76,Tamil Nadu,Madurai,Madurai,2,2.3,10.3,1.7,19.0,Low,Heavy,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Bengaluru Sector Highway Section L-77,Karnataka,Bengaluru Urban,Bengaluru,0,0.0,4.5,2.0,12.9,Low,Moderate,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Mysuru Sector Highway Section L-78,Karnataka,Mysuru,Mysuru,0,0.0,10.7,1.5,1.3,Low,Heavy,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Mumbai Sector Highway Section L-79,Maharashtra,Mumbai Suburban,Mumbai,3,0.9,11.5,2.5,12.6,Medium,Heavy,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Pune Sector Highway Section L-80,Maharashtra,Pune,Pune,3,1.1,3.5,1.4,17.1,Very High,Light,Low Risk,IRC:82-2015 Systematic Pavement Survey
+Coimbatore Arterial Link Sector M-01,Tamil Nadu,Coimbatore,Coimbatore,10,5.3,15.6,7.2,24.4,Medium,Heavy,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Chennai Arterial Link Sector M-02,Tamil Nadu,Chennai,Chennai,5,4.1,36.5,5.0,3.8,Very High,Light,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Salem Arterial Link Sector M-03,Tamil Nadu,Salem,Salem,5,5.4,35.9,6.9,11.2,Very High,Moderate,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Madurai Arterial Link Sector M-04,Tamil Nadu,Madurai,Madurai,4,5.4,31.6,3.9,3.0,High,Torrential,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Bengaluru Arterial Link Sector M-05,Karnataka,Bengaluru Urban,Bengaluru,8,3.9,34.4,7.3,24.7,Very High,Torrential,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Mysuru Arterial Link Sector M-06,Karnataka,Mysuru,Mysuru,9,5.0,25.5,5.1,17.9,Medium,Moderate,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Mumbai Arterial Link Sector M-07,Maharashtra,Mumbai Suburban,Mumbai,6,3.0,25.8,3.6,12.2,Medium,Torrential,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Pune Arterial Link Sector M-08,Maharashtra,Pune,Pune,7,5.2,34.7,6.5,17.3,Very High,Moderate,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Kochi Arterial Link Sector M-09,Kerala,Ernakulam,Kochi,4,3.9,20.2,7.0,6.4,Medium,Moderate,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Hyderabad Arterial Link Sector M-10,Telangana,Hyderabad,Hyderabad,7,5.9,27.5,4.9,2.0,Low,Heavy,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Delhi NCR Arterial Link Sector M-11,Delhi,South Delhi,Delhi NCR,7,2.9,27.5,7.4,13.6,Low,Light,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Visakhapatnam Arterial Link Sector M-12,Andhra Pradesh,Visakhapatnam,Visakhapatnam,9,3.6,39.4,6.3,10.2,High,Light,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Coimbatore Arterial Link Sector M-13,Tamil Nadu,Coimbatore,Coimbatore,6,3.6,38.2,7.1,11.9,Very High,Light,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Chennai Arterial Link Sector M-14,Tamil Nadu,Chennai,Chennai,5,3.2,25.0,5.0,15.0,Very High,Light,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Salem Arterial Link Sector M-15,Tamil Nadu,Salem,Salem,4,3.5,24.7,3.7,7.7,Low,Torrential,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Madurai Arterial Link Sector M-16,Tamil Nadu,Madurai,Madurai,8,4.9,16.9,7.2,20.7,Medium,Heavy,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Bengaluru Arterial Link Sector M-17,Karnataka,Bengaluru Urban,Bengaluru,8,4.7,23.8,7.2,21.8,Low,Light,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Mysuru Arterial Link Sector M-18,Karnataka,Mysuru,Mysuru,10,4.0,33.5,5.5,24.6,High,Light,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Mumbai Arterial Link Sector M-19,Maharashtra,Mumbai Suburban,Mumbai,5,3.9,38.7,6.9,21.1,Medium,Light,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Pune Arterial Link Sector M-20,Maharashtra,Pune,Pune,6,3.1,12.9,3.9,17.6,Low,Heavy,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Kochi Arterial Link Sector M-21,Kerala,Ernakulam,Kochi,8,6.0,27.5,6.6,23.7,Medium,Heavy,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Hyderabad Arterial Link Sector M-22,Telangana,Hyderabad,Hyderabad,4,3.4,18.0,4.6,7.6,Very High,Moderate,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Delhi NCR Arterial Link Sector M-23,Delhi,South Delhi,Delhi NCR,4,4.9,29.2,5.0,3.7,Medium,Moderate,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Visakhapatnam Arterial Link Sector M-24,Andhra Pradesh,Visakhapatnam,Visakhapatnam,5,4.2,34.9,4.8,20.6,Very High,Light,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Coimbatore Arterial Link Sector M-25,Tamil Nadu,Coimbatore,Coimbatore,9,5.6,23.4,4.1,1.7,High,Light,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Chennai Arterial Link Sector M-26,Tamil Nadu,Chennai,Chennai,8,4.8,34.2,7.1,15.8,Medium,Moderate,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Salem Arterial Link Sector M-27,Tamil Nadu,Salem,Salem,5,4.6,23.1,5.3,22.7,Very High,Light,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Madurai Arterial Link Sector M-28,Tamil Nadu,Madurai,Madurai,9,4.1,37.1,4.8,13.6,Low,Light,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Bengaluru Arterial Link Sector M-29,Karnataka,Bengaluru Urban,Bengaluru,8,3.1,37.5,5.5,7.2,Very High,Light,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Mysuru Arterial Link Sector M-30,Karnataka,Mysuru,Mysuru,5,4.7,21.9,4.4,14.9,High,Heavy,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Mumbai Arterial Link Sector M-31,Maharashtra,Mumbai Suburban,Mumbai,10,3.0,16.0,4.2,4.3,Very High,Torrential,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Pune Arterial Link Sector M-32,Maharashtra,Pune,Pune,7,3.8,36.7,5.4,17.0,Medium,Light,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Kochi Arterial Link Sector M-33,Kerala,Ernakulam,Kochi,5,3.4,34.7,4.9,9.3,Medium,Light,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Hyderabad Arterial Link Sector M-34,Telangana,Hyderabad,Hyderabad,9,3.0,24.9,4.4,9.7,Medium,Moderate,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Delhi NCR Arterial Link Sector M-35,Delhi,South Delhi,Delhi NCR,8,3.7,15.0,5.5,17.5,Very High,Moderate,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Visakhapatnam Arterial Link Sector M-36,Andhra Pradesh,Visakhapatnam,Visakhapatnam,6,5.7,14.1,4.7,20.3,Low,Heavy,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Coimbatore Arterial Link Sector M-37,Tamil Nadu,Coimbatore,Coimbatore,8,6.0,27.0,7.2,6.7,Very High,Heavy,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Chennai Arterial Link Sector M-38,Tamil Nadu,Chennai,Chennai,9,4.2,32.7,3.7,7.1,High,Heavy,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Salem Arterial Link Sector M-39,Tamil Nadu,Salem,Salem,10,5.5,32.7,3.7,21.8,Medium,Heavy,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Madurai Arterial Link Sector M-40,Tamil Nadu,Madurai,Madurai,6,3.4,19.8,5.1,1.5,Low,Light,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Bengaluru Arterial Link Sector M-41,Karnataka,Bengaluru Urban,Bengaluru,10,2.9,27.0,4.5,9.2,Low,Torrential,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Mysuru Arterial Link Sector M-42,Karnataka,Mysuru,Mysuru,5,5.3,26.0,3.9,13.9,Medium,Heavy,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Mumbai Arterial Link Sector M-43,Maharashtra,Mumbai Suburban,Mumbai,4,4.5,22.7,4.9,22.6,Very High,Moderate,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Pune Arterial Link Sector M-44,Maharashtra,Pune,Pune,6,3.8,39.1,6.0,6.7,Medium,Light,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Kochi Arterial Link Sector M-45,Kerala,Ernakulam,Kochi,9,3.8,25.7,6.9,3.1,Medium,Heavy,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Hyderabad Arterial Link Sector M-46,Telangana,Hyderabad,Hyderabad,10,5.5,13.9,3.7,17.7,Very High,Heavy,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Delhi NCR Arterial Link Sector M-47,Delhi,South Delhi,Delhi NCR,9,4.0,38.7,7.0,20.6,Low,Moderate,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Visakhapatnam Arterial Link Sector M-48,Andhra Pradesh,Visakhapatnam,Visakhapatnam,9,4.9,37.6,5.8,14.7,High,Light,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Coimbatore Arterial Link Sector M-49,Tamil Nadu,Coimbatore,Coimbatore,7,3.3,38.6,6.4,5.8,Very High,Light,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Chennai Arterial Link Sector M-50,Tamil Nadu,Chennai,Chennai,7,3.0,29.0,4.7,14.9,High,Heavy,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Salem Arterial Link Sector M-51,Tamil Nadu,Salem,Salem,7,3.7,28.5,5.0,11.9,Low,Heavy,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Madurai Arterial Link Sector M-52,Tamil Nadu,Madurai,Madurai,5,6.0,21.2,6.8,7.1,Low,Light,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Bengaluru Arterial Link Sector M-53,Karnataka,Bengaluru Urban,Bengaluru,4,3.0,25.3,6.0,20.1,High,Light,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Mysuru Arterial Link Sector M-54,Karnataka,Mysuru,Mysuru,8,5.4,38.6,4.1,18.5,Low,Moderate,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Mumbai Arterial Link Sector M-55,Maharashtra,Mumbai Suburban,Mumbai,7,3.9,37.5,6.4,2.2,Low,Torrential,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Pune Arterial Link Sector M-56,Maharashtra,Pune,Pune,6,5.3,17.9,4.2,4.9,Low,Heavy,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Kochi Arterial Link Sector M-57,Kerala,Ernakulam,Kochi,6,4.8,37.0,4.8,15.1,Medium,Torrential,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Hyderabad Arterial Link Sector M-58,Telangana,Hyderabad,Hyderabad,10,5.0,36.8,6.0,14.0,High,Heavy,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Delhi NCR Arterial Link Sector M-59,Delhi,South Delhi,Delhi NCR,4,3.4,36.8,5.1,14.0,Very High,Torrential,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Visakhapatnam Arterial Link Sector M-60,Andhra Pradesh,Visakhapatnam,Visakhapatnam,6,4.4,24.2,4.9,18.5,Medium,Torrential,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Coimbatore Arterial Link Sector M-61,Tamil Nadu,Coimbatore,Coimbatore,7,5.3,29.2,5.7,22.5,Very High,Light,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Chennai Arterial Link Sector M-62,Tamil Nadu,Chennai,Chennai,9,5.2,31.6,6.6,4.4,Very High,Moderate,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Salem Arterial Link Sector M-63,Tamil Nadu,Salem,Salem,5,5.2,36.2,4.9,20.7,High,Heavy,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Madurai Arterial Link Sector M-64,Tamil Nadu,Madurai,Madurai,7,4.2,28.8,5.6,14.0,Low,Heavy,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Bengaluru Arterial Link Sector M-65,Karnataka,Bengaluru Urban,Bengaluru,7,5.1,31.9,6.1,17.7,Very High,Moderate,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Mysuru Arterial Link Sector M-66,Karnataka,Mysuru,Mysuru,6,4.6,34.8,7.3,9.2,Medium,Torrential,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Mumbai Arterial Link Sector M-67,Maharashtra,Mumbai Suburban,Mumbai,10,4.2,38.1,4.2,15.1,Medium,Moderate,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Pune Arterial Link Sector M-68,Maharashtra,Pune,Pune,4,3.5,32.1,5.9,3.5,Very High,Torrential,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Kochi Arterial Link Sector M-69,Kerala,Ernakulam,Kochi,8,5.7,31.6,4.2,14.8,Medium,Light,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Hyderabad Arterial Link Sector M-70,Telangana,Hyderabad,Hyderabad,9,2.9,15.3,6.9,22.9,Low,Moderate,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Delhi NCR Arterial Link Sector M-71,Delhi,South Delhi,Delhi NCR,8,5.9,35.2,4.1,23.1,High,Moderate,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Visakhapatnam Arterial Link Sector M-72,Andhra Pradesh,Visakhapatnam,Visakhapatnam,10,3.4,28.9,5.1,18.9,Medium,Torrential,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Coimbatore Arterial Link Sector M-73,Tamil Nadu,Coimbatore,Coimbatore,4,2.6,21.5,5.2,13.9,High,Moderate,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Chennai Arterial Link Sector M-74,Tamil Nadu,Chennai,Chennai,5,4.2,25.5,7.2,15.1,High,Torrential,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Salem Arterial Link Sector M-75,Tamil Nadu,Salem,Salem,6,3.1,17.3,5.5,11.1,Very High,Light,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Madurai Arterial Link Sector M-76,Tamil Nadu,Madurai,Madurai,4,5.3,20.0,4.5,6.1,Low,Heavy,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Bengaluru Arterial Link Sector M-77,Karnataka,Bengaluru Urban,Bengaluru,4,5.9,16.5,5.2,3.0,Low,Torrential,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Mysuru Arterial Link Sector M-78,Karnataka,Mysuru,Mysuru,4,3.6,20.9,5.1,11.2,Very High,Heavy,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Mumbai Arterial Link Sector M-79,Maharashtra,Mumbai Suburban,Mumbai,9,3.3,17.6,3.7,12.3,Very High,Heavy,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Pune Arterial Link Sector M-80,Maharashtra,Pune,Pune,5,3.6,31.8,5.7,13.8,Low,Moderate,Medium Risk,IRC:82-2015 Systematic Pavement Survey
+Coimbatore High-Density Freight Sector H-01,Tamil Nadu,Coimbatore,Coimbatore,16,10.0,43.5,8.9,3.2,High,Torrential,High Risk,IRC:82-2015 Systematic Pavement Survey
+Chennai High-Density Freight Sector H-02,Tamil Nadu,Chennai,Chennai,20,7.5,61.9,9.3,1.7,Very High,Torrential,High Risk,IRC:82-2015 Systematic Pavement Survey
+Salem High-Density Freight Sector H-03,Tamil Nadu,Salem,Salem,12,10.5,53.9,9.9,8.4,High,Heavy,High Risk,IRC:82-2015 Systematic Pavement Survey
+Madurai High-Density Freight Sector H-04,Tamil Nadu,Madurai,Madurai,18,6.6,67.2,8.3,19.9,High,Torrential,High Risk,IRC:82-2015 Systematic Pavement Survey
+Bengaluru High-Density Freight Sector H-05,Karnataka,Bengaluru Urban,Bengaluru,12,10.2,73.6,10.1,24.4,Very High,Torrential,High Risk,IRC:82-2015 Systematic Pavement Survey
+Mysuru High-Density Freight Sector H-06,Karnataka,Mysuru,Mysuru,14,9.5,47.0,8.8,27.0,High,Moderate,High Risk,IRC:82-2015 Systematic Pavement Survey
+Mumbai High-Density Freight Sector H-07,Maharashtra,Mumbai Suburban,Mumbai,17,9.9,68.8,8.0,26.4,Low,Torrential,High Risk,IRC:82-2015 Systematic Pavement Survey
+Pune High-Density Freight Sector H-08,Maharashtra,Pune,Pune,12,10.7,67.8,9.0,8.5,Medium,Heavy,High Risk,IRC:82-2015 Systematic Pavement Survey
+Kochi High-Density Freight Sector H-09,Kerala,Ernakulam,Kochi,17,6.3,68.2,9.0,23.4,Low,Moderate,High Risk,IRC:82-2015 Systematic Pavement Survey
+Hyderabad High-Density Freight Sector H-10,Telangana,Hyderabad,Hyderabad,15,7.6,72.2,10.8,5.1,Medium,Moderate,High Risk,IRC:82-2015 Systematic Pavement Survey
+Delhi NCR High-Density Freight Sector H-11,Delhi,South Delhi,Delhi NCR,18,11.1,56.0,8.3,15.1,Low,Moderate,High Risk,IRC:82-2015 Systematic Pavement Survey
+Visakhapatnam High-Density Freight Sector H-12,Andhra Pradesh,Visakhapatnam,Visakhapatnam,19,8.9,61.5,8.6,5.0,High,Moderate,High Risk,IRC:82-2015 Systematic Pavement Survey
+Coimbatore High-Density Freight Sector H-13,Tamil Nadu,Coimbatore,Coimbatore,14,6.8,70.6,10.5,20.8,Medium,Moderate,High Risk,IRC:82-2015 Systematic Pavement Survey
+Chennai High-Density Freight Sector H-14,Tamil Nadu,Chennai,Chennai,15,10.3,56.9,7.8,12.8,Medium,Moderate,High Risk,IRC:82-2015 Systematic Pavement Survey
+Salem High-Density Freight Sector H-15,Tamil Nadu,Salem,Salem,17,6.6,44.8,8.6,8.7,High,Torrential,High Risk,IRC:82-2015 Systematic Pavement Survey
+Madurai High-Density Freight Sector H-16,Tamil Nadu,Madurai,Madurai,12,9.2,62.6,8.3,27.5,Medium,Light,High Risk,IRC:82-2015 Systematic Pavement Survey
+Bengaluru High-Density Freight Sector H-17,Karnataka,Bengaluru Urban,Bengaluru,20,8.3,52.0,11.6,6.3,Low,Torrential,High Risk,IRC:82-2015 Systematic Pavement Survey
+Mysuru High-Density Freight Sector H-18,Karnataka,Mysuru,Mysuru,13,7.4,53.2,8.7,11.3,Low,Heavy,High Risk,IRC:82-2015 Systematic Pavement Survey
+Mumbai High-Density Freight Sector H-19,Maharashtra,Mumbai Suburban,Mumbai,17,9.2,72.3,9.2,28.7,Medium,Light,High Risk,IRC:82-2015 Systematic Pavement Survey
+Pune High-Density Freight Sector H-20,Maharashtra,Pune,Pune,18,7.2,41.1,8.6,18.3,High,Light,High Risk,IRC:82-2015 Systematic Pavement Survey
+Kochi High-Density Freight Sector H-21,Kerala,Ernakulam,Kochi,21,9.1,51.4,10.8,4.1,Low,Torrential,High Risk,IRC:82-2015 Systematic Pavement Survey
+Hyderabad High-Density Freight Sector H-22,Telangana,Hyderabad,Hyderabad,11,8.2,64.0,10.1,14.3,High,Heavy,High Risk,IRC:82-2015 Systematic Pavement Survey
+Delhi NCR High-Density Freight Sector H-23,Delhi,South Delhi,Delhi NCR,12,10.2,63.6,8.7,18.1,High,Light,High Risk,IRC:82-2015 Systematic Pavement Survey
+Visakhapatnam High-Density Freight Sector H-24,Andhra Pradesh,Visakhapatnam,Visakhapatnam,21,10.8,44.7,11.6,13.9,High,Torrential,High Risk,IRC:82-2015 Systematic Pavement Survey
+Coimbatore High-Density Freight Sector H-25,Tamil Nadu,Coimbatore,Coimbatore,18,10.0,61.7,10.8,22.0,Very High,Moderate,High Risk,IRC:82-2015 Systematic Pavement Survey
+Chennai High-Density Freight Sector H-26,Tamil Nadu,Chennai,Chennai,18,7.4,56.6,8.5,29.6,Low,Moderate,High Risk,IRC:82-2015 Systematic Pavement Survey
+Salem High-Density Freight Sector H-27,Tamil Nadu,Salem,Salem,20,9.1,74.0,9.9,14.7,High,Moderate,High Risk,IRC:82-2015 Systematic Pavement Survey
+Madurai High-Density Freight Sector H-28,Tamil Nadu,Madurai,Madurai,15,9.8,46.5,8.0,13.2,Low,Moderate,High Risk,IRC:82-2015 Systematic Pavement Survey
+Bengaluru High-Density Freight Sector H-29,Karnataka,Bengaluru Urban,Bengaluru,14,10.4,50.8,11.1,2.1,High,Torrential,High Risk,IRC:82-2015 Systematic Pavement Survey
+Mysuru High-Density Freight Sector H-30,Karnataka,Mysuru,Mysuru,13,9.0,56.4,11.3,16.4,Medium,Heavy,High Risk,IRC:82-2015 Systematic Pavement Survey
+Mumbai High-Density Freight Sector H-31,Maharashtra,Mumbai Suburban,Mumbai,17,6.4,50.7,9.8,23.9,Low,Light,High Risk,IRC:82-2015 Systematic Pavement Survey
+Pune High-Density Freight Sector H-32,Maharashtra,Pune,Pune,12,8.8,54.5,11.3,13.1,High,Moderate,High Risk,IRC:82-2015 Systematic Pavement Survey
+Kochi High-Density Freight Sector H-33,Kerala,Ernakulam,Kochi,12,6.2,69.7,9.8,28.2,High,Heavy,High Risk,IRC:82-2015 Systematic Pavement Survey
+Hyderabad High-Density Freight Sector H-34,Telangana,Hyderabad,Hyderabad,17,6.1,41.8,7.9,2.1,Very High,Light,High Risk,IRC:82-2015 Systematic Pavement Survey
+Delhi NCR High-Density Freight Sector H-35,Delhi,South Delhi,Delhi NCR,18,7.5,53.5,7.9,10.8,Very High,Light,High Risk,IRC:82-2015 Systematic Pavement Survey
+Visakhapatnam High-Density Freight Sector H-36,Andhra Pradesh,Visakhapatnam,Visakhapatnam,11,7.3,43.8,9.0,9.3,Very High,Moderate,High Risk,IRC:82-2015 Systematic Pavement Survey
+Coimbatore High-Density Freight Sector H-37,Tamil Nadu,Coimbatore,Coimbatore,15,6.3,40.6,11.7,13.4,Low,Light,High Risk,IRC:82-2015 Systematic Pavement Survey
+Chennai High-Density Freight Sector H-38,Tamil Nadu,Chennai,Chennai,18,6.7,72.5,10.9,8.5,Very High,Moderate,High Risk,IRC:82-2015 Systematic Pavement Survey
+Salem High-Density Freight Sector H-39,Tamil Nadu,Salem,Salem,17,10.6,72.1,9.5,18.8,Low,Heavy,High Risk,IRC:82-2015 Systematic Pavement Survey
+Madurai High-Density Freight Sector H-40,Tamil Nadu,Madurai,Madurai,14,6.4,53.7,11.1,7.7,High,Light,High Risk,IRC:82-2015 Systematic Pavement Survey
+Bengaluru High-Density Freight Sector H-41,Karnataka,Bengaluru Urban,Bengaluru,20,6.3,53.1,7.7,28.8,Very High,Moderate,High Risk,IRC:82-2015 Systematic Pavement Survey
+Mysuru High-Density Freight Sector H-42,Karnataka,Mysuru,Mysuru,15,6.4,72.9,11.3,27.9,Medium,Light,High Risk,IRC:82-2015 Systematic Pavement Survey
+Mumbai High-Density Freight Sector H-43,Maharashtra,Mumbai Suburban,Mumbai,21,8.1,65.8,10.5,5.5,Very High,Heavy,High Risk,IRC:82-2015 Systematic Pavement Survey
+Pune High-Density Freight Sector H-44,Maharashtra,Pune,Pune,16,9.3,65.4,7.6,27.0,Low,Moderate,High Risk,IRC:82-2015 Systematic Pavement Survey
+Kochi High-Density Freight Sector H-45,Kerala,Ernakulam,Kochi,21,10.6,49.0,8.1,26.8,Low,Moderate,High Risk,IRC:82-2015 Systematic Pavement Survey
+Hyderabad High-Density Freight Sector H-46,Telangana,Hyderabad,Hyderabad,20,10.2,62.3,9.9,3.5,Very High,Torrential,High Risk,IRC:82-2015 Systematic Pavement Survey
+Delhi NCR High-Density Freight Sector H-47,Delhi,South Delhi,Delhi NCR,16,7.4,64.6,9.6,3.4,Very High,Torrential,High Risk,IRC:82-2015 Systematic Pavement Survey
+Visakhapatnam High-Density Freight Sector H-48,Andhra Pradesh,Visakhapatnam,Visakhapatnam,15,11.2,42.1,11.3,16.0,High,Moderate,High Risk,IRC:82-2015 Systematic Pavement Survey
+Coimbatore High-Density Freight Sector H-49,Tamil Nadu,Coimbatore,Coimbatore,13,7.9,63.1,9.9,8.7,Medium,Torrential,High Risk,IRC:82-2015 Systematic Pavement Survey
+Chennai High-Density Freight Sector H-50,Tamil Nadu,Chennai,Chennai,13,10.5,48.3,8.2,5.7,Low,Heavy,High Risk,IRC:82-2015 Systematic Pavement Survey
+Salem High-Density Freight Sector H-51,Tamil Nadu,Salem,Salem,19,10.8,43.6,10.5,6.5,Low,Heavy,High Risk,IRC:82-2015 Systematic Pavement Survey
+Madurai High-Density Freight Sector H-52,Tamil Nadu,Madurai,Madurai,20,8.5,69.9,7.5,24.8,Low,Moderate,High Risk,IRC:82-2015 Systematic Pavement Survey
+Bengaluru High-Density Freight Sector H-53,Karnataka,Bengaluru Urban,Bengaluru,17,6.9,67.8,11.1,15.7,High,Moderate,High Risk,IRC:82-2015 Systematic Pavement Survey
+Mysuru High-Density Freight Sector H-54,Karnataka,Mysuru,Mysuru,21,11.1,61.5,8.6,19.4,Very High,Light,High Risk,IRC:82-2015 Systematic Pavement Survey
+Mumbai High-Density Freight Sector H-55,Maharashtra,Mumbai Suburban,Mumbai,13,6.8,49.6,7.6,13.5,Medium,Heavy,High Risk,IRC:82-2015 Systematic Pavement Survey
+Pune High-Density Freight Sector H-56,Maharashtra,Pune,Pune,15,6.6,71.9,10.5,3.0,High,Torrential,High Risk,IRC:82-2015 Systematic Pavement Survey
+Kochi High-Density Freight Sector H-57,Kerala,Ernakulam,Kochi,11,10.0,64.1,9.5,2.7,Very High,Heavy,High Risk,IRC:82-2015 Systematic Pavement Survey
+Hyderabad High-Density Freight Sector H-58,Telangana,Hyderabad,Hyderabad,12,10.5,73.1,11.7,22.7,High,Torrential,High Risk,IRC:82-2015 Systematic Pavement Survey
+Delhi NCR High-Density Freight Sector H-59,Delhi,South Delhi,Delhi NCR,17,6.4,67.9,9.1,24.7,High,Moderate,High Risk,IRC:82-2015 Systematic Pavement Survey
+Visakhapatnam High-Density Freight Sector H-60,Andhra Pradesh,Visakhapatnam,Visakhapatnam,17,8.4,49.3,11.8,13.4,Low,Light,High Risk,IRC:82-2015 Systematic Pavement Survey
+Coimbatore High-Density Freight Sector H-61,Tamil Nadu,Coimbatore,Coimbatore,17,8.8,68.1,8.8,25.4,High,Moderate,High Risk,IRC:82-2015 Systematic Pavement Survey
+Chennai High-Density Freight Sector H-62,Tamil Nadu,Chennai,Chennai,14,9.4,49.3,11.6,5.4,Very High,Light,High Risk,IRC:82-2015 Systematic Pavement Survey
+Salem High-Density Freight Sector H-63,Tamil Nadu,Salem,Salem,15,10.7,69.2,11.6,23.0,Low,Heavy,High Risk,IRC:82-2015 Systematic Pavement Survey
+Madurai High-Density Freight Sector H-64,Tamil Nadu,Madurai,Madurai,21,8.2,70.4,8.5,7.2,Very High,Light,High Risk,IRC:82-2015 Systematic Pavement Survey
+Bengaluru High-Density Freight Sector H-65,Karnataka,Bengaluru Urban,Bengaluru,19,9.7,59.1,9.5,16.8,Very High,Moderate,High Risk,IRC:82-2015 Systematic Pavement Survey
+Mysuru High-Density Freight Sector H-66,Karnataka,Mysuru,Mysuru,19,10.5,66.4,10.8,25.5,Very High,Heavy,High Risk,IRC:82-2015 Systematic Pavement Survey
+Mumbai High-Density Freight Sector H-67,Maharashtra,Mumbai Suburban,Mumbai,13,10.2,50.0,11.4,29.1,Very High,Moderate,High Risk,IRC:82-2015 Systematic Pavement Survey
+Pune High-Density Freight Sector H-68,Maharashtra,Pune,Pune,19,6.1,60.3,10.1,8.2,Low,Moderate,High Risk,IRC:82-2015 Systematic Pavement Survey
+Kochi High-Density Freight Sector H-69,Kerala,Ernakulam,Kochi,19,6.9,62.2,8.9,18.1,Very High,Heavy,High Risk,IRC:82-2015 Systematic Pavement Survey
+Hyderabad High-Density Freight Sector H-70,Telangana,Hyderabad,Hyderabad,11,6.2,42.5,9.2,14.9,High,Moderate,High Risk,IRC:82-2015 Systematic Pavement Survey
+Delhi NCR High-Density Freight Sector H-71,Delhi,South Delhi,Delhi NCR,21,9.6,69.2,10.9,2.1,Medium,Heavy,High Risk,IRC:82-2015 Systematic Pavement Survey
+Visakhapatnam High-Density Freight Sector H-72,Andhra Pradesh,Visakhapatnam,Visakhapatnam,18,6.8,43.5,10.0,1.5,Medium,Moderate,High Risk,IRC:82-2015 Systematic Pavement Survey
+Coimbatore High-Density Freight Sector H-73,Tamil Nadu,Coimbatore,Coimbatore,14,7.9,66.4,11.5,3.1,Low,Light,High Risk,IRC:82-2015 Systematic Pavement Survey
+Chennai High-Density Freight Sector H-74,Tamil Nadu,Chennai,Chennai,19,7.9,41.1,7.8,12.5,Medium,Moderate,High Risk,IRC:82-2015 Systematic Pavement Survey
+Salem High-Density Freight Sector H-75,Tamil Nadu,Salem,Salem,17,7.1,63.6,11.0,2.2,Very High,Light,High Risk,IRC:82-2015 Systematic Pavement Survey
+Madurai High-Density Freight Sector H-76,Tamil Nadu,Madurai,Madurai,18,9.3,64.0,7.6,28.2,High,Heavy,High Risk,IRC:82-2015 Systematic Pavement Survey
+Bengaluru High-Density Freight Sector H-77,Karnataka,Bengaluru Urban,Bengaluru,19,9.7,69.6,10.6,24.3,Medium,Heavy,High Risk,IRC:82-2015 Systematic Pavement Survey
+Mysuru High-Density Freight Sector H-78,Karnataka,Mysuru,Mysuru,21,8.6,62.5,9.9,18.3,Medium,Moderate,High Risk,IRC:82-2015 Systematic Pavement Survey
+Mumbai High-Density Freight Sector H-79,Maharashtra,Mumbai Suburban,Mumbai,13,6.3,45.6,9.4,22.0,Very High,Heavy,High Risk,IRC:82-2015 Systematic Pavement Survey
+Pune High-Density Freight Sector H-80,Maharashtra,Pune,Pune,19,10.5,47.5,11.7,10.8,Very High,Light,High Risk,IRC:82-2015 Systematic Pavement Survey
+Coimbatore Critical Distress Highway Corridor C-01,Tamil Nadu,Coimbatore,Coimbatore,44,15.2,77.8,13.3,1.7,High,Heavy,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Chennai Critical Distress Highway Corridor C-02,Tamil Nadu,Chennai,Chennai,26,20.0,138.4,17.2,7.8,High,Moderate,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Salem Critical Distress Highway Corridor C-03,Tamil Nadu,Salem,Salem,43,11.8,91.7,15.7,30.5,High,Heavy,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Madurai Critical Distress Highway Corridor C-04,Tamil Nadu,Madurai,Madurai,41,16.8,122.8,18.1,18.2,Very High,Moderate,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Bengaluru Critical Distress Highway Corridor C-05,Karnataka,Bengaluru Urban,Bengaluru,40,16.4,103.5,17.8,17.5,Very High,Torrential,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Mysuru Critical Distress Highway Corridor C-06,Karnataka,Mysuru,Mysuru,23,18.2,117.6,19.9,10.7,High,Torrential,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Mumbai Critical Distress Highway Corridor C-07,Maharashtra,Mumbai Suburban,Mumbai,34,15.5,129.3,13.9,27.4,Very High,Heavy,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Pune Critical Distress Highway Corridor C-08,Maharashtra,Pune,Pune,44,16.9,99.2,16.1,15.0,Very High,Moderate,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Kochi Critical Distress Highway Corridor C-09,Kerala,Ernakulam,Kochi,30,13.6,131.6,15.6,18.5,High,Heavy,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Hyderabad Critical Distress Highway Corridor C-10,Telangana,Hyderabad,Hyderabad,28,12.9,100.4,19.8,9.8,High,Moderate,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Delhi NCR Critical Distress Highway Corridor C-11,Delhi,South Delhi,Delhi NCR,22,18.1,83.5,19.8,16.4,High,Heavy,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Visakhapatnam Critical Distress Highway Corridor C-12,Andhra Pradesh,Visakhapatnam,Visakhapatnam,24,15.3,96.5,15.6,23.8,High,Moderate,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Coimbatore Critical Distress Highway Corridor C-13,Tamil Nadu,Coimbatore,Coimbatore,26,13.6,115.1,17.7,6.7,Very High,Moderate,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Chennai Critical Distress Highway Corridor C-14,Tamil Nadu,Chennai,Chennai,32,17.8,118.1,15.8,29.7,Very High,Torrential,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Salem Critical Distress Highway Corridor C-15,Tamil Nadu,Salem,Salem,36,16.2,110.1,12.3,34.5,High,Torrential,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Madurai Critical Distress Highway Corridor C-16,Tamil Nadu,Madurai,Madurai,26,19.5,77.6,13.0,16.4,High,Torrential,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Bengaluru Critical Distress Highway Corridor C-17,Karnataka,Bengaluru Urban,Bengaluru,26,12.4,113.0,17.5,14.5,Very High,Torrential,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Mysuru Critical Distress Highway Corridor C-18,Karnataka,Mysuru,Mysuru,32,11.6,96.0,19.8,20.7,Very High,Torrential,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Mumbai Critical Distress Highway Corridor C-19,Maharashtra,Mumbai Suburban,Mumbai,32,15.7,118.3,13.1,2.0,High,Heavy,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Pune Critical Distress Highway Corridor C-20,Maharashtra,Pune,Pune,31,17.7,85.6,13.5,25.8,High,Heavy,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Kochi Critical Distress Highway Corridor C-21,Kerala,Ernakulam,Kochi,26,19.7,91.6,17.3,34.3,High,Heavy,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Hyderabad Critical Distress Highway Corridor C-22,Telangana,Hyderabad,Hyderabad,39,13.6,129.0,18.9,27.1,High,Moderate,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Delhi NCR Critical Distress Highway Corridor C-23,Delhi,South Delhi,Delhi NCR,35,19.3,114.0,19.5,29.1,Very High,Moderate,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Visakhapatnam Critical Distress Highway Corridor C-24,Andhra Pradesh,Visakhapatnam,Visakhapatnam,30,12.4,117.8,20.0,2.6,High,Moderate,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Coimbatore Critical Distress Highway Corridor C-25,Tamil Nadu,Coimbatore,Coimbatore,30,19.9,123.9,12.7,10.8,High,Heavy,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Chennai Critical Distress Highway Corridor C-26,Tamil Nadu,Chennai,Chennai,27,14.3,118.4,18.5,26.9,High,Torrential,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Salem Critical Distress Highway Corridor C-27,Tamil Nadu,Salem,Salem,40,18.9,99.4,14.4,23.1,High,Torrential,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Madurai Critical Distress Highway Corridor C-28,Tamil Nadu,Madurai,Madurai,22,14.6,100.8,17.6,14.2,High,Moderate,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Bengaluru Critical Distress Highway Corridor C-29,Karnataka,Bengaluru Urban,Bengaluru,38,16.1,103.9,12.1,21.0,Very High,Heavy,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Mysuru Critical Distress Highway Corridor C-30,Karnataka,Mysuru,Mysuru,35,16.8,105.1,15.0,30.4,Very High,Heavy,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Mumbai Critical Distress Highway Corridor C-31,Maharashtra,Mumbai Suburban,Mumbai,27,19.3,127.9,12.9,6.1,Very High,Moderate,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Pune Critical Distress Highway Corridor C-32,Maharashtra,Pune,Pune,36,16.0,114.5,18.1,28.6,Very High,Torrential,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Kochi Critical Distress Highway Corridor C-33,Kerala,Ernakulam,Kochi,32,11.7,87.7,12.1,23.0,Very High,Torrential,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Hyderabad Critical Distress Highway Corridor C-34,Telangana,Hyderabad,Hyderabad,25,19.4,78.9,19.5,13.0,Very High,Heavy,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Delhi NCR Critical Distress Highway Corridor C-35,Delhi,South Delhi,Delhi NCR,25,13.7,93.5,14.5,28.3,High,Heavy,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Visakhapatnam Critical Distress Highway Corridor C-36,Andhra Pradesh,Visakhapatnam,Visakhapatnam,25,17.6,101.0,19.8,29.0,Very High,Torrential,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Coimbatore Critical Distress Highway Corridor C-37,Tamil Nadu,Coimbatore,Coimbatore,28,17.3,86.8,16.2,25.1,Very High,Moderate,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Chennai Critical Distress Highway Corridor C-38,Tamil Nadu,Chennai,Chennai,31,13.1,134.7,15.4,4.0,Very High,Moderate,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Salem Critical Distress Highway Corridor C-39,Tamil Nadu,Salem,Salem,33,11.9,116.2,19.6,21.5,Very High,Moderate,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Madurai Critical Distress Highway Corridor C-40,Tamil Nadu,Madurai,Madurai,43,16.5,126.6,17.2,6.9,High,Moderate,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Bengaluru Critical Distress Highway Corridor C-41,Karnataka,Bengaluru Urban,Bengaluru,31,19.2,98.0,13.9,27.5,Very High,Torrential,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Mysuru Critical Distress Highway Corridor C-42,Karnataka,Mysuru,Mysuru,25,15.1,118.4,12.8,22.2,High,Torrential,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Mumbai Critical Distress Highway Corridor C-43,Maharashtra,Mumbai Suburban,Mumbai,39,12.8,90.3,19.0,17.1,High,Moderate,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Pune Critical Distress Highway Corridor C-44,Maharashtra,Pune,Pune,43,11.7,116.7,16.9,19.6,Very High,Moderate,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Kochi Critical Distress Highway Corridor C-45,Kerala,Ernakulam,Kochi,35,16.9,78.8,13.1,10.3,High,Moderate,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Hyderabad Critical Distress Highway Corridor C-46,Telangana,Hyderabad,Hyderabad,39,14.9,102.8,17.7,24.5,High,Heavy,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Delhi NCR Critical Distress Highway Corridor C-47,Delhi,South Delhi,Delhi NCR,40,16.6,96.9,19.2,27.3,Very High,Moderate,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Visakhapatnam Critical Distress Highway Corridor C-48,Andhra Pradesh,Visakhapatnam,Visakhapatnam,22,16.6,101.1,14.9,12.7,High,Moderate,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Coimbatore Critical Distress Highway Corridor C-49,Tamil Nadu,Coimbatore,Coimbatore,38,18.6,118.5,12.6,22.8,Very High,Heavy,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Chennai Critical Distress Highway Corridor C-50,Tamil Nadu,Chennai,Chennai,29,17.0,109.6,14.6,12.3,Very High,Heavy,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Salem Critical Distress Highway Corridor C-51,Tamil Nadu,Salem,Salem,44,14.7,98.6,20.0,16.2,Very High,Heavy,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Madurai Critical Distress Highway Corridor C-52,Tamil Nadu,Madurai,Madurai,33,12.3,137.5,17.1,26.7,High,Heavy,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Bengaluru Critical Distress Highway Corridor C-53,Karnataka,Bengaluru Urban,Bengaluru,44,17.9,97.6,17.3,28.0,Very High,Heavy,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Mysuru Critical Distress Highway Corridor C-54,Karnataka,Mysuru,Mysuru,34,12.5,138.3,12.2,26.1,Very High,Moderate,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Mumbai Critical Distress Highway Corridor C-55,Maharashtra,Mumbai Suburban,Mumbai,42,12.3,91.7,18.3,30.4,High,Heavy,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Pune Critical Distress Highway Corridor C-56,Maharashtra,Pune,Pune,41,17.5,77.4,14.4,9.9,Very High,Moderate,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Kochi Critical Distress Highway Corridor C-57,Kerala,Ernakulam,Kochi,42,14.4,90.5,16.1,29.1,Very High,Torrential,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Hyderabad Critical Distress Highway Corridor C-58,Telangana,Hyderabad,Hyderabad,25,18.9,85.5,18.3,20.5,Very High,Moderate,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Delhi NCR Critical Distress Highway Corridor C-59,Delhi,South Delhi,Delhi NCR,41,13.3,135.5,12.9,28.8,High,Heavy,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Visakhapatnam Critical Distress Highway Corridor C-60,Andhra Pradesh,Visakhapatnam,Visakhapatnam,31,18.9,127.4,18.3,11.4,High,Torrential,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Coimbatore Critical Distress Highway Corridor C-61,Tamil Nadu,Coimbatore,Coimbatore,42,11.7,85.0,13.8,33.5,Very High,Heavy,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Chennai Critical Distress Highway Corridor C-62,Tamil Nadu,Chennai,Chennai,23,12.6,131.0,19.4,17.6,Very High,Heavy,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Salem Critical Distress Highway Corridor C-63,Tamil Nadu,Salem,Salem,35,13.0,107.7,15.2,6.0,High,Heavy,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Madurai Critical Distress Highway Corridor C-64,Tamil Nadu,Madurai,Madurai,29,15.6,107.9,13.9,3.7,Very High,Moderate,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Bengaluru Critical Distress Highway Corridor C-65,Karnataka,Bengaluru Urban,Bengaluru,35,18.9,93.1,18.8,1.0,High,Heavy,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Mysuru Critical Distress Highway Corridor C-66,Karnataka,Mysuru,Mysuru,23,17.0,84.9,12.5,27.5,Very High,Moderate,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Mumbai Critical Distress Highway Corridor C-67,Maharashtra,Mumbai Suburban,Mumbai,23,15.6,124.0,17.0,11.1,High,Torrential,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Pune Critical Distress Highway Corridor C-68,Maharashtra,Pune,Pune,30,12.7,82.9,14.4,4.4,Very High,Moderate,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Kochi Critical Distress Highway Corridor C-69,Kerala,Ernakulam,Kochi,25,16.9,89.9,13.9,8.5,High,Heavy,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Hyderabad Critical Distress Highway Corridor C-70,Telangana,Hyderabad,Hyderabad,28,17.7,126.5,15.2,23.2,High,Torrential,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Delhi NCR Critical Distress Highway Corridor C-71,Delhi,South Delhi,Delhi NCR,43,18.5,122.7,18.2,1.4,Very High,Heavy,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Visakhapatnam Critical Distress Highway Corridor C-72,Andhra Pradesh,Visakhapatnam,Visakhapatnam,42,11.7,91.9,18.1,5.7,High,Moderate,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Coimbatore Critical Distress Highway Corridor C-73,Tamil Nadu,Coimbatore,Coimbatore,22,14.2,129.2,17.0,7.8,High,Moderate,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Chennai Critical Distress Highway Corridor C-74,Tamil Nadu,Chennai,Chennai,25,14.7,92.3,17.2,18.0,Very High,Torrential,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Salem Critical Distress Highway Corridor C-75,Tamil Nadu,Salem,Salem,42,15.7,84.8,14.6,26.1,Very High,Torrential,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Madurai Critical Distress Highway Corridor C-76,Tamil Nadu,Madurai,Madurai,30,16.7,130.9,15.1,33.5,High,Moderate,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Bengaluru Critical Distress Highway Corridor C-77,Karnataka,Bengaluru Urban,Bengaluru,38,17.1,136.3,18.5,3.6,High,Heavy,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Mysuru Critical Distress Highway Corridor C-78,Karnataka,Mysuru,Mysuru,39,11.8,133.6,15.7,22.7,Very High,Torrential,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Mumbai Critical Distress Highway Corridor C-79,Maharashtra,Mumbai Suburban,Mumbai,43,16.9,114.9,12.5,18.6,High,Moderate,Critical Risk,IRC:82-2015 Systematic Pavement Survey
+Pune Critical Distress Highway Corridor C-80,Maharashtra,Pune,Pune,33,15.9,119.2,12.3,3.9,High,Moderate,Critical Risk,IRC:82-2015 Systematic Pavement Survey

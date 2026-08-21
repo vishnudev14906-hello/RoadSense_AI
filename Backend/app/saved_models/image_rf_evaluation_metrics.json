@@ -1,0 +1,104 @@
+{
+  "model_name": "Image-Damage-Feature-XGBoost-Risk-Classifier",
+  "algorithm": "XGBClassifier",
+  "feature_names": [
+    "pothole_count",
+    "pothole_area_ratio",
+    "crack_area_ratio",
+    "damage_area_ratio",
+    "damage_severity",
+    "pothole_detected",
+    "crack_detected",
+    "avg_confidence"
+  ],
+  "class_names": [
+    "Low Risk",
+    "Medium Risk",
+    "High Risk",
+    "Critical Risk"
+  ],
+  "training_samples": 800,
+  "test_samples": 200,
+  "cv_folds": 5,
+  "cv_mean_accuracy": 99.88,
+  "cv_std_accuracy": 0.25,
+  "test_accuracy": 100.0,
+  "weighted_precision": 100.0,
+  "weighted_recall": 100.0,
+  "weighted_f1": 100.0,
+  "confusion_matrix": [
+    [
+      50,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      50,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      50,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      50
+    ]
+  ],
+  "classification_report": {
+    "Low Risk": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 50.0
+    },
+    "Medium Risk": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 50.0
+    },
+    "High Risk": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 50.0
+    },
+    "Critical Risk": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 50.0
+    },
+    "accuracy": 1.0,
+    "macro avg": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 200.0
+    },
+    "weighted avg": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 200.0
+    }
+  },
+  "feature_importances": {
+    "pothole_count": 17.45,
+    "pothole_area_ratio": 11.72,
+    "crack_area_ratio": 17.63,
+    "damage_area_ratio": 16.1,
+    "damage_severity": 12.11,
+    "pothole_detected": 0.0,
+    "crack_detected": 24.96,
+    "avg_confidence": 0.03
+  }
+}

@@ -1,0 +1,128 @@
+{
+  "model_name": "XGBoost Road Condition Risk Classifier",
+  "algorithm": "XGBClassifier",
+  "training_dataset_size": 381,
+  "train_samples": 304,
+  "test_samples": 77,
+  "classes": [
+    "Low Risk",
+    "Medium Risk",
+    "High Risk",
+    "Critical Risk"
+  ],
+  "class_balance_strategy": "objective='multi:softprob'",
+  "best_hyperparameters": {
+    "n_estimators": 160,
+    "learning_rate": 0.08,
+    "max_depth": 5,
+    "subsample": 0.85,
+    "colsample_bytree": 0.85
+  },
+  "cross_validation": {
+    "folds": 5,
+    "scores": [
+      0.9672,
+      0.9836,
+      0.9836,
+      1.0,
+      0.9833
+    ],
+    "mean_accuracy": 0.9836,
+    "std_dev": 0.0104
+  },
+  "test_metrics": {
+    "accuracy": 0.987,
+    "precision_weighted": 0.9877,
+    "recall_weighted": 0.987,
+    "f1_weighted": 0.987,
+    "f1_macro": 0.9872
+  },
+  "confusion_matrix": {
+    "labels": [
+      "Low Risk",
+      "Medium Risk",
+      "High Risk",
+      "Critical Risk"
+    ],
+    "matrix": [
+      [
+        19,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        19,
+        0,
+        0
+      ],
+      [
+        0,
+        1,
+        19,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        19
+      ]
+    ]
+  },
+  "classification_report": {
+    "Low Risk": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 19.0
+    },
+    "Medium Risk": {
+      "precision": 0.95,
+      "recall": 1.0,
+      "f1-score": 0.9743589743589743,
+      "support": 19.0
+    },
+    "High Risk": {
+      "precision": 1.0,
+      "recall": 0.95,
+      "f1-score": 0.9743589743589743,
+      "support": 20.0
+    },
+    "Critical Risk": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 19.0
+    },
+    "accuracy": 0.987012987012987,
+    "macro avg": {
+      "precision": 0.9875,
+      "recall": 0.9875,
+      "f1-score": 0.9871794871794872,
+      "support": 77.0
+    },
+    "weighted avg": {
+      "precision": 0.9876623376623376,
+      "recall": 0.987012987012987,
+      "f1-score": 0.987012987012987,
+      "support": 77.0
+    }
+  },
+  "feature_importances": {
+    "average_pothole_depth": 44.68,
+    "total_crack_length": 24.78,
+    "pothole_count": 15.87,
+    "pavement_age": 13.3,
+    "rainfall_Torrential": 0.6,
+    "road_length": 0.53,
+    "rainfall_Moderate": 0.16,
+    "traffic_density_High": 0.08,
+    "traffic_density_Low": 0.0,
+    "traffic_density_Medium": 0.0,
+    "traffic_density_Very High": 0.0,
+    "rainfall_Heavy": 0.0,
+    "rainfall_Light": 0.0
+  }
+}
