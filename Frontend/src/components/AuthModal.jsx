@@ -309,7 +309,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
                 style={{ width: '100%', padding: '0.75rem', fontWeight: 700 }}
                 disabled={loading}
               >
-                {loading ? 'Signing In...' : 'Sign In with Firebase'}
+                {loading ? 'Signing In...' : 'Sign In'}
               </button>
 
               <div style={{ textAlign: 'center', marginTop: '1rem', fontSize: '0.82rem', color: 'var(--text-muted)' }}>

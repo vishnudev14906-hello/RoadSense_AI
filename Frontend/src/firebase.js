@@ -1,4 +1,5 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
+import { getAnalytics, isSupported } from "firebase/analytics";
 import { 
   getAuth, 
   GoogleAuthProvider, 
@@ -14,15 +15,15 @@ import {
   browserSessionPersistence
 } from "firebase/auth";
 
-// Firebase Project Configuration
-// Reads from environment variables (VITE_FIREBASE_*) with safe fallbacks
-const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyDemoRoadSenseKeyForFirebase2026",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "roadsense-ai-auth.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "roadsense-ai-auth",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "roadsense-ai-auth.appspot.com",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "102938475610",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:102938475610:web:8a9b0c1d2e3f4a5b6c7d8e"
+// Exact Firebase Web Configuration provided for RoadSense AI
+export const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyDrq4zwQnOojmikivBa8cUa_asrQFbkr9A",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "roadsense-ai-1b4e0.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "roadsense-ai-1b4e0",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "roadsense-ai-1b4e0.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "621137176392",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:621137176392:web:d2ebb9269bc01e887a757d",
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-6YXK5C4MY4"
 };
 
 // Initialize Firebase App instance safely
@@ -30,6 +31,16 @@ export const firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig
 
 // Initialize Firebase Auth service
 export const auth = getAuth(firebaseApp);
+
+// Initialize Firebase Analytics safely (supported in browser environments)
+export let analytics = null;
+if (typeof window !== "undefined") {
+  isSupported().then((supported) => {
+    if (supported) {
+      analytics = getAnalytics(firebaseApp);
+    }
+  }).catch(() => {});
+}
 
 // Configure Google OAuth Provider
 export const googleProvider = new GoogleAuthProvider();
@@ -79,9 +90,6 @@ export const formatFirebaseError = (err) => {
     case "auth/requires-recent-login":
       return "This action requires recent authentication. Please sign in again.";
     default:
-      if (msg.includes("API key not valid") || msg.includes("invalid-api-key")) {
-        return "Firebase API Key needs configuration in .env (VITE_FIREBASE_API_KEY).";
-      }
       return msg.replace("Firebase: ", "").replace(/\(auth\/.*\)\.?/, "").trim() || "Authentication failed.";
   }
 };

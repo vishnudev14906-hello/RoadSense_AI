@@ -304,27 +304,10 @@ export default function LoginPage({ onLoginSuccess }) {
             fontWeight: 800,
             letterSpacing: '-0.02em',
             color: 'var(--text-main)',
-            marginBottom: '0.35rem'
+            marginBottom: '0.5rem'
           }}>
             RoadSense <span style={{ color: '#60A5FA' }}>AI</span>
           </h1>
-
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.35rem',
-            background: 'rgba(245, 158, 11, 0.12)',
-            border: '1px solid rgba(245, 158, 11, 0.3)',
-            color: '#FBBF24',
-            padding: '0.2rem 0.6rem',
-            borderRadius: 'var(--radius-full)',
-            fontSize: '0.72rem',
-            fontWeight: 700,
-            marginBottom: '0.65rem'
-          }}>
-            <Flame size={12} color="#F59E0B" />
-            <span>Firebase Authentication</span>
-          </div>
 
           <p style={{
             fontSize: '0.85rem',
@@ -333,7 +316,7 @@ export default function LoginPage({ onLoginSuccess }) {
           }}>
             {authMode === 'register' && 'Create your account to access the civil infrastructure risk platform'}
             {authMode === 'signin' && 'Sign in to access the road risk & maintenance intelligence system'}
-            {authMode === 'forgot' && 'Reset your password via verified Firebase email link'}
+            {authMode === 'forgot' && 'Reset your password via verified email link'}
           </p>
         </div>
 
@@ -536,7 +519,7 @@ export default function LoginPage({ onLoginSuccess }) {
                   <span>Signing In...</span>
                 ) : (
                   <>
-                    <span>Sign In with Firebase</span>
+                    <span>Sign In</span>
                     <ArrowRight size={16} />
                   </>
                 )}
@@ -767,7 +750,7 @@ export default function LoginPage({ onLoginSuccess }) {
                   <span>Creating Account...</span>
                 ) : (
                   <>
-                    <span>Create Firebase Account</span>
+                    <span>Create Account</span>
                     <ArrowRight size={16} />
                   </>
                 )}
@@ -789,7 +772,7 @@ export default function LoginPage({ onLoginSuccess }) {
               marginBottom: '1.25rem',
               lineHeight: 1.5
             }}>
-              Enter your registered account email. Firebase will automatically send a secure password reset link directly to your inbox.
+              Enter your registered account email. A secure password reset link will be sent directly to your inbox.
             </div>
 
             <div className="form-group" style={{ marginBottom: '1.5rem' }}>
