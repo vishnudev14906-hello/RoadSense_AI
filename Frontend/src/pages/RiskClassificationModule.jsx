@@ -86,7 +86,7 @@ export default function RiskClassificationModule() {
             <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#34D399', margin: '0.3rem 0' }}>
               {metrics.test_accuracy}%
             </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Random Forest 100 Trees</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>XGBoost 100 Trees</div>
           </div>
 
           <div className="glass-card" style={{ padding: '1.25rem', textAlign: 'center' }}>

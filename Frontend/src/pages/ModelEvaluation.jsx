@@ -22,7 +22,7 @@ import { api } from '../api';
 import RiskBadge from '../components/RiskBadge';
 
 export default function ModelEvaluation() {
-  const [activeSubTab, setActiveSubTab] = useState('random-forest');
+  const [activeSubTab, setActiveSubTab] = useState('xgboost');
   const [evaluationData, setEvaluationData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -78,7 +78,7 @@ export default function ModelEvaluation() {
     }
   };
 
-  const rf = evaluationData?.random_forest || {};
+  const rf = (evaluationData?.xgboost || (evaluationData?.xgboost || evaluationData?.random_forest)) || {};
   const cnn = evaluationData?.custom_cnn || {};
 
   return (
@@ -127,7 +127,7 @@ export default function ModelEvaluation() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
         <div className="glass-card stat-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>Random Forest Test Accuracy</span>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>XGBoost Test Accuracy</span>
             <Cpu size={18} color="#3B82F6" />
           </div>
           <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#3B82F6' }}>
@@ -141,7 +141,7 @@ export default function ModelEvaluation() {
 
         <div className="glass-card stat-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>Random Forest Weighted F1</span>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>XGBoost Weighted F1</span>
             <Activity size={18} color="#8B5CF6" />
           </div>
           <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#8B5CF6' }}>
@@ -182,12 +182,12 @@ export default function ModelEvaluation() {
       {/* Navigation Sub-Tabs */}
       <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.5rem' }}>
         <button
-          className={`btn ${activeSubTab === 'random-forest' ? 'btn-primary' : 'btn-secondary'}`}
-          onClick={() => setActiveSubTab('random-forest')}
+          className={`btn ${activeSubTab === 'xgboost' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => setActiveSubTab('xgboost')}
           style={{ gap: '0.45rem', fontSize: '0.85rem' }}
         >
           <Cpu size={16} />
-          <span>1. Random Forest Road Risk Model</span>
+          <span>1. XGBoost Road Risk Model</span>
         </button>
 
         <button
@@ -218,8 +218,8 @@ export default function ModelEvaluation() {
         </button>
       </div>
 
-      {/* SUB-TAB 1: RANDOM FOREST TABULAR CLASSIFIER */}
-      {activeSubTab === 'random-forest' && (
+      {/* SUB-TAB 1: XGBOOST TABULAR CLASSIFIER */}
+      {activeSubTab === 'xgboost' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           {/* Architecture & Cross-Validation Summary */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1rem' }}>
@@ -231,7 +231,7 @@ export default function ModelEvaluation() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.85rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.35rem' }}>
                   <span style={{ color: 'var(--text-muted)' }}>Algorithm:</span>
-                  <span style={{ fontWeight: 600 }}>RandomForestClassifier</span>
+                  <span style={{ fontWeight: 600 }}>XGBoostRiskClassifier</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.35rem' }}>
                   <span style={{ color: 'var(--text-muted)' }}>Dataset Total Samples:</span>
@@ -302,7 +302,7 @@ export default function ModelEvaluation() {
                 Held-Out Test Set Confusion Matrix
               </h3>
               <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
-                Rows indicate True Ground Truth Classes, Columns indicate Random Forest Predictions.
+                Rows indicate True Ground Truth Classes, Columns indicate XGBoost Predictions.
               </p>
               
               <div style={{ overflowX: 'auto' }}>
@@ -606,14 +606,14 @@ export default function ModelEvaluation() {
               Interactive Multi-Modal Decision Synthesis Simulator
             </h3>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
-              Test how the transparent civil engineering decision matrix combines Tabular Random Forest risk telemetry and CNN Image Damage classification into a deterministic final risk assessment.
+              Test how the transparent civil engineering decision matrix combines Tabular XGBoost risk telemetry and CNN Image Damage classification into a deterministic final risk assessment.
             </p>
 
             {/* Interactive Inputs */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
               <div>
                 <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
-                  Tabular Random Forest Risk:
+                  Tabular XGBoost Risk:
                 </label>
                 <select
                   value={simTabularRisk}

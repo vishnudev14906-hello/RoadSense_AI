@@ -290,7 +290,7 @@ export default function Predictor({ onOpenReport, initialParams }) {
     });
   };
 
-  // --- Run Random Forest ML Inference for Telemetry Inputs ---
+  // --- Run XGBoost ML Inference for Telemetry Inputs ---
   const runTelemetryInference = async (inputParams, saveToDb = false) => {
     const reqId = ++latestTelemetryReqId.current;
     if (saveToDb) {
@@ -1001,7 +1001,7 @@ export default function Predictor({ onOpenReport, initialParams }) {
               </div>
             </div>
 
-            {/* Right Column: Random Forest ML Prediction for Road Telemetry */}
+            {/* Right Column: XGBoost ML Prediction for Road Telemetry */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               
               {/* Telemetry Live Bar */}
@@ -1454,7 +1454,7 @@ export default function Predictor({ onOpenReport, initialParams }) {
               )}
             </div>
 
-            {/* Right Column: Random Forest ML Prediction & Maintenance Recommendation */}
+            {/* Right Column: XGBoost ML Prediction & Maintenance Recommendation */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               
               {/* Image Live Bar */}

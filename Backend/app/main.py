@@ -966,6 +966,7 @@ def health_check():
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "service": "RoadSense AI Core Backend",
         "models_ready": {
+            "xgboost_pipeline": risk_predictor.pipeline is not None,
             "random_forest_pipeline": risk_predictor.pipeline is not None,
             "custom_road_cnn": image_detector.model is not None
         }
@@ -975,15 +976,15 @@ def health_check():
 @app.post("/api/predict-risk")
 @app.post("/api/predict", response_model=PredictionOut)
 def predict_road_condition(req: PredictRequest, db: Session = Depends(get_db)):
-    p_cnt = max(0, req.pothole_count if req.pothole_count is not None else 0)
-    p_dep = max(0.0, req.pothole_depth if (req.pothole_depth is not None and req.pothole_depth > 0) else (req.average_pothole_depth_cm if req.average_pothole_depth_cm is not None else 0.0))
-    c_len = max(0.0, req.crack_length if (req.crack_length is not None and req.crack_length > 0) else (req.total_crack_length_m if req.total_crack_length_m is not None else 0.0))
-    r_age = max(0.0, req.road_age if (req.road_age is not None and req.road_age > 0) else (req.pavement_age_years if req.pavement_age_years is not None else 1.0))
-    r_len = max(0.1, req.road_length if (req.road_length is not None and req.road_length > 0) else (req.road_length_km if req.road_length_km is not None else 1.0))
+    p_cnt = max(0, int(req.pothole_count if req.pothole_count is not None else 0))
+    p_dep = max(0.0, float(req.pothole_depth if req.pothole_depth is not None else (req.average_pothole_depth_cm if req.average_pothole_depth_cm is not None else 0.0)))
+    c_len = max(0.0, float(req.crack_length if req.crack_length is not None else (req.total_crack_length_m if req.total_crack_length_m is not None else 0.0)))
+    r_age = max(0.0, float(req.road_age if req.road_age is not None else (req.pavement_age_years if req.pavement_age_years is not None else 1.0)))
+    r_len = max(0.1, float(req.road_length if req.road_length is not None else (req.road_length_km if req.road_length_km is not None else 1.0)))
     t_vol = req.traffic_density or req.traffic_volume or "Medium"
     rain = req.rainfall or "Moderate"
 
-    # Execute inference via trained Random Forest pipeline service
+    # Execute inference via trained XGBoost risk pipeline service
     pred_res = risk_predictor.predict_risk(
         pothole_count=p_cnt,
         average_pothole_depth=p_dep,
@@ -1300,7 +1301,7 @@ def get_recommendation_rules():
 @app.post("/api/combined-assessment", response_model=CombinedAssessmentResponse)
 def get_combined_road_assessment(req: CombinedAssessmentRequest):
     """
-    Transparent Decision Layer combining Tabular Random Forest risk & Visual CNN damage.
+    Transparent Decision Layer combining Tabular XGBoost risk & Visual CNN damage.
     Follows deterministic MoRTH / IRC:82 civil engineering decision matrix.
     """
     return synthesize_combined_road_assessment(
@@ -1340,6 +1341,7 @@ def get_model_evaluation_metrics():
             cnn_data = json.load(f)
 
     return {
+        "xgboost": rf_data,
         "random_forest": rf_data,
         "custom_cnn": cnn_data,
         "zero_fabrication_guarantee": "Measured strictly on authentic held-out test splits without pre-trained weights."
@@ -1347,7 +1349,7 @@ def get_model_evaluation_metrics():
 
 @app.post("/api/scan-image", response_model=ImageScanOut)
 def scan_and_predict_road_image(req: ImageScanRequest, db: Session = Depends(get_db)):
-    # Run the unified Road Image Vision AI & Random Forest Pipeline
+    # Run the unified Road Image Vision AI & XGBoost Pipeline
     pipe_res = image_pipeline_service.run_full_pipeline(
         image_input=req.image_base64,
         road_name=req.road_name or "Uploaded Road Photo",

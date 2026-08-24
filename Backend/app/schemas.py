@@ -382,7 +382,8 @@ class CombinedAssessmentResponse(BaseModel):
     decision_rationale: str
 
 class ModelEvaluationResponse(BaseModel):
-    random_forest: Dict[str, Any]
+    xgboost: Optional[Dict[str, Any]] = None
+    random_forest: Optional[Dict[str, Any]] = None
     custom_cnn: Dict[str, Any]
     zero_fabrication_guarantee: str = "Verified strictly on authentic held-out test splits without pre-trained weights."
 

@@ -103,7 +103,7 @@ export default function RiskPredictionModule({ onOpenReport }) {
               MODULE 3 OF 6
             </span>
             <span className="badge" style={{ background: 'rgba(59, 130, 246, 0.2)', color: '#60A5FA', border: '1px solid rgba(59, 130, 246, 0.4)' }}>
-              Random Forest ML Ensemble
+              XGBoost ML Classifier
             </span>
           </div>
           <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
@@ -111,7 +111,7 @@ export default function RiskPredictionModule({ onOpenReport }) {
             Road Risk Prediction Module
           </h1>
           <p className="page-subtitle">
-            Continuous 0–100 pavement failure risk inference powered by trained Random Forest models, feature importance extraction, and real-time sensitivity simulations.
+            Continuous 0–100 pavement failure risk inference powered by trained XGBoost models, feature importance extraction, and real-time sensitivity simulations.
           </p>
         </div>
 
@@ -283,7 +283,7 @@ export default function RiskPredictionModule({ onOpenReport }) {
               {prediction.probabilities && (
                 <div style={{ marginTop: '1.25rem' }}>
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.6rem' }}>
-                    Multi-Class Random Forest Probability Distribution:
+                    Multi-Class XGBoost Probability Distribution:
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem' }}>
                     {Object.entries(prediction.probabilities).map(([cls, prob]) => (

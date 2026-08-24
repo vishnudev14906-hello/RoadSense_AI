@@ -23,7 +23,7 @@ def synthesize_combined_road_assessment(
     road_age: float = 1.0
 ) -> Dict[str, Any]:
     """
-    Transparent Decision Layer synthesizing Tabular Random Forest Risk & CNN Image Detection.
+    Transparent Decision Layer synthesizing Tabular XGBoost Risk & CNN Image Detection.
     Follows deterministic civil infrastructure maintenance standards (IRC:82 / MoRTH).
     """
     img_dmg = image_damage or "No Image Provided"
@@ -72,9 +72,9 @@ def synthesize_combined_road_assessment(
         final_risk = tabular_risk
         final_score = tabular_risk_score
         if img_dmg != "No Image Provided":
-            reasons.append(f"Image damage detection was uncertain ({img_dmg}); evaluation deferred to verified Tabular Random Forest telemetry")
+            reasons.append(f"Image damage detection was uncertain ({img_dmg}); evaluation deferred to verified Tabular XGBoost telemetry")
         else:
-            reasons.append(f"Evaluated directly from Tabular Random Forest telemetry ({tabular_risk})")
+            reasons.append(f"Evaluated directly from Tabular XGBoost telemetry ({tabular_risk})")
 
     final_score = round(min(100.0, max(5.0, final_score)), 1)
 
