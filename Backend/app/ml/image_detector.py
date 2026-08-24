@@ -114,8 +114,8 @@ class RoadImageDetectorService:
         mean_sat = float(np.mean(saturation))
         std_val = float(np.std(img_arr))
 
-        # Real asphalt has low color saturation (<0.45) and basic texture variance (>4.0)
-        if mean_sat > 0.48 or std_val < 4.0:
+        # Real asphalt has low to moderate color saturation and basic variance
+        if mean_sat > 0.65 or std_val < 0.5:
             return {
                 "detected_class": "Uncertain / Non-Road",
                 "confidence": 0.20,

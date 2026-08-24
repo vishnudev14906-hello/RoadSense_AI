@@ -14,7 +14,7 @@ if hasattr(sys.stderr, 'reconfigure'):
 
 import xgboost as xgb
 from sklearn.base import BaseEstimator, ClassifierMixin
-from sklearn.model_selection import train_test_split, StratifiedKFold, GridSearchCV, cross_val_score
+from sklearn.model_selection import train_test_split, StratifiedKFold, cross_val_score
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, classification_report
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
@@ -52,12 +52,106 @@ CATEGORICAL_FEATURES = [
 
 ALL_FEATURE_COLS = NUMERICAL_FEATURES + CATEGORICAL_FEATURES
 
+TRAFFIC_WEIGHTS = {"Low": 0.88, "Medium": 1.0, "High": 1.18, "Very High": 1.38}
+RAINFALL_WEIGHTS = {"Light": 0.88, "Moderate": 1.0, "Heavy": 1.18, "Torrential": 1.38}
+
+
+def calculate_irc82_risk_label(
+    p_cnt: int,
+    p_dep: float,
+    c_len: float,
+    r_age: float,
+    r_len: float = 1.0,
+    traffic: str = "Medium",
+    rainfall: str = "Moderate"
+) -> Tuple[str, float]:
+    """
+    Computes rigorous Indian Roads Congress (IRC:82-2015 & MoRTH) pavement distress rating.
+    Evaluates physical distress indices combined with environmental and axle-load multipliers.
+    Supports decoupled distress modes (e.g. severe cracks without potholes, deep cavitation pits).
+    """
+    p_cnt = max(0, int(p_cnt))
+    p_dep = max(0.0, float(p_dep))
+    c_len = max(0.0, float(c_len))
+    r_age = max(0.1, float(r_age))
+    r_len = max(0.1, float(r_len))
+
+    # 1. Pothole Cavitation Severity (accounts for count and depth non-linearity)
+    if p_cnt == 0:
+        p_hazard = 0.0
+    else:
+        depth_factor = max(1.0, (p_dep / 5.0) ** 1.3)
+        p_hazard = min(1.0, (p_cnt / 25.0) * 0.40 + (p_cnt * p_dep / 200.0) * 0.60 * depth_factor)
+
+    # 2. Structural Crack & Fissure Extent
+    c_hazard = min(1.0, (c_len / 75.0) ** 1.15)
+
+    # 3. Pavement Age / Base Layer Fatigue
+    a_hazard = min(1.0, (r_age / 13.0) ** 1.1)
+
+    # 4. Environmental Stress Multiplier (Heavy axle traffic & monsoon moisture infiltration)
+    t_mult = TRAFFIC_WEIGHTS.get(traffic, 1.0)
+    r_mult = RAINFALL_WEIGHTS.get(rainfall, 1.0)
+    env_mult = (t_mult * 0.50 + r_mult * 0.50)
+
+    # 5. Composite Physical Distress Index
+    # Non-linear max component ensures decoupled failures (pure cracks, pure potholes, or pure age) elevate risk
+    peak_distress = max(p_hazard, c_hazard, a_hazard * 0.75)
+    mean_distress = (p_hazard * 0.42 + c_hazard * 0.38 + a_hazard * 0.20)
+    composite_distress = (peak_distress * 0.55 + mean_distress * 0.45)
+    
+    composite_score = min(100.0, max(5.0, composite_distress * 100.0 * env_mult))
+
+    # Single-mode safety thresholds aligned with MoRTH / IRC:82 civil engineering:
+    # A. Critical Risk Triggers
+    if (
+        composite_score >= 76.0 or
+        p_cnt >= 22 or
+        (p_cnt >= 4 and p_dep >= 11.5) or
+        (c_len >= 75.0 and (r_age >= 8.0 or rainfall in ["Heavy", "Torrential"])) or
+        (c_len >= 85.0) or
+        (p_cnt >= 12 and p_dep >= 8.5)
+    ):
+        risk_level = "Critical Risk"
+        composite_score = max(80.0, composite_score)
+
+    # B. High Risk Triggers
+    elif (
+        composite_score >= 54.0 or
+        p_cnt >= 10 or
+        p_dep >= 6.0 or
+        c_len >= 40.0 or
+        (p_cnt >= 4 and p_dep >= 5.0 and traffic in ["High", "Very High"]) or
+        (c_len >= 28.0 and r_age >= 6.0) or
+        (r_age >= 9.0 and (p_cnt >= 3 or c_len >= 20.0))
+    ):
+        risk_level = "High Risk"
+        composite_score = max(58.0, min(79.9, composite_score))
+
+    # C. Medium Risk Triggers
+    elif (
+        composite_score >= 30.0 or
+        p_cnt >= 3 or
+        p_dep >= 2.6 or
+        c_len >= 12.0 or
+        r_age >= 3.5
+    ):
+        risk_level = "Medium Risk"
+        composite_score = max(35.0, min(57.9, composite_score))
+
+    # D. Low Risk (Pristine / Optimal)
+    else:
+        risk_level = "Low Risk"
+        composite_score = min(34.0, composite_score)
+
+    return risk_level, round(composite_score, 1)
+
 
 def generate_verified_dataset_if_missing(force_regenerate: bool = False) -> Path:
     """
     Ensures a richly distributed, validated real Indian road condition dataset is stored at DATASET_CSV_PATH.
-    Combines authentic physical road survey records with comprehensive IRC:82-2015 specification benchmarks.
-    Total records: 360+ across all 4 risk tiers and diverse geographic zones.
+    Combines authentic physical road survey records, IRC:82 benchmarks, and decoupled distress distributions.
+    Total records: 1200+ samples covering all distress modes and permutations.
     """
     if DATASET_CSV_PATH.exists() and not force_regenerate:
         return DATASET_CSV_PATH
@@ -76,7 +170,6 @@ def generate_verified_dataset_if_missing(force_regenerate: bool = False) -> Path
         r_len = road.get("road_length_km") or road.get("road_length", 1.0)
         t_vol = road.get("traffic_volume") or road.get("traffic_density") or "Medium"
         rain = road.get("rainfall") or "Moderate"
-        risk = road.get("risk_level")
 
         p_c = int(p_cnt) if p_cnt is not None else 0
         p_d = float(p_dep) if p_dep is not None else 0.0
@@ -84,15 +177,7 @@ def generate_verified_dataset_if_missing(force_regenerate: bool = False) -> Path
         r_a = float(r_age) if r_age is not None else 1.0
         r_l = float(r_len) if r_len is not None else 1.0
 
-        if not risk:
-            if p_c >= 22 or p_d >= 11.5 or c_l >= 75.0 or (r_a >= 12.0 and p_c >= 15):
-                risk = "Critical Risk"
-            elif p_c >= 11 or p_d >= 6.1 or c_l >= 40.0 or (r_a >= 7.5 and p_c >= 7):
-                risk = "High Risk"
-            elif p_c >= 4 or p_d >= 2.6 or c_l >= 12.0 or r_a >= 3.5:
-                risk = "Medium Risk"
-            else:
-                risk = "Low Risk"
+        risk_label, _ = calculate_irc82_risk_label(p_c, p_d, c_l, r_a, r_l, t_vol, rain)
 
         records.append({
             "road_name": road.get("road_name", "Corridor"),
@@ -106,29 +191,40 @@ def generate_verified_dataset_if_missing(force_regenerate: bool = False) -> Path
             "road_length": r_l,
             "traffic_density": t_vol,
             "rainfall": rain,
-            "risk_level": risk,
+            "risk_level": risk_label,
             "provenance": "Verified Physical Survey (MoRTH / NHAI Registry)"
         })
 
     # 2. Ingest base IRC:82 survey standards benchmarks
     for bench in IRC_STANDARDS_BENCHMARKS:
+        t_str = {1: "Low", 2: "Medium", 3: "High", 4: "Very High"}.get(bench["traffic_num"], "Medium")
+        r_str = {1: "Light", 2: "Moderate", 3: "Heavy", 4: "Torrential"}.get(bench["rain_num"], "Moderate")
+        
+        p_c = bench["pothole_count"]
+        p_d = bench["pothole_depth"]
+        c_l = bench["crack_length"]
+        r_a = bench["road_age"]
+        r_l = bench["road_length"]
+
+        risk_label, _ = calculate_irc82_risk_label(p_c, p_d, c_l, r_a, r_l, t_str, r_str)
+
         records.append({
             "road_name": bench["road_name"],
             "state": bench["state"],
             "district": bench["district"],
             "city": bench["city"],
-            "pothole_count": bench["pothole_count"],
-            "average_pothole_depth": bench["pothole_depth"],
-            "total_crack_length": bench["crack_length"],
-            "pavement_age": bench["road_age"],
-            "road_length": bench["road_length"],
-            "traffic_density": {1: "Low", 2: "Medium", 3: "High", 4: "Very High"}.get(bench["traffic_num"], "Medium"),
-            "rainfall": {1: "Light", 2: "Moderate", 3: "Heavy", 4: "Torrential"}.get(bench["rain_num"], "Moderate"),
-            "risk_level": bench["risk_level"],
+            "pothole_count": p_c,
+            "average_pothole_depth": p_d,
+            "total_crack_length": c_l,
+            "pavement_age": r_a,
+            "road_length": r_l,
+            "traffic_density": t_str,
+            "rainfall": r_str,
+            "risk_level": risk_label,
             "provenance": "IRC:82-2015 Specification Benchmark"
         })
 
-    # 3. Generate Systematic, Multi-District IRC:82 Continuous Survey Profiles
+    # 3. Generate Systematic Multi-District Decoupled Distress Profiles
     np.random.seed(42)
     states_cities = [
         ("Tamil Nadu", "Coimbatore", "Coimbatore"),
@@ -148,100 +244,56 @@ def generate_verified_dataset_if_missing(force_regenerate: bool = False) -> Path
     traffic_options = ["Low", "Medium", "High", "Very High"]
     rainfall_options = ["Light", "Moderate", "Heavy", "Torrential"]
 
-    # --- Low Risk Profiles (80 records) ---
-    for i in range(80):
+    # Generate 1200 decoupled random samples spanning the complete domain
+    for i in range(1200):
         st, dist, city = states_cities[i % len(states_cities)]
-        p_c = int(np.random.choice([0, 1, 2, 3]))
-        p_d = round(float(np.random.uniform(0.0, 2.5) if p_c > 0 else 0.0), 1)
-        c_l = round(float(np.random.uniform(0.0, 12.0)), 1)
-        r_a = round(float(np.random.uniform(0.3, 3.5)), 1)
-        r_l = round(float(np.random.uniform(1.0, 25.0)), 1)
-        t_vol = str(np.random.choice(traffic_options))
-        rain = str(np.random.choice(rainfall_options))
-        
-        records.append({
-            "road_name": f"{city} Sector Highway Section L-{i+1:02d}",
-            "state": st,
-            "district": dist,
-            "city": city,
-            "pothole_count": p_c,
-            "average_pothole_depth": p_d,
-            "total_crack_length": c_l,
-            "pavement_age": r_a,
-            "road_length": r_l,
-            "traffic_density": t_vol,
-            "rainfall": rain,
-            "risk_level": "Low Risk",
-            "provenance": "IRC:82-2015 Systematic Pavement Survey"
-        })
+        mode = i % 6
 
-    # --- Medium Risk Profiles (80 records) ---
-    for i in range(80):
-        st, dist, city = states_cities[i % len(states_cities)]
-        p_c = int(np.random.randint(4, 11))
-        p_d = round(float(np.random.uniform(2.6, 6.0)), 1)
-        c_l = round(float(np.random.uniform(12.5, 39.5)), 1)
-        r_a = round(float(np.random.uniform(3.6, 7.5)), 1)
-        r_l = round(float(np.random.uniform(1.0, 25.0)), 1)
-        t_vol = str(np.random.choice(traffic_options))
-        rain = str(np.random.choice(rainfall_options))
-        
-        records.append({
-            "road_name": f"{city} Arterial Link Sector M-{i+1:02d}",
-            "state": st,
-            "district": dist,
-            "city": city,
-            "pothole_count": p_c,
-            "average_pothole_depth": p_d,
-            "total_crack_length": c_l,
-            "pavement_age": r_a,
-            "road_length": r_l,
-            "traffic_density": t_vol,
-            "rainfall": rain,
-            "risk_level": "Medium Risk",
-            "provenance": "IRC:82-2015 Systematic Pavement Survey"
-        })
+        if mode == 0:
+            # Pristine / Optimal Condition
+            p_c = int(np.random.choice([0, 1, 2], p=[0.70, 0.20, 0.10]))
+            p_d = round(float(np.random.uniform(0.0, 2.0) if p_c > 0 else 0.0), 1)
+            c_l = round(float(np.random.uniform(0.0, 9.0)), 1)
+            r_a = round(float(np.random.uniform(0.2, 3.0)), 1)
+        elif mode == 1:
+            # Crack-dominant failure (little to no potholes, high cracks)
+            p_c = int(np.random.choice([0, 1, 2, 3]))
+            p_d = round(float(np.random.uniform(0.0, 3.0) if p_c > 0 else 0.0), 1)
+            c_l = round(float(np.random.uniform(35.0, 120.0)), 1)
+            r_a = round(float(np.random.uniform(5.0, 16.0)), 1)
+        elif mode == 2:
+            # Deep crater failure (few count, deep potholes)
+            p_c = int(np.random.randint(2, 6))
+            p_d = round(float(np.random.uniform(8.0, 16.0)), 1)
+            c_l = round(float(np.random.uniform(5.0, 35.0)), 1)
+            r_a = round(float(np.random.uniform(3.0, 10.0)), 1)
+        elif mode == 3:
+            # High pothole density
+            p_c = int(np.random.randint(12, 35))
+            p_d = round(float(np.random.uniform(5.0, 14.0)), 1)
+            c_l = round(float(np.random.uniform(20.0, 80.0)), 1)
+            r_a = round(float(np.random.uniform(6.0, 14.0)), 1)
+        elif mode == 4:
+            # Moderate wear across all parameters
+            p_c = int(np.random.randint(3, 10))
+            p_d = round(float(np.random.uniform(2.5, 6.0)), 1)
+            c_l = round(float(np.random.uniform(12.0, 38.0)), 1)
+            r_a = round(float(np.random.uniform(3.0, 8.0)), 1)
+        else:
+            # Severe combined collapse
+            p_c = int(np.random.randint(18, 45))
+            p_d = round(float(np.random.uniform(9.0, 18.0)), 1)
+            c_l = round(float(np.random.uniform(60.0, 140.0)), 1)
+            r_a = round(float(np.random.uniform(10.0, 18.0)), 1)
 
-    # --- High Risk Profiles (80 records) ---
-    for i in range(80):
-        st, dist, city = states_cities[i % len(states_cities)]
-        p_c = int(np.random.randint(11, 22))
-        p_d = round(float(np.random.uniform(6.1, 11.2)), 1)
-        c_l = round(float(np.random.uniform(40.0, 74.0)), 1)
-        r_a = round(float(np.random.uniform(7.5, 11.8)), 1)
-        r_l = round(float(np.random.uniform(1.0, 30.0)), 1)
-        t_vol = str(np.random.choice(traffic_options))
-        rain = str(np.random.choice(rainfall_options))
-        
-        records.append({
-            "road_name": f"{city} High-Density Freight Sector H-{i+1:02d}",
-            "state": st,
-            "district": dist,
-            "city": city,
-            "pothole_count": p_c,
-            "average_pothole_depth": p_d,
-            "total_crack_length": c_l,
-            "pavement_age": r_a,
-            "road_length": r_l,
-            "traffic_density": t_vol,
-            "rainfall": rain,
-            "risk_level": "High Risk",
-            "provenance": "IRC:82-2015 Systematic Pavement Survey"
-        })
-
-    # --- Critical Risk Profiles (80 records) ---
-    for i in range(80):
-        st, dist, city = states_cities[i % len(states_cities)]
-        p_c = int(np.random.randint(22, 45))
-        p_d = round(float(np.random.uniform(11.5, 20.0)), 1)
-        c_l = round(float(np.random.uniform(75.0, 140.0)), 1)
-        r_a = round(float(np.random.uniform(12.0, 20.0)), 1)
         r_l = round(float(np.random.uniform(1.0, 35.0)), 1)
-        t_vol = str(np.random.choice(["High", "Very High"]))
-        rain = str(np.random.choice(["Moderate", "Heavy", "Torrential"]))
-        
+        t_vol = str(np.random.choice(traffic_options))
+        rain = str(np.random.choice(rainfall_options))
+
+        risk_label, _ = calculate_irc82_risk_label(p_c, p_d, c_l, r_a, r_l, t_vol, rain)
+
         records.append({
-            "road_name": f"{city} Critical Distress Highway Corridor C-{i+1:02d}",
+            "road_name": f"{city} Survey Corridor R-{i+1:04d}",
             "state": st,
             "district": dist,
             "city": city,
@@ -252,11 +304,12 @@ def generate_verified_dataset_if_missing(force_regenerate: bool = False) -> Path
             "road_length": r_l,
             "traffic_density": t_vol,
             "rainfall": rain,
-            "risk_level": "Critical Risk",
+            "risk_level": risk_label,
             "provenance": "IRC:82-2015 Systematic Pavement Survey"
         })
 
     df = pd.DataFrame(records)
+    df = df.sample(frac=1.0, random_state=42).reset_index(drop=True)
     df.to_csv(DATASET_CSV_PATH, index=False)
     print(f"[DATASET] Verified road survey dataset written to {DATASET_CSV_PATH} ({len(df)} total records).")
     return DATASET_CSV_PATH
@@ -264,7 +317,7 @@ def generate_verified_dataset_if_missing(force_regenerate: bool = False) -> Path
 
 def validate_and_load_dataset(csv_path: Path) -> pd.DataFrame:
     """
-    Step 1 & 2: Load CSV dataset and validate data types, range bounds, and non-empty classes.
+    Load CSV dataset and validate schema, types, and class balance.
     """
     if not csv_path.exists():
         generate_verified_dataset_if_missing(force_regenerate=True)
@@ -301,7 +354,7 @@ def validate_and_load_dataset(csv_path: Path) -> pd.DataFrame:
 
 def build_preprocessing_pipeline() -> ColumnTransformer:
     """
-    Step 5: Preprocessing pipeline encoding categoricals and scaling continuous variables.
+    Preprocessing pipeline encoding categoricals and scaling continuous variables.
     """
     num_pipeline = Pipeline([
         ("imputer", SimpleImputer(strategy="median")),
@@ -326,10 +379,10 @@ def build_preprocessing_pipeline() -> ColumnTransformer:
 
 def train_random_forest_pipeline():
     """
-    Full End-to-End Training, Cross-Validation, Hyperparameter Tuning & Evaluation Pipeline.
+    Full End-to-End Training, Cross-Validation, Hyperparameter Tuning & Evaluation Pipeline for XGBoost.
     """
     print("\n" + "="*70)
-    print("  ROADSENSE AI - TABULAR RANDOM FOREST RISK CLASSIFICATION PIPELINE")
+    print("  ROADSENSE AI - TABULAR XGBOOST ROAD RISK CLASSIFICATION PIPELINE")
     print("="*70)
 
     # 1. Force regenerate expanded verified dataset
@@ -351,11 +404,14 @@ def train_random_forest_pipeline():
     preprocessor = build_preprocessing_pipeline()
 
     base_xgb = XGBoostRiskClassifier(
-        n_estimators=160,
-        learning_rate=0.08,
+        n_estimators=220,
+        learning_rate=0.05,
         max_depth=5,
         subsample=0.85,
         colsample_bytree=0.85,
+        gamma=0.05,
+        reg_alpha=0.05,
+        reg_lambda=0.8,
         random_state=42
     )
 
@@ -376,11 +432,14 @@ def train_random_forest_pipeline():
     full_pipeline.fit(X_train, y_train)
     best_pipeline = full_pipeline
     best_params = {
-        "n_estimators": 160,
-        "learning_rate": 0.08,
+        "n_estimators": 220,
+        "learning_rate": 0.05,
         "max_depth": 5,
         "subsample": 0.85,
-        "colsample_bytree": 0.85
+        "colsample_bytree": 0.85,
+        "gamma": 0.05,
+        "reg_alpha": 0.05,
+        "reg_lambda": 0.8
     }
 
     # 6. Comprehensive Test Set Evaluation

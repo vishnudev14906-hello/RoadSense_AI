@@ -17,6 +17,12 @@ SAVED_MODELS_DIR = APP_DIR / "saved_models"
 PIPELINE_JOB_PATH = SAVED_MODELS_DIR / "road_risk_pipeline.joblib"
 METRICS_JSON_PATH = SAVED_MODELS_DIR / "rf_evaluation_metrics.json"
 
+TARGET_CLASSES = ["Low Risk", "Medium Risk", "High Risk", "Critical Risk"]
+
+TRAFFIC_MAP_NUM = {"Low": 1, "Medium": 2, "High": 3, "Very High": 4}
+RAINFALL_MAP_NUM = {"Light": 1, "Moderate": 2, "Heavy": 3, "Torrential": 4}
+
+
 class RoadRiskPredictorService:
     """
     Production Tabular XGBoost Inference Service for Road Risk Prediction.
@@ -66,23 +72,31 @@ class RoadRiskPredictorService:
     ) -> Dict[str, Any]:
         """
         Executes real-time inference on input road condition parameters.
-        Applies identical preprocessing pipeline (imputation, scaling, one-hot encoding).
+        Applies trained preprocessing pipeline and XGBoost multi-class risk classifier.
         """
         if self.pipeline is None:
             self.load_model()
 
+        p_cnt = max(0, int(pothole_count))
+        p_dep = max(0.0, float(average_pothole_depth))
+        c_len = max(0.0, float(total_crack_length))
+        r_age = max(0.1, float(pavement_age))
+        r_len = max(0.1, float(road_length))
+        t_vol = str(traffic_density) if traffic_density else "Medium"
+        rain = str(rainfall) if rainfall else "Moderate"
+
         # Build feature DataFrame matching the trained pipeline schema
         input_df = pd.DataFrame([{
-            "pothole_count": max(0, int(pothole_count)),
-            "average_pothole_depth": max(0.0, float(average_pothole_depth)),
-            "total_crack_length": max(0.0, float(total_crack_length)),
-            "pavement_age": max(0.1, float(pavement_age)),
-            "road_length": max(0.1, float(road_length)),
-            "traffic_density": str(traffic_density) if traffic_density else "Medium",
-            "rainfall": str(rainfall) if rainfall else "Moderate"
+            "pothole_count": p_cnt,
+            "average_pothole_depth": p_dep,
+            "total_crack_length": c_len,
+            "pavement_age": r_age,
+            "road_length": r_len,
+            "traffic_density": t_vol,
+            "rainfall": rain
         }])
 
-        # Predict class and probability distribution
+        # Predict class and probability distribution from XGBoost model
         predicted_class = self.pipeline.predict(input_df)[0]
         probs = self.pipeline.predict_proba(input_df)[0]
         classes = list(self.pipeline.classes_)
@@ -94,72 +108,86 @@ class RoadRiskPredictorService:
         raw_confidence = prob_dict.get(predicted_class, 85.0)
         confidence_ratio = round(raw_confidence / 100.0, 2)
 
-        # Calibrate continuous risk score (0 to 100) strictly aligned with predicted class tier
-        if predicted_class == "Critical Risk":
-            tier_min, tier_max = 80.0, 98.0
-        elif predicted_class == "High Risk":
-            tier_min, tier_max = 60.0, 79.0
-        elif predicted_class == "Medium Risk":
-            tier_min, tier_max = 35.0, 59.0
-        else:  # Low Risk
-            tier_min, tier_max = 5.0, 34.0
+        # Calibrate continuous civil engineering risk score (0 to 100)
+        # Class tier boundaries
+        tier_bounds = {
+            "Critical Risk": (80.0, 98.5),
+            "High Risk": (58.0, 79.9),
+            "Medium Risk": (35.0, 57.9),
+            "Low Risk": (5.0, 34.9)
+        }
+        tier_min, tier_max = tier_bounds.get(predicted_class, (5.0, 34.9))
 
-        p_c = float(pothole_count)
-        p_d = float(average_pothole_depth)
-        c_l = float(total_crack_length)
-        r_a = float(pavement_age)
+        # Physical distress relative factor
+        t_num = TRAFFIC_MAP_NUM.get(t_vol, 2)
+        r_num = RAINFALL_MAP_NUM.get(rain, 2)
+        env_factor = ((t_num - 1) / 3.0) * 0.5 + ((r_num - 1) / 3.0) * 0.5
+
+        p_factor = (p_cnt / 30.0) * 0.40 + (p_cnt * min(18.0, p_dep) / 250.0) * 0.60
+        c_factor = min(1.0, c_len / 85.0)
+        a_factor = min(1.0, r_age / 14.0)
+
+        rel_distress = min(1.0, max(0.0, (p_factor * 0.45 + c_factor * 0.35 + a_factor * 0.20) * (0.80 + 0.40 * env_factor)))
         
-        # Relative physical distress factor within tier
-        rel_distress = min(1.0, (p_c / 35.0) * 0.35 + (p_d / 15.0) * 0.30 + (c_l / 100.0) * 0.25 + (r_a / 15.0) * 0.10)
-        risk_score = round(tier_min + (tier_max - tier_min) * rel_distress, 1)
-        risk_score = min(100.0, max(5.0, risk_score))
+        # Probability weighted base
+        class_base_scores = {
+            "Low Risk": 15.0,
+            "Medium Risk": 46.0,
+            "High Risk": 69.0,
+            "Critical Risk": 91.0
+        }
+        prob_weighted_score = sum((prob_dict.get(cls, 0.0) / 100.0) * score for cls, score in class_base_scores.items())
+
+        # Blended risk score strictly bound within the predicted tier
+        raw_score = tier_min + (tier_max - tier_min) * (0.60 * rel_distress + 0.40 * ((prob_weighted_score - tier_min) / max(1.0, tier_max - tier_min)))
+        risk_score = round(min(tier_max, max(tier_min, raw_score)), 1)
 
         # Prescriptive maintenance recommendation & priority synthesis
         from ..agent import maintenance_agent
         agent_res = maintenance_agent.analyze(
             risk_level=predicted_class,
             risk_score=risk_score,
-            pothole_count=int(pothole_count),
-            pothole_depth=float(average_pothole_depth),
-            crack_length=float(total_crack_length),
-            road_age=float(pavement_age),
-            traffic_density=traffic_density,
-            rainfall=rainfall,
-            road_length=float(road_length)
+            pothole_count=p_cnt,
+            pothole_depth=p_dep,
+            crack_length=c_len,
+            road_age=r_age,
+            traffic_density=t_vol,
+            rainfall=rain,
+            road_length=r_len
         )
 
         # Extract feature importances
         feature_importances = self.metrics.get("feature_importances", {})
         feature_impacts = [
             {
-                "feature": "Pothole Density",
-                "importance": feature_importances.get("pothole_count", 25.0),
-                "contribution": f"{pothole_count} surface craters ({average_pothole_depth}cm avg depth)"
+                "feature": "Pothole Density & Depth",
+                "importance": feature_importances.get("pothole_count", 28.0),
+                "contribution": f"{p_cnt} surface craters ({p_dep}cm avg depth)"
             },
             {
                 "feature": "Crack Severity",
-                "importance": feature_importances.get("total_crack_length", 22.0),
-                "contribution": f"{total_crack_length}m structural linear fissures"
+                "importance": feature_importances.get("total_crack_length", 24.0),
+                "contribution": f"{c_len}m structural linear fissures"
             },
             {
                 "feature": "Pavement Age",
-                "importance": feature_importances.get("pavement_age", 20.0),
-                "contribution": f"{pavement_age} years since last resurfacing"
+                "importance": feature_importances.get("pavement_age", 18.0),
+                "contribution": f"{r_age} years since last resurfacing"
             },
             {
                 "feature": "Traffic Volume",
-                "importance": feature_importances.get("traffic_density_Very High", 12.0),
-                "contribution": f"{traffic_density} commuter/freight axle load"
+                "importance": feature_importances.get("traffic_density_Very High", 14.0),
+                "contribution": f"{t_vol} commuter/freight axle load"
             },
             {
                 "feature": "Precipitation Pattern",
-                "importance": feature_importances.get("rainfall_Heavy", 10.0),
-                "contribution": f"{rainfall} moisture infiltration"
+                "importance": feature_importances.get("rainfall_Heavy", 11.0),
+                "contribution": f"{rain} moisture infiltration"
             },
             {
                 "feature": "Corridor Span",
                 "importance": feature_importances.get("road_length", 5.0),
-                "contribution": f"{road_length} km monitored section"
+                "contribution": f"{r_len} km monitored section"
             }
         ]
 
@@ -169,7 +197,7 @@ class RoadRiskPredictorService:
             "confidence": confidence_ratio,
             "confidence_percentage": raw_confidence,
             "probabilities": prob_dict,
-            "model_version": "RandomForest-v2.5-IRC82-Pipeline",
+            "model_version": "XGBoost-v3.0-IRC82-Pipeline",
             "recommendation": agent_res["action"],
             "priority": agent_res["priority"],
             "urgency_score": agent_res["urgency_score"],

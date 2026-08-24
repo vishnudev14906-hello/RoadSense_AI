@@ -1,9 +1,9 @@
 {
   "model_name": "XGBoost Road Condition Risk Classifier",
   "algorithm": "XGBClassifier",
-  "training_dataset_size": 381,
-  "train_samples": 304,
-  "test_samples": 77,
+  "training_dataset_size": 1261,
+  "train_samples": 1008,
+  "test_samples": 253,
   "classes": [
     "Low Risk",
     "Medium Risk",
@@ -12,30 +12,33 @@
   ],
   "class_balance_strategy": "objective='multi:softprob'",
   "best_hyperparameters": {
-    "n_estimators": 160,
-    "learning_rate": 0.08,
+    "n_estimators": 220,
+    "learning_rate": 0.05,
     "max_depth": 5,
     "subsample": 0.85,
-    "colsample_bytree": 0.85
+    "colsample_bytree": 0.85,
+    "gamma": 0.05,
+    "reg_alpha": 0.05,
+    "reg_lambda": 0.8
   },
   "cross_validation": {
     "folds": 5,
     "scores": [
-      0.9672,
-      0.9836,
-      0.9836,
-      1.0,
-      0.9833
+      0.9703,
+      0.9653,
+      0.9752,
+      0.9652,
+      0.9851
     ],
-    "mean_accuracy": 0.9836,
-    "std_dev": 0.0104
+    "mean_accuracy": 0.9722,
+    "std_dev": 0.0074
   },
   "test_metrics": {
-    "accuracy": 0.987,
-    "precision_weighted": 0.9877,
-    "recall_weighted": 0.987,
-    "f1_weighted": 0.987,
-    "f1_macro": 0.9872
+    "accuracy": 0.9644,
+    "precision_weighted": 0.9657,
+    "recall_weighted": 0.9644,
+    "f1_weighted": 0.9643,
+    "f1_macro": 0.9584
   },
   "confusion_matrix": {
     "labels": [
@@ -46,28 +49,28 @@
     ],
     "matrix": [
       [
-        19,
+        42,
         0,
         0,
         0
       ],
       [
         0,
-        19,
-        0,
-        0
-      ],
-      [
-        0,
-        1,
-        19,
+        26,
+        4,
         0
       ],
       [
         0,
         0,
+        56,
+        3
+      ],
+      [
         0,
-        19
+        0,
+        2,
+        120
       ]
     ]
   },
@@ -76,53 +79,53 @@
       "precision": 1.0,
       "recall": 1.0,
       "f1-score": 1.0,
-      "support": 19.0
+      "support": 42.0
     },
     "Medium Risk": {
-      "precision": 0.95,
-      "recall": 1.0,
-      "f1-score": 0.9743589743589743,
-      "support": 19.0
+      "precision": 1.0,
+      "recall": 0.8666666666666667,
+      "f1-score": 0.9285714285714286,
+      "support": 30.0
     },
     "High Risk": {
-      "precision": 1.0,
-      "recall": 0.95,
-      "f1-score": 0.9743589743589743,
-      "support": 20.0
+      "precision": 0.9032258064516129,
+      "recall": 0.9491525423728814,
+      "f1-score": 0.9256198347107438,
+      "support": 59.0
     },
     "Critical Risk": {
-      "precision": 1.0,
-      "recall": 1.0,
-      "f1-score": 1.0,
-      "support": 19.0
+      "precision": 0.975609756097561,
+      "recall": 0.9836065573770492,
+      "f1-score": 0.9795918367346939,
+      "support": 122.0
     },
-    "accuracy": 0.987012987012987,
+    "accuracy": 0.9644268774703557,
     "macro avg": {
-      "precision": 0.9875,
-      "recall": 0.9875,
-      "f1-score": 0.9871794871794872,
-      "support": 77.0
+      "precision": 0.9697088906372935,
+      "recall": 0.9498564416041493,
+      "f1-score": 0.9584457750042166,
+      "support": 253.0
     },
     "weighted avg": {
-      "precision": 0.9876623376623376,
-      "recall": 0.987012987012987,
-      "f1-score": 0.987012987012987,
-      "support": 77.0
+      "precision": 0.9656708016780537,
+      "recall": 0.9644268774703557,
+      "f1-score": 0.9643435461925273,
+      "support": 253.0
     }
   },
   "feature_importances": {
-    "average_pothole_depth": 44.68,
-    "total_crack_length": 24.78,
-    "pothole_count": 15.87,
-    "pavement_age": 13.3,
-    "rainfall_Torrential": 0.6,
-    "road_length": 0.53,
-    "rainfall_Moderate": 0.16,
-    "traffic_density_High": 0.08,
-    "traffic_density_Low": 0.0,
-    "traffic_density_Medium": 0.0,
-    "traffic_density_Very High": 0.0,
-    "rainfall_Heavy": 0.0,
-    "rainfall_Light": 0.0
+    "pavement_age": 28.83,
+    "total_crack_length": 21.98,
+    "pothole_count": 20.11,
+    "average_pothole_depth": 13.29,
+    "traffic_density_Very High": 3.29,
+    "rainfall_Heavy": 2.17,
+    "traffic_density_Low": 2.02,
+    "rainfall_Moderate": 1.97,
+    "road_length": 1.52,
+    "rainfall_Torrential": 1.39,
+    "traffic_density_Medium": 1.19,
+    "rainfall_Light": 1.13,
+    "traffic_density_High": 1.11
   }
 }

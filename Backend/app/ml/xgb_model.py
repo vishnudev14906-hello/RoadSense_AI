@@ -8,14 +8,28 @@ TARGET_CLASSES = ["Low Risk", "Medium Risk", "High Risk", "Critical Risk"]
 class XGBoostRiskClassifier(BaseEstimator, ClassifierMixin):
     """
     Production-grade XGBoost Multi-Class Classifier for Road Infrastructure Risk.
-    Maps string class labels to deterministic integer targets and outputs probability distributions.
+    Maps string class labels to deterministic integer targets and outputs calibrated probability distributions.
     """
-    def __init__(self, n_estimators=160, learning_rate=0.08, max_depth=5, subsample=0.85, colsample_bytree=0.85, random_state=42):
+    def __init__(
+        self,
+        n_estimators: int = 200,
+        learning_rate: float = 0.06,
+        max_depth: int = 5,
+        subsample: float = 0.85,
+        colsample_bytree: float = 0.85,
+        gamma: float = 0.1,
+        reg_alpha: float = 0.1,
+        reg_lambda: float = 1.0,
+        random_state: int = 42
+    ):
         self.n_estimators = n_estimators
         self.learning_rate = learning_rate
         self.max_depth = max_depth
         self.subsample = subsample
         self.colsample_bytree = colsample_bytree
+        self.gamma = gamma
+        self.reg_alpha = reg_alpha
+        self.reg_lambda = reg_lambda
         self.random_state = random_state
         self.classes_ = np.array(TARGET_CLASSES)
         self.class_to_idx = {cls: idx for idx, cls in enumerate(TARGET_CLASSES)}
@@ -29,6 +43,9 @@ class XGBoostRiskClassifier(BaseEstimator, ClassifierMixin):
             max_depth=self.max_depth,
             subsample=self.subsample,
             colsample_bytree=self.colsample_bytree,
+            gamma=self.gamma,
+            reg_alpha=self.reg_alpha,
+            reg_lambda=self.reg_lambda,
             objective="multi:softprob",
             eval_metric="mlogloss",
             random_state=self.random_state,

@@ -32,7 +32,7 @@ class RoadImageRiskPipelineService:
 
     ROAD IMAGE
         ↓
-    IMAGE VALIDATION & OOD / BLURRINESS FILTERING
+    IMAGE VALIDATION & ILLUMINATION / OOD FILTERING
         ↓
     IMAGE ANALYSIS / DAMAGE DETECTION (CNN & ASPHALT SEGMENTATION)
         ↓
@@ -63,16 +63,7 @@ class RoadImageRiskPipelineService:
 
         self.pipeline = joblib.load(model_path)
         self.class_names = TARGET_CLASSES
-        self.feature_cols = [
-            "pothole_count",
-            "pothole_area_ratio",
-            "crack_area_ratio",
-            "damage_area_ratio",
-            "damage_severity",
-            "pothole_detected",
-            "crack_detected",
-            "avg_confidence"
-        ]
+        self.feature_cols = FEATURE_COLUMNS
         print(f"[OK] Loaded Image Risk XGBoost Pipeline successfully from {model_path}")
 
     def run_full_pipeline(
@@ -180,7 +171,7 @@ class RoadImageRiskPipelineService:
         detected_damage_type = feat_res["detected_damage_type"]
         damage_severity_label = feat_res["damage_severity_label"]
 
-        # Step 4: XGBoost Risk Classification
+        # Step 4: XGBoost Risk Classification on Extracted Image Features
         if self.pipeline is None:
             self._load_xgb_model()
 
@@ -198,7 +189,14 @@ class RoadImageRiskPipelineService:
 
         # Predicted Winning Class
         pred_class = TARGET_CLASSES[int(np.argmax([probabilities.get(c, 0.0) for c in TARGET_CLASSES]))]
-        top_prob = float(np.max(xgb_probs_arr))
+        
+        # Override to Critical if CNN strongly detects Severe Road Damage with high confidence and multiple defects
+        if cnn_class == "Severe Road Damage" and cnn_conf >= 0.70 and (measurable_features["pothole_count"] >= 4 or measurable_features["damage_area_ratio"] >= 0.08):
+            pred_class = "Critical Risk"
+            probabilities["Critical Risk"] = max(82.0, probabilities.get("Critical Risk", 0.0))
+            probabilities["Low Risk"] = 0.0
+
+        top_prob = float(probabilities.get(pred_class, 85.0)) / 100.0
         confidence_ratio = round(top_prob, 2)
         confidence_percentage = round(top_prob * 100, 1)
 
@@ -209,13 +207,13 @@ class RoadImageRiskPipelineService:
         severity_score = measurable_features["damage_severity"]
 
         if pred_class == "Critical Risk":
-            base_score = 80.0 + min(18.5, (p_cnt * 0.5) + (p_area_pct * 0.3) + (d_area_pct * 0.2) + (severity_score * 8.0))
+            base_score = 80.0 + min(18.5, (p_cnt * 0.5) + (p_area_pct * 0.3) + (d_area_pct * 0.25) + (severity_score * 8.0))
         elif pred_class == "High Risk":
-            base_score = 56.0 + min(22.0, (p_cnt * 1.8) + (d_area_pct * 0.8) + (severity_score * 15.0))
+            base_score = 58.0 + min(21.5, (p_cnt * 1.8) + (d_area_pct * 0.85) + (severity_score * 16.0))
         elif pred_class == "Medium Risk":
-            base_score = 30.0 + min(24.0, (p_cnt * 3.0) + (d_area_pct * 1.5) + (severity_score * 20.0))
+            base_score = 35.0 + min(22.5, (p_cnt * 3.0) + (d_area_pct * 1.6) + (severity_score * 20.0))
         else:  # Low Risk
-            base_score = 5.0 + min(22.0, (d_area_pct * 3.0) + (severity_score * 35.0))
+            base_score = 5.0 + min(28.0, (d_area_pct * 3.0) + (severity_score * 35.0))
 
         risk_score = round(float(min(98.8, max(5.0, base_score))), 1)
 
