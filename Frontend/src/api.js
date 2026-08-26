@@ -1,4 +1,21 @@
-const API_BASE = "http://127.0.0.1:8000/api";
+const API_BASE = import.meta.env?.VITE_API_BASE_URL || "http://127.0.0.1:8000/api";
+
+export const getStoredToken = () => {
+  try {
+    return localStorage.getItem('roadsense_token') || sessionStorage.getItem('roadsense_token') || null;
+  } catch {
+    return null;
+  }
+};
+
+export const getAuthHeaders = (extra = {}) => {
+  const token = getStoredToken();
+  const headers = { ...extra };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  return headers;
+};
 
 export const api = {
   // --- Auth ---

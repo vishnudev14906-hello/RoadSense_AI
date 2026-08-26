@@ -13,7 +13,7 @@ if hasattr(sys.stderr, 'reconfigure'):
 MAX_FILE_SIZE_BYTES = 15 * 1024 * 1024  # 15 MB
 SUPPORTED_FORMATS = ["JPEG", "JPG", "PNG", "MPO", "WEBP"]
 MIN_ASPHALT_COVERAGE_PCT = 8.0
-BLUR_VARIANCE_THRESHOLD = 8.0  # Permissive Laplacian variance threshold
+BLUR_VARIANCE_THRESHOLD = 8.0
 
 FEATURE_COLUMNS = [
     "pothole_count",
@@ -39,8 +39,8 @@ def decode_and_validate_image(image_input: Union[Image.Image, str, bytes]) -> Tu
         if isinstance(image_input, str):
             if image_input.startswith("http://") or image_input.startswith("https://"):
                 import urllib.request
-                req = urllib.request.Request(image_input, headers={'User-Agent': 'Mozilla/5.0'})
-                image_bytes = urllib.request.urlopen(req, timeout=8).read()
+                req = urllib.request.Request(image_input, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
+                image_bytes = urllib.request.urlopen(req, timeout=10).read()
             elif "," in image_input:
                 header, encoded = image_input.split(",", 1)
                 image_bytes = base64.b64decode(encoded)
@@ -67,9 +67,7 @@ def decode_and_validate_image(image_input: Union[Image.Image, str, bytes]) -> Tu
 
 
 def compute_laplacian_variance(gray: np.ndarray) -> float:
-    """
-    Computes Laplacian gradient variance to measure image sharpness/focus.
-    """
+    """Computes Laplacian gradient variance to measure image sharpness/focus."""
     padded = np.pad(gray, 1, mode='edge')
     laplacian = (
         padded[2:, 1:-1] + padded[:-2, 1:-1] +
@@ -90,7 +88,6 @@ def rgb_to_hsv_fast(rgb_arr: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.nda
     delta = max_c - min_c
 
     v = max_c
-
     s = np.zeros_like(max_c)
     non_zero = max_c > 1e-5
     s[non_zero] = delta[non_zero] / max_c[non_zero]
@@ -149,23 +146,19 @@ class RoadFeatureExtractor:
 
         # 2. Non-Road Elements Segmentation
         y_coords = np.arange(height)[:, None]
-        # Sky (upper third with bright blue/white hues)
         upper_third = y_coords < (height * 0.35)
         sky_mask = upper_third & (((h_arr >= 0.50) & (h_arr <= 0.75) & (s_arr > 0.15)) | (v_arr > 0.92))
 
-        # Roadside vegetation (distinct green saturation)
+        # Roadside vegetation
         veg_mask = ((h_arr >= 0.20) & (h_arr <= 0.45) & (s_arr > 0.25)) | \
                    ((g_chan > r_chan + 15.0) & (g_chan > b_chan + 15.0) & (g_chan > 40.0))
 
-        # Traffic Cones & Safety Barricades (bright orange/red high saturation)
+        # Traffic Cones & Safety Barricades
         cone_barrel_mask = (s_arr > 0.55) & ((h_arr < 0.12) | (h_arr > 0.88)) & (v_arr > 0.50)
-
-        # Union of non-road elements
         non_road_objects = sky_mask | veg_mask | cone_barrel_mask
 
         # 3. Asphalt Pavement Surface Isolation
-        # Broad inclusion for dark, medium, weathered, and aggregate-textured asphalt
-        asphalt_mask = (gray >= 1) & (gray <= 245) & (~non_road_objects)
+        asphalt_mask = (gray >= 15) & (gray <= 240) & (~non_road_objects)
         asphalt_pixel_count = int(np.sum(asphalt_mask))
         asphalt_coverage_pct = float((asphalt_pixel_count / total_pixels) * 100) if total_pixels > 0 else 0.0
 
@@ -199,16 +192,17 @@ class RoadFeatureExtractor:
         road_mean = float(np.mean(road_gray)) if len(road_gray) > 0 else 128.0
         road_std = float(np.std(road_gray)) if len(road_gray) > 0 else 20.0
 
-        # Potholes: Distinct deep cavitation pits noticeably darker than local asphalt
-        cavity_threshold = max(35.0, min(road_mean - 1.15 * max(6.0, road_std), 95.0))
-        cavity_dark_mask = asphalt_mask & (gray < cavity_threshold) & (gray < 85.0)
-
-        # Cracks: High-contrast structural gradients darker than surrounding asphalt
         grad_y = np.abs(np.diff(gray, axis=0, append=gray[-1:, :]))
         grad_x = np.abs(np.diff(gray, axis=1, append=gray[:, -1:]))
         grad_mag = np.sqrt(grad_x**2 + grad_y**2)
-        crack_grad_thresh = max(10.0, 1.10 * max(5.0, road_std))
-        crack_candidate_mask = asphalt_mask & (grad_mag > crack_grad_thresh) & (gray < road_mean + 10.0) & (~non_road_objects)
+
+        # Cavity (Pothole) Detection:
+        cavity_threshold = max(15.0, road_mean - 1.95 * max(6.0, road_std))
+        cavity_dark_mask = asphalt_mask & (gray < cavity_threshold) & (grad_mag > 10.0)
+
+        # Cracks Detection:
+        crack_grad_thresh = max(14.0, road_mean * 0.15 + road_std * 1.2)
+        crack_candidate_mask = asphalt_mask & (grad_mag > crack_grad_thresh) & (gray < road_mean - 0.3 * road_std) & (~cavity_dark_mask)
 
         # Spatial Grid Localization for Feature Aggregation
         grid_rows = 6
@@ -258,17 +252,17 @@ class RoadFeatureExtractor:
                 is_linear_fissure = (mean_gx > mean_gy * 1.30) or (mean_gy > mean_gx * 1.30)
 
                 # 1. Pothole Cavitation Check (2D cavity density with high local contrast)
-                if cavity_ratio >= 0.06 and not is_linear_fissure and (cell_contrast >= 6.0 or cavity_ratio >= 0.12):
-                    is_severe = cavity_ratio >= 0.18 or cell_contrast >= 18.0
+                if cavity_ratio >= 0.05 and not is_linear_fissure and cell_contrast >= 10.0:
+                    is_severe = cavity_ratio >= 0.14 or cell_contrast >= 22.0
                     if is_severe:
                         severe_defect_count += 1
                         label = "Pothole (Severe Cavity)"
-                        conf = min(98.5, round(88.0 + cavity_ratio * 25.0, 1))
+                        conf = min(98.5, round(88.0 + cavity_ratio * 30.0, 1))
                         color = "#EF4444"
                     else:
                         pothole_count += 1
                         label = "Pothole (Moderate)"
-                        conf = min(94.0, round(82.0 + cavity_ratio * 20.0, 1))
+                        conf = min(94.0, round(82.0 + cavity_ratio * 25.0, 1))
                         color = "#F97316"
 
                     confidences.append(conf)
@@ -285,27 +279,27 @@ class RoadFeatureExtractor:
                         })
                         det_id += 1
 
-                # 2. Crack / Fissure Check (Directional linear gradients or high gradient contrast)
-                elif (crack_ratio >= 0.04 or (cavity_ratio >= 0.04 and is_linear_fissure)) and (cell_contrast >= 4.0 or crack_ratio >= 0.09):
-                    if crack_ratio >= 0.16 or cavity_ratio >= 0.16:
+                # 2. Crack / Fissure Check
+                elif (crack_ratio >= 0.04 or (cavity_ratio >= 0.04 and is_linear_fissure)) and cell_contrast >= 6.0:
+                    if crack_ratio >= 0.12 or (cell_contrast >= 18.0 and crack_ratio >= 0.07):
                         severe_defect_count += 1
                         label = "Alligator Crack (Structural Fatigue)"
-                        conf = min(96.5, round(84.0 + crack_ratio * 30.0, 1))
+                        conf = min(96.5, round(84.0 + crack_ratio * 35.0, 1))
                         color = "#EF4444"
                     elif mean_gx > mean_gy * 1.20:
                         crack_cell_count += 1
                         label = "Longitudinal Crack"
-                        conf = min(94.0, round(80.0 + crack_ratio * 30.0, 1))
+                        conf = min(94.0, round(80.0 + crack_ratio * 35.0, 1))
                         color = "#F59E0B"
                     elif mean_gy > mean_gx * 1.20:
                         crack_cell_count += 1
                         label = "Transverse Crack"
-                        conf = min(92.0, round(78.0 + crack_ratio * 30.0, 1))
+                        conf = min(92.0, round(78.0 + crack_ratio * 35.0, 1))
                         color = "#F97316"
                     else:
                         crack_cell_count += 1
                         label = "Surface Fatigue Crack"
-                        conf = min(90.0, round(75.0 + crack_ratio * 25.0, 1))
+                        conf = min(90.0, round(75.0 + crack_ratio * 30.0, 1))
                         color = "#EAB308"
 
                     confidences.append(conf)
@@ -323,42 +317,20 @@ class RoadFeatureExtractor:
                         det_id += 1
 
         # Calculate exact pixel area ratios over segmented asphalt surface
+        denom = max(1, asphalt_pixel_count)
         pothole_pixels = int(np.sum(cavity_dark_mask))
         crack_pixels = int(np.sum(crack_candidate_mask))
         total_damaged_pixels = int(np.sum(cavity_dark_mask | crack_candidate_mask))
 
-        denom = max(1, asphalt_pixel_count)
-        pothole_area_ratio = round(min(1.0, float(pothole_pixels / denom)), 4)
-        crack_area_ratio = round(min(1.0, float(crack_pixels / denom)), 4)
-        damage_area_ratio = round(min(1.0, float(total_damaged_pixels / denom)), 4)
+        raw_pothole_area_ratio = round(float(pothole_pixels / denom), 4)
+        raw_crack_area_ratio = round(float(crack_pixels / denom), 4)
+        raw_damage_area_ratio = round(float(total_damaged_pixels / denom), 4)
 
-        # Measured physical pothole count
-        raw_pothole_count = pothole_count + severe_defect_count
-        if raw_pothole_count == 0 and pothole_area_ratio > 0.008:
-            total_potholes = max(1, int(round(pothole_area_ratio * 50)))
-        else:
-            total_potholes = raw_pothole_count
+        total_potholes = pothole_count + severe_defect_count
+        pothole_detected = 1 if total_potholes > 0 else 0
+        crack_detected = 1 if (crack_cell_count > 0 or raw_crack_area_ratio > 0.005) else 0
 
-        # If CNN identified Pothole or Severe Road Damage with high confidence, ensure feature alignment
-        if cnn_damage_class == "Pothole" and total_potholes == 0:
-            total_potholes = max(1, int(round(max(0.01, pothole_area_ratio) * 60)))
-            if total_potholes == 0:
-                total_potholes = 1
-        elif cnn_damage_class == "Severe Road Damage" and total_potholes < 4:
-            total_potholes = max(4, total_potholes)
-
-        pothole_detected = 1 if (total_potholes > 0 or pothole_area_ratio > 0.005) else 0
-        crack_detected = 1 if (crack_cell_count > 0 or crack_area_ratio > 0.005 or cnn_damage_class == "Crack") else 0
-
-        # Continuous damage severity index calculation (0.0 to 1.0)
-        base_severity = min(1.0, (damage_area_ratio * 1.8) + (pothole_area_ratio * 2.2) + (total_potholes * 0.03) + (crack_area_ratio * 1.2))
-        if total_potholes == 0 and crack_detected == 0 and damage_area_ratio < 0.015:
-            damage_severity = round(float(min(0.10, base_severity)), 3)
-            pothole_area_ratio = 0.0
-            crack_area_ratio = min(0.004, crack_area_ratio)
-            damage_area_ratio = min(0.004, damage_area_ratio)
-        else:
-            damage_severity = round(float(min(1.0, base_severity)), 3)
+        damage_severity = round(float(np.clip((raw_damage_area_ratio * 2.5) + (raw_pothole_area_ratio * 3.0) + (total_potholes * 0.04), 0.0, 1.0)), 3)
 
         # Average confidence
         if confidences:
@@ -366,24 +338,24 @@ class RoadFeatureExtractor:
         elif cnn_confidence is not None:
             avg_confidence = round(float(cnn_confidence * 100), 1)
         else:
-            avg_confidence = 98.5
+            avg_confidence = 96.5
 
         # Damage type classification label
-        if total_potholes >= 4 and (crack_detected or severe_defect_count > 0):
+        if total_potholes >= 10 or (total_potholes >= 4 and crack_detected and damage_severity >= 0.65):
             detected_damage_type = "Potholes & Structural Cracking"
-            damage_severity_label = "Severe" if damage_severity >= 0.65 else "High"
-        elif total_potholes > 0 and total_potholes < 4:
-            detected_damage_type = "Minor Pothole Cavities"
-            damage_severity_label = "Moderate" if damage_severity >= 0.35 else "Minor"
+            damage_severity_label = "Severe"
         elif total_potholes >= 4:
             detected_damage_type = "Potholes (Cavitation Pits)"
-            damage_severity_label = "Severe" if severe_defect_count > 0 else "Moderate"
-        elif crack_detected and damage_area_ratio > 0.08:
+            damage_severity_label = "High"
+        elif total_potholes > 0:
+            detected_damage_type = "Minor Pothole Cavities"
+            damage_severity_label = "Moderate"
+        elif crack_detected and damage_severity >= 0.45:
             detected_damage_type = "Structural Alligator Cracking"
-            damage_severity_label = "High" if damage_severity >= 0.50 else "Moderate"
+            damage_severity_label = "High"
         elif crack_detected:
             detected_damage_type = "Surface & Transverse Cracks"
-            damage_severity_label = "Moderate" if damage_severity >= 0.28 else "Minor"
+            damage_severity_label = "Moderate"
         else:
             detected_damage_type = "Normal / Optimal Road Surface"
             damage_severity_label = "Low"
@@ -401,9 +373,9 @@ class RoadFeatureExtractor:
 
         measurable_features = {
             "pothole_count": total_potholes,
-            "pothole_area_ratio": pothole_area_ratio,
-            "crack_area_ratio": crack_area_ratio,
-            "damage_area_ratio": damage_area_ratio,
+            "pothole_area_ratio": raw_pothole_area_ratio,
+            "crack_area_ratio": raw_crack_area_ratio,
+            "damage_area_ratio": raw_damage_area_ratio,
             "damage_severity": damage_severity,
             "pothole_detected": pothole_detected,
             "crack_detected": crack_detected,
@@ -419,7 +391,7 @@ class RoadFeatureExtractor:
             "detections": detections,
             "detected_damage_type": detected_damage_type,
             "damage_severity_label": damage_severity_label,
-            "total_damaged_area_pct": round(damage_area_ratio * 100, 2)
+            "total_damaged_area_pct": round(raw_damage_area_ratio * 100, 2)
         }
 
 road_feature_extractor = RoadFeatureExtractor()

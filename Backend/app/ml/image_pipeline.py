@@ -183,18 +183,12 @@ class RoadImageRiskPipelineService:
         for c in TARGET_CLASSES:
             if c in xgb_classes:
                 idx = xgb_classes.index(c)
-                probabilities[c] = round(float(xgb_probs_arr[idx] * 100), 1)
+                probabilities[str(c)] = round(float(xgb_probs_arr[idx] * 100), 1)
             else:
-                probabilities[c] = 0.0
+                probabilities[str(c)] = 0.0
 
-        # Predicted Winning Class
-        pred_class = TARGET_CLASSES[int(np.argmax([probabilities.get(c, 0.0) for c in TARGET_CLASSES]))]
-        
-        # Override to Critical if CNN strongly detects Severe Road Damage with high confidence and multiple defects
-        if cnn_class == "Severe Road Damage" and cnn_conf >= 0.70 and (measurable_features["pothole_count"] >= 4 or measurable_features["damage_area_ratio"] >= 0.08):
-            pred_class = "Critical Risk"
-            probabilities["Critical Risk"] = max(82.0, probabilities.get("Critical Risk", 0.0))
-            probabilities["Low Risk"] = 0.0
+        # Predicted Winning Class directly from trained XGBoost pipeline
+        pred_class = str(self.pipeline.predict(feature_df)[0])
 
         top_prob = float(probabilities.get(pred_class, 85.0)) / 100.0
         confidence_ratio = round(top_prob, 2)

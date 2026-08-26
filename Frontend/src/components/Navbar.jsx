@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { LogIn, LogOut, ShieldCheck, Clock, User, Sparkles } from 'lucide-react';
+import { LogIn, LogOut, ShieldCheck, Clock, User, Sparkles, Menu, X } from 'lucide-react';
 import { formatDateTime, formatTime, formatDate } from '../utils/dateUtils';
 
-export default function Navbar({ currentUser, onOpenAuth, onLogout }) {
+export default function Navbar({ currentUser, onOpenAuth, onLogout, onToggleMobileMenu, isMobileMenuOpen }) {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -14,9 +14,19 @@ export default function Navbar({ currentUser, onOpenAuth, onLogout }) {
 
   return (
     <header className="navbar">
-      <div className="navbar-left" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+      <div className="navbar-left" style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+        {/* Mobile Hamburger Toggle Button */}
+        <button
+          className="mobile-menu-btn"
+          onClick={onToggleMobileMenu}
+          aria-label="Toggle Navigation Menu"
+          title="Toggle Navigation Menu"
+        >
+          {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+        </button>
+
         {/* Clock */}
-        <div style={{
+        <div className="navbar-clock" style={{
           display: 'flex',
           alignItems: 'center',
           gap: '0.45rem',
@@ -29,15 +39,16 @@ export default function Navbar({ currentUser, onOpenAuth, onLogout }) {
           fontFamily: 'JetBrains Mono, monospace'
         }}>
           <Clock size={13} color="#60A5FA" />
-          <span style={{ color: 'var(--text-muted)' }}>{formatDate(currentTime)}</span>
+          <span className="navbar-date" style={{ color: 'var(--text-muted)' }}>{formatDate(currentTime)}</span>
           <span style={{ color: '#93C5FD', fontWeight: 700 }}>{formatTime(currentTime, true)}</span>
         </div>
       </div>
 
       <div className="navbar-right">
         {currentUser ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
             <div 
+              className="navbar-user-chip"
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -68,9 +79,9 @@ export default function Navbar({ currentUser, onOpenAuth, onLogout }) {
                 <ShieldCheck size={16} color={currentUser.role === 'Admin' ? '#60A5FA' : '#34D399'} />
               )}
               
-              <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>{currentUser.name}</span>
+              <span className="navbar-username" style={{ fontSize: '0.82rem', fontWeight: 600 }}>{currentUser.name}</span>
               
-              <span style={{
+              <span className="navbar-user-role" style={{
                 fontSize: '0.68rem',
                 background: currentUser.role === 'Admin' ? 'rgba(59, 130, 246, 0.2)' : 'rgba(16, 185, 129, 0.2)',
                 color: currentUser.role === 'Admin' ? '#60A5FA' : '#34D399',
@@ -90,7 +101,7 @@ export default function Navbar({ currentUser, onOpenAuth, onLogout }) {
               style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem' }}
             >
               <LogOut size={14} />
-              <span>Logout</span>
+              <span className="navbar-logout-text">Logout</span>
             </button>
           </div>
         ) : (

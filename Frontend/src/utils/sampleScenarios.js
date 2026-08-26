@@ -86,7 +86,7 @@ export const SAMPLE_INSPECTION_SCENARIOS = [
     damage_class: 'Other Road Damage',
     source_tag: 'Municipal Maintenance Register (Verified)',
     source_url: 'https://data.gov.in/',
-    imageUrl: 'https://images.unsplash.com/photo-1545158826-e69e46a78280?auto=format&fit=crop&w=800&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1498084393753-b411b2d26b34?auto=format&fit=crop&w=800&q=80',
     description: 'Freshly resurfaced bituminous wearing course with zero structural defects and optimal friction skid resistance.',
     detections: [
       { id: 1, label: 'Surface Integrity: Optimal', confidence: 99.1, x: 10, y: 15, w: 80, h: 70, color: '#10B981' }

@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { X, Shield, User, Lock, Mail, CheckCircle2, AlertCircle, Eye, EyeOff, Flame } from 'lucide-react';
+import { X, Shield, User, Lock, Mail, CheckCircle2, AlertCircle, Eye, EyeOff, KeyRound, ArrowLeft } from 'lucide-react';
 import { 
   auth, 
   googleProvider, 
+  getGoogleProvider,
   signInWithPopup, 
+  signInWithRedirect,
+  getRedirectResult,
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
+  sendPasswordResetEmail,
   updateProfile,
   configurePersistence,
   formatFirebaseError
@@ -33,7 +37,7 @@ const GoogleIcon = () => (
 );
 
 export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
-  const [authMode, setAuthMode] = useState('signin');
+  const [authMode, setAuthMode] = useState('signin'); // 'signin' | 'register' | 'forgot'
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -153,16 +157,64 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
     }
   };
 
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccessMsg('');
+
+    if (!email.trim()) {
+      setError('Please enter your email address');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const actionCodeSettings = {
+        url: window.location.origin + window.location.pathname,
+        handleCodeInApp: true
+      };
+      try {
+        await sendPasswordResetEmail(auth, email.trim(), actionCodeSettings);
+      } catch (actionErr) {
+        await sendPasswordResetEmail(auth, email.trim());
+      }
+      setSuccessMsg('If an account exists for this email address, a password reset link has been sent. Please check your inbox.');
+    } catch (err) {
+      console.error("[Firebase Reset Password Error]", err);
+      if (err.code === "auth/user-not-found" || err.code === "auth/invalid-credential") {
+        setSuccessMsg('If an account exists for this email address, a password reset link has been sent. Please check your inbox.');
+      } else {
+        setError(formatFirebaseError(err));
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleGoogleSignIn = async () => {
     setError('');
     setGoogleLoading(true);
     try {
-      await configurePersistence(rememberMe);
-      const userCredential = await signInWithPopup(auth, googleProvider);
-      await completeFirebaseLogin(userCredential.user, 'Inspector');
+      configurePersistence(rememberMe).catch((e) => console.warn("[Persistence notice]", e));
+      const provider = getGoogleProvider();
+      const userCredential = await signInWithPopup(auth, provider);
+      if (userCredential && userCredential.user) {
+        await completeFirebaseLogin(userCredential.user, 'Inspector');
+      }
     } catch (err) {
       console.error("[Firebase Google Auth Error]", err);
-      if (err.code !== "auth/popup-closed-by-user") {
+      if (err.code === "auth/popup-blocked" || err.code === "auth/cancelled-popup-request") {
+        try {
+          const provider = getGoogleProvider();
+          await signInWithRedirect(auth, provider);
+          return;
+        } catch (redirectErr) {
+          console.error("[Firebase Redirect Error]", redirectErr);
+          setError(formatFirebaseError(redirectErr));
+        }
+      } else if (err.code === "auth/popup-closed-by-user") {
+        setError("Google Sign-In was cancelled. Please select a Google account to continue.");
+      } else {
         setError(formatFirebaseError(err));
       }
     } finally {
@@ -177,7 +229,9 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
             <Shield size={20} color="#3B82F6" />
             <h2 className="modal-title">
-              {authMode === 'register' ? 'Create RoadSense Account' : 'Sign In to RoadSense AI'}
+              {authMode === 'register' && 'Create RoadSense Account'}
+              {authMode === 'signin' && 'Sign In to RoadSense AI'}
+              {authMode === 'forgot' && 'Reset Password'}
             </h2>
           </div>
           <button className="btn-icon" onClick={handleClose}>
@@ -204,61 +258,93 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
             </div>
           )}
 
-          {/* Google Button */}
-          <button
-            type="button"
-            className="btn"
-            onClick={handleGoogleSignIn}
-            disabled={googleLoading || loading}
-            style={{
-              width: '100%',
-              background: 'rgba(255, 255, 255, 0.06)',
-              border: '1px solid var(--border)',
-              color: 'var(--text-main)',
-              padding: '0.7rem 1rem',
-              fontSize: '0.88rem',
-              fontWeight: 600,
+          {successMsg && (
+            <div style={{
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.65rem',
+              gap: '0.6rem',
+              background: 'rgba(16, 185, 129, 0.12)',
+              border: '1px solid rgba(16, 185, 129, 0.35)',
+              color: '#34D399',
+              padding: '0.75rem',
               borderRadius: 'var(--radius-md)',
-              marginBottom: '1rem',
-              cursor: 'pointer'
-            }}
-          >
-            <GoogleIcon />
-            <span>{googleLoading ? 'Connecting to Google...' : 'Continue with Google'}</span>
-          </button>
+              fontSize: '0.84rem',
+              marginBottom: '1rem'
+            }}>
+              <CheckCircle2 size={16} />
+              <span>{successMsg}</span>
+            </div>
+          )}
 
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            margin: '1rem 0',
-            color: 'var(--text-dim)',
-            fontSize: '0.75rem'
-          }}>
-            <div style={{ flex: 1, height: '1px', background: 'var(--border-subtle)' }} />
-            <span style={{ padding: '0 0.6rem', textTransform: 'uppercase' }}>or with email</span>
-            <div style={{ flex: 1, height: '1px', background: 'var(--border-subtle)' }} />
-          </div>
+          {authMode !== 'forgot' && (
+            <>
+              {/* Google Button */}
+              <button
+                type="button"
+                className="btn"
+                onClick={handleGoogleSignIn}
+                disabled={googleLoading || loading}
+                style={{
+                  width: '100%',
+                  background: 'rgba(255, 255, 255, 0.06)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text-main)',
+                  padding: '0.7rem 1rem',
+                  fontSize: '0.88rem',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.65rem',
+                  borderRadius: 'var(--radius-md)',
+                  marginBottom: '1rem',
+                  cursor: 'pointer'
+                }}
+              >
+                <GoogleIcon />
+                <span>{googleLoading ? 'Connecting to Google...' : 'Continue with Google'}</span>
+              </button>
 
-          {authMode === 'signin' ? (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                margin: '1rem 0',
+                color: 'var(--text-dim)',
+                fontSize: '0.75rem'
+              }}>
+                <div style={{ flex: 1, height: '1px', background: 'var(--border-subtle)' }} />
+                <span style={{ padding: '0 0.6rem', textTransform: 'uppercase' }}>or with email</span>
+                <div style={{ flex: 1, height: '1px', background: 'var(--border-subtle)' }} />
+              </div>
+            </>
+          )}
+
+          {authMode === 'signin' && (
             <form onSubmit={handleSignIn} autoComplete="off">
-              <div className="form-group" style={{ marginBottom: '1rem' }}>
-                <label className="form-label" style={{ fontSize: '0.82rem', fontWeight: 600 }}>Email Address</label>
+              <div className="form-group" style={{ marginBottom: '0.85rem' }}>
+                <label className="form-label">Email Address</label>
                 <input
                   type="email"
                   className="form-input"
                   placeholder="name@roadsense.ai"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  disabled={loading}
                   required
                 />
               </div>
 
               <div className="form-group" style={{ marginBottom: '1rem' }}>
-                <label className="form-label" style={{ fontSize: '0.82rem', fontWeight: 600 }}>Password</label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                  <label className="form-label" style={{ margin: 0 }}>Password</label>
+                  <button
+                    type="button"
+                    onClick={() => { setError(''); setSuccessMsg(''); setAuthMode('forgot'); }}
+                    style={{ background: 'none', border: 'none', color: '#60A5FA', fontSize: '0.78rem', cursor: 'pointer', padding: 0 }}
+                  >
+                    Forgot password?
+                  </button>
+                </div>
                 <div style={{ position: 'relative' }}>
                   <input
                     type={showPassword ? 'text' : 'password'}
@@ -266,31 +352,31 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    disabled={loading}
                     required
-                    style={{ paddingRight: '2.5rem' }}
+                    style={{ paddingRight: '2.2rem' }}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                    title={showPassword ? "Hide password" : "Show password"}
                     style={{
                       position: 'absolute',
-                      right: '8px',
+                      right: '0.6rem',
                       top: '50%',
                       transform: 'translateY(-50%)',
                       background: 'none',
                       border: 'none',
                       color: 'var(--text-muted)',
-                      cursor: 'pointer'
+                      cursor: 'pointer',
+                      padding: 0
                     }}
                   >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
                   </button>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '1rem' }}>
                 <input
                   type="checkbox"
                   id="modalRememberMe"
@@ -306,142 +392,163 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
               <button
                 type="submit"
                 className="btn btn-primary"
-                style={{ width: '100%', padding: '0.75rem', fontWeight: 700 }}
                 disabled={loading}
+                style={{ width: '100%', padding: '0.65rem' }}
               >
-                {loading ? 'Signing In...' : 'Sign In'}
+                {loading ? 'Authenticating...' : 'Sign In'}
               </button>
 
-              <div style={{ textAlign: 'center', marginTop: '1rem', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+              <div style={{ textAlign: 'center', marginTop: '1rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                 <span>Don't have an account? </span>
                 <button
                   type="button"
-                  onClick={() => {
-                    setError('');
-                    setSuccessMsg('');
-                    setAuthMode('register');
-                  }}
-                  style={{ background: 'none', border: 'none', color: '#60A5FA', cursor: 'pointer', fontWeight: 600 }}
+                  onClick={() => { setError(''); setSuccessMsg(''); setAuthMode('register'); }}
+                  style={{ background: 'none', border: 'none', color: '#60A5FA', cursor: 'pointer', padding: 0, fontWeight: 600 }}
                 >
-                  Create Account
+                  Register
                 </button>
               </div>
             </form>
-          ) : (
+          )}
+
+          {authMode === 'register' && (
             <form onSubmit={handleRegister} autoComplete="off">
-              <div className="form-group" style={{ marginBottom: '0.85rem' }}>
-                <label className="form-label" style={{ fontSize: '0.82rem', fontWeight: 600 }}>Username / Full Name</label>
+              <div className="form-group" style={{ marginBottom: '0.75rem' }}>
+                <label className="form-label">Full Name</label>
                 <input
                   type="text"
                   className="form-input"
-                  placeholder="e.g. Ramesh Kumar"
+                  placeholder="Er. Rajesh Sharma"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  disabled={loading}
                   required
                 />
               </div>
 
-              <div className="form-group" style={{ marginBottom: '0.85rem' }}>
-                <label className="form-label" style={{ fontSize: '0.82rem', fontWeight: 600 }}>Email Address</label>
+              <div className="form-group" style={{ marginBottom: '0.75rem' }}>
+                <label className="form-label">Email Address</label>
                 <input
                   type="email"
                   className="form-input"
-                  placeholder="name@roadsense.ai"
+                  placeholder="rajesh.sharma@nhai.gov.in"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  disabled={loading}
                   required
                 />
               </div>
 
-              <div className="form-group" style={{ marginBottom: '0.85rem' }}>
-                <label className="form-label" style={{ fontSize: '0.82rem', fontWeight: 600 }}>Password</label>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    className="form-input"
-                    placeholder="At least 6 characters"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    style={{ paddingRight: '2.5rem' }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                    title={showPassword ? "Hide password" : "Show password"}
-                    style={{
-                      position: 'absolute',
-                      right: '8px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      background: 'none',
-                      border: 'none',
-                      color: 'var(--text-muted)',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
+              <div className="form-group" style={{ marginBottom: '0.75rem' }}>
+                <label className="form-label">Role</label>
+                <select
+                  className="form-select"
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                  disabled={loading}
+                >
+                  <option value="Inspector">Field Road Inspector</option>
+                  <option value="Engineer">Civil Highway Engineer</option>
+                  <option value="Admin">PWD / NHAI Administrator</option>
+                </select>
               </div>
 
-              <div className="form-group" style={{ marginBottom: '1rem' }}>
-                <label className="form-label" style={{ fontSize: '0.82rem', fontWeight: 600 }}>Confirm Password</label>
-                <div style={{ position: 'relative' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '1rem' }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Password</label>
                   <input
-                    type={showConfirmPassword ? 'text' : 'password'}
+                    type="password"
                     className="form-input"
-                    placeholder="Re-type password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={loading}
+                    required
+                  />
+                </div>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Confirm</label>
+                  <input
+                    type="password"
+                    className="form-input"
+                    placeholder="••••••••"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
+                    disabled={loading}
                     required
-                    style={{ paddingRight: '2.5rem' }}
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
-                    title={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
-                    style={{
-                      position: 'absolute',
-                      right: '8px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      background: 'none',
-                      border: 'none',
-                      color: 'var(--text-muted)',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
                 </div>
               </div>
 
               <button
                 type="submit"
                 className="btn btn-primary"
-                style={{ width: '100%', padding: '0.75rem', fontWeight: 700 }}
                 disabled={loading}
+                style={{ width: '100%', padding: '0.65rem' }}
               >
                 {loading ? 'Creating Account...' : 'Create Account'}
               </button>
 
-              <div style={{ textAlign: 'center', marginTop: '1rem', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-                <span>Already have an account? </span>
+              <div style={{ textAlign: 'center', marginTop: '1rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                <span>Already registered? </span>
                 <button
                   type="button"
-                  onClick={() => {
-                    setError('');
-                    setSuccessMsg('');
-                    setAuthMode('signin');
-                  }}
-                  style={{ background: 'none', border: 'none', color: '#60A5FA', cursor: 'pointer', fontWeight: 600 }}
+                  onClick={() => { setError(''); setSuccessMsg(''); setAuthMode('signin'); }}
+                  style={{ background: 'none', border: 'none', color: '#60A5FA', cursor: 'pointer', padding: 0, fontWeight: 600 }}
                 >
                   Sign In
                 </button>
               </div>
+            </form>
+          )}
+
+          {authMode === 'forgot' && (
+            <form onSubmit={handleForgotPassword} autoComplete="off">
+              <div style={{
+                background: 'rgba(59, 130, 246, 0.08)',
+                border: '1px solid rgba(59, 130, 246, 0.25)',
+                padding: '0.75rem',
+                borderRadius: 'var(--radius-md)',
+                fontSize: '0.8rem',
+                color: 'var(--text-muted)',
+                marginBottom: '1rem',
+                lineHeight: 1.4
+              }}>
+                Enter your registered email. If an account exists, a secure password reset link will be sent to your inbox.
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '1rem' }}>
+                <label className="form-label">Registered Email</label>
+                <input
+                  type="email"
+                  className="form-input"
+                  placeholder="name@roadsense.ai"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={loading}
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={loading}
+                style={{ width: '100%', padding: '0.65rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+              >
+                <KeyRound size={15} />
+                <span>{loading ? 'Sending Link...' : 'Send Password Reset Link'}</span>
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => { setError(''); setSuccessMsg(''); setAuthMode('signin'); }}
+                style={{ width: '100%', padding: '0.55rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+              >
+                <ArrowLeft size={14} />
+                <span>Back to Sign In</span>
+              </button>
             </form>
           )}
         </div>

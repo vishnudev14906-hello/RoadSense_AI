@@ -1,28 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Shield, 
+  ShieldCheck, 
+  LogIn, 
+  UserPlus, 
+  KeyRound, 
   Mail, 
   Lock, 
   User, 
-  ArrowRight, 
-  Activity, 
+  Briefcase, 
+  AlertCircle, 
   CheckCircle2, 
-  AlertCircle,
+  ArrowRight, 
+  ArrowLeft,
+  Shield, 
+  Activity,
   Eye,
   EyeOff,
-  KeyRound,
-  ArrowLeft,
-  X,
-  ExternalLink,
-  Flame
+  Sparkles,
+  RefreshCw,
+  LockKeyhole
 } from 'lucide-react';
 import { 
   auth, 
   googleProvider, 
+  getGoogleProvider,
   signInWithPopup, 
+  signInWithRedirect,
+  getRedirectResult,
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
   sendPasswordResetEmail, 
+  verifyPasswordResetCode,
+  confirmPasswordReset,
   updateProfile,
   configurePersistence,
   formatFirebaseError
@@ -31,7 +40,7 @@ import { api } from '../api';
 
 // Official Google Multi-Color SVG Icon
 const GoogleIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+  <svg width="18" height="18" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
     <path
       fill="#4285F4"
       d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -52,193 +61,379 @@ const GoogleIcon = () => (
 );
 
 export default function LoginPage({ onLoginSuccess }) {
-  // Modes: 'signin' | 'register' | 'forgot'
+  // Modes: 'signin' | 'register' | 'forgot' | 'resetPassword'
   const [authMode, setAuthMode] = useState('signin');
   
-  // Form fields
-  const [name, setName] = useState('');
+  // Standard Form Fields
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(true);
-  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [name, setName] = useState('');
   const [role, setRole] = useState('Inspector');
-
-  // Interactive Password Visibility Toggles
+  const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
+  // Password Reset Specific States
+  const [resetCode, setResetCode] = useState('');
+  const [resetEmail, setResetEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
+  const [verifyingCode, setVerifyingCode] = useState(false);
+  const [codeError, setCodeError] = useState('');
+  const [resetSuccess, setResetSuccess] = useState(false);
 
-  // States
-  const [error, setError] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
+  // Status & Loading States
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
 
-  // Password Strength Calculation
-  const calculatePasswordStrength = (pwd) => {
-    if (!pwd) return { score: 0, label: 'None', color: 'transparent', width: '0%' };
-    let score = 0;
-    if (pwd.length >= 6) score += 1;
-    if (pwd.length >= 10) score += 1;
-    if (/[A-Z]/.test(pwd)) score += 1;
-    if (/[0-9]/.test(pwd)) score += 1;
-    if (/[^A-Za-z0-9]/.test(pwd)) score += 1;
-
-    if (score <= 1) return { score: 1, label: 'Weak', color: '#EF4444', width: '25%' };
-    if (score === 2 || score === 3) return { score: 2, label: 'Moderate', color: '#F59E0B', width: '50%' };
-    if (score === 4) return { score: 3, label: 'Good', color: '#3B82F6', width: '75%' };
-    return { score: 4, label: 'Strong', color: '#10B981', width: '100%' };
-  };
-
-  const passwordStrength = calculatePasswordStrength(password);
-
-  const resetFields = () => {
+  // Clear messages when switching tabs
+  const switchMode = (mode) => {
     setError('');
     setSuccessMsg('');
-    setPassword('');
-    setConfirmPassword('');
-    setShowPassword(false);
-    setShowConfirmPassword(false);
+    setCodeError('');
+    setAuthMode(mode);
   };
 
-  // Helper to sync Firebase authenticated user with app session
+  // Populate form with preconfigured test credentials for rapid civil evaluation
+  const setQuickCredentials = (userEmail, userPass, userRole) => {
+    setEmail(userEmail);
+    setPassword(userPass);
+    setRole(userRole);
+    setError('');
+    setSuccessMsg(`Loaded credentials for ${userEmail}`);
+  };
+
+  // Helper to persist user token and role into session/local storage
   const completeFirebaseLogin = async (firebaseUser, userRole = role) => {
-    const idToken = await firebaseUser.getIdToken();
-    const displayName = firebaseUser.displayName || name.trim() || firebaseUser.email.split('@')[0];
-    
-    const userPayload = {
-      id: firebaseUser.uid,
-      name: displayName,
-      email: firebaseUser.email,
-      role: userRole || 'Inspector',
-      photoURL: firebaseUser.photoURL || null,
-      auth_provider: firebaseUser.providerData?.[0]?.providerId || 'firebase'
-    };
-
-    if (rememberMe) {
-      localStorage.setItem('roadsense_token', idToken);
-      localStorage.setItem('roadsense_user', JSON.stringify(userPayload));
-      sessionStorage.removeItem('roadsense_token');
-      sessionStorage.removeItem('roadsense_user');
-    } else {
-      sessionStorage.setItem('roadsense_token', idToken);
-      sessionStorage.setItem('roadsense_user', JSON.stringify(userPayload));
-      localStorage.removeItem('roadsense_token');
-      localStorage.removeItem('roadsense_user');
-    }
-
-    onLoginSuccess(userPayload, rememberMe);
-  };
-
-  // --- 1. FIREBASE SIGN IN HANDLER ---
-  const handleSignIn = async (e) => {
-    e.preventDefault();
-    setError('');
-    setSuccessMsg('');
-
-    if (!email.trim() || !password) {
-      setError('Please provide both email and password');
-      return;
-    }
-
-    setLoading(true);
     try {
-      await configurePersistence(rememberMe);
-      const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
-      await completeFirebaseLogin(userCredential.user);
-    } catch (err) {
-      console.error("[Firebase Sign In Error]", err);
-      setError(formatFirebaseError(err));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // --- 2. FIREBASE REGISTER HANDLER ---
-  const handleRegister = async (e) => {
-    e.preventDefault();
-    setError('');
-    setSuccessMsg('');
-
-    const cleanName = name.trim();
-    const cleanEmail = email.trim();
-
-    if (!cleanName) {
-      setError('Please enter your full name');
-      return;
-    }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(cleanEmail)) {
-      setError('Please enter a valid email address');
-      return;
-    }
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters long');
-      return;
-    }
-    if (password !== confirmPassword) {
-      setError('Passwords do not match. Please verify your confirm password.');
-      return;
-    }
-    if (!acceptTerms) {
-      setError('You must accept the Terms & Conditions and Civil Data Usage Policy');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await configurePersistence(rememberMe);
-      const userCredential = await createUserWithEmailAndPassword(auth, cleanEmail, password);
+      const idToken = await firebaseUser.getIdToken();
+      const displayName = firebaseUser.displayName || name.trim() || (firebaseUser.email ? firebaseUser.email.split('@')[0] : 'Road Inspector');
       
-      // Update Firebase User Profile with Display Name
-      await updateProfile(userCredential.user, {
-        displayName: cleanName
-      });
+      const userPayload = {
+        id: firebaseUser.uid,
+        name: displayName,
+        email: firebaseUser.email || '',
+        role: userRole || 'Inspector',
+        photoURL: firebaseUser.photoURL || null,
+        auth_provider: firebaseUser.providerData?.[0]?.providerId || 'google'
+      };
 
-      await completeFirebaseLogin(userCredential.user, role);
+      if (rememberMe) {
+        localStorage.setItem('roadsense_token', idToken);
+        localStorage.setItem('roadsense_user', JSON.stringify(userPayload));
+        sessionStorage.removeItem('roadsense_token');
+        sessionStorage.removeItem('roadsense_user');
+      } else {
+        sessionStorage.setItem('roadsense_token', idToken);
+        sessionStorage.setItem('roadsense_user', JSON.stringify(userPayload));
+        localStorage.removeItem('roadsense_token');
+        localStorage.removeItem('roadsense_user');
+      }
+
+      onLoginSuccess(userPayload, rememberMe);
     } catch (err) {
-      console.error("[Firebase Registration Error]", err);
+      console.error("[Firebase Complete Login Error]", err);
       setError(formatFirebaseError(err));
-    } finally {
-      setLoading(false);
     }
   };
 
-  // --- 3. FIREBASE FORGOT PASSWORD HANDLER ---
-  const handleForgotPassword = async (e) => {
-    e.preventDefault();
+  // --- Check for Password Reset Action Code or Redirect Auth on Mount ---
+  useEffect(() => {
+    let isMounted = true;
+
+    // 1. Check for Password Reset oobCode in URL Query Parameters or Hash
+    const urlParams = new URLSearchParams(window.location.search);
+    let oobCode = urlParams.get('oobCode') || urlParams.get('code');
+    let mode = urlParams.get('mode');
+
+    // Also check hash query params if hash routing is used (e.g. /#/reset-password?oobCode=...)
+    if (!oobCode && window.location.hash.includes('?')) {
+      const hashQuery = window.location.hash.substring(window.location.hash.indexOf('?'));
+      const hashParams = new URLSearchParams(hashQuery);
+      oobCode = hashParams.get('oobCode') || hashParams.get('code');
+      if (!mode) mode = hashParams.get('mode');
+    }
+
+    const isResetPath = window.location.pathname.includes('reset-password') || window.location.hash.includes('reset-password');
+    const isResetMode = mode === 'resetPassword' || mode === 'reset' || isResetPath;
+
+    if (oobCode || isResetMode) {
+      setAuthMode('resetPassword');
+      setError('');
+      setSuccessMsg('');
+
+      if (oobCode) {
+        setResetCode(oobCode);
+        setVerifyingCode(true);
+        setCodeError('');
+
+        verifyPasswordResetCode(auth, oobCode)
+          .then((verifiedEmail) => {
+            if (isMounted) {
+              setResetEmail(verifiedEmail);
+              setVerifyingCode(false);
+            }
+          })
+          .catch((err) => {
+            console.error("[Firebase Verify Reset Code Error]", err);
+            if (isMounted) {
+              setCodeError(formatFirebaseError(err));
+              setVerifyingCode(false);
+            }
+          });
+      } else {
+        setVerifyingCode(false);
+        setCodeError('No password reset code found in this link. Please use the link sent to your email or request a new reset link.');
+      }
+      return;
+    }
+
+    // 2. Check for Firebase Redirect Authentication result
+    const checkRedirect = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result && result.user && isMounted) {
+          await completeFirebaseLogin(result.user, 'Inspector');
+        }
+      } catch (err) {
+        console.error("[Firebase Redirect Login Error]", err);
+        if (isMounted) {
+          setError(formatFirebaseError(err));
+        }
+      }
+    };
+    checkRedirect();
+
+    return () => { isMounted = false; };
+  }, []);
+
+  // --- 1. EMAIL/PASSWORD SIGN IN ---
+  const handleSignIn = async (e) => {
+    if (e) e.preventDefault();
     setError('');
     setSuccessMsg('');
 
     if (!email.trim()) {
-      setError('Please enter your registered email address');
+      setError('Please enter your email address.');
+      return;
+    }
+    if (!password) {
+      setError('Please enter your password.');
       return;
     }
 
     setLoading(true);
+
     try {
-      await sendPasswordResetEmail(auth, email.trim());
-      setSuccessMsg(`Password reset link sent by Firebase to ${email.trim()}! Please check your email inbox to reset your password.`);
+      await configurePersistence(rememberMe);
+      const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
+      
+      let assignedRole = 'Inspector';
+      if (email.toLowerCase().includes('admin')) assignedRole = 'Admin';
+      if (email.toLowerCase().includes('pwd') || email.toLowerCase().includes('engineer')) assignedRole = 'Engineer';
+
+      await completeFirebaseLogin(userCredential.user, assignedRole);
     } catch (err) {
-      console.error("[Firebase Reset Password Error]", err);
+      console.warn("[Firebase Login Error]", err);
+      
+      // Fallback: Check seeded local credentials if offline
+      try {
+        const localAuth = await api.login(email.trim(), password);
+        if (localAuth && localAuth.token) {
+          const userPayload = {
+            id: localAuth.user.id || 1,
+            name: localAuth.user.name || email.split('@')[0],
+            email: email.trim(),
+            role: localAuth.user.role || 'Inspector',
+            auth_provider: 'local_database'
+          };
+          if (rememberMe) {
+            localStorage.setItem('roadsense_token', localAuth.token);
+            localStorage.setItem('roadsense_user', JSON.stringify(userPayload));
+          } else {
+            sessionStorage.setItem('roadsense_token', localAuth.token);
+            sessionStorage.setItem('roadsense_user', JSON.stringify(userPayload));
+          }
+          onLoginSuccess(userPayload, rememberMe);
+          return;
+        }
+      } catch (backendErr) {
+        console.warn("[Backend Auth Notice]", backendErr);
+      }
+
       setError(formatFirebaseError(err));
     } finally {
       setLoading(false);
     }
   };
 
-  // --- 4. FIREBASE GOOGLE SIGN-IN HANDLER ---
+  // --- 2. REGISTER NEW CIVIL ACCOUNT ---
+  const handleRegister = async (e) => {
+    if (e) e.preventDefault();
+    setError('');
+    setSuccessMsg('');
+
+    if (!name.trim()) {
+      setError('Please enter your full name.');
+      return;
+    }
+    if (!email.trim()) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+    if (!password) {
+      setError('Please enter a password.');
+      return;
+    }
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters long.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      await configurePersistence(rememberMe);
+      const userCredential = await createUserWithEmailAndPassword(auth, email.trim(), password);
+      
+      try {
+        await updateProfile(userCredential.user, {
+          displayName: name.trim()
+        });
+      } catch (profileErr) {
+        console.warn("[Firebase Profile Update Notice]", profileErr);
+      }
+
+      try {
+        await api.register(name.trim(), email.trim(), password, role);
+      } catch (apiErr) {
+        console.warn("[Backend Sync Notice]", apiErr);
+      }
+
+      await completeFirebaseLogin(userCredential.user, role);
+    } catch (err) {
+      console.error("[Firebase Register Error]", err);
+      setError(formatFirebaseError(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // --- 3. FORGOT PASSWORD (REQUEST RESET EMAIL) ---
+  const handleForgotPassword = async (e) => {
+    if (e) e.preventDefault();
+    setError('');
+    setSuccessMsg('');
+
+    if (!email.trim()) {
+      setError('Please enter your registered email address.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Build ActionCodeSettings returning to the current origin and path
+      const actionCodeSettings = {
+        url: window.location.origin + (window.location.pathname.startsWith('/reset-password') ? window.location.pathname : '/reset-password'),
+        handleCodeInApp: true
+      };
+
+      try {
+        await sendPasswordResetEmail(auth, email.trim(), actionCodeSettings);
+      } catch (actionErr) {
+        console.warn("[ActionCodeSettings notice, falling back to standard sendPasswordResetEmail]", actionErr);
+        // Fallback without actionCodeSettings if continue URL is not pre-whitelisted
+        await sendPasswordResetEmail(auth, email.trim());
+      }
+
+      // Secure generic confirmation (does not expose email existence)
+      setSuccessMsg('If an account exists for this email address, a password reset link has been sent. Please check your inbox and spam folder.');
+    } catch (err) {
+      console.error("[Firebase Reset Password Error]", err);
+      if (err.code === "auth/user-not-found" || err.code === "auth/invalid-credential") {
+        setSuccessMsg('If an account exists for this email address, a password reset link has been sent. Please check your inbox and spam folder.');
+      } else {
+        setError(formatFirebaseError(err));
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // --- 4. CONFIRM PASSWORD RESET (ENTER & SAVE NEW PASSWORD) ---
+  const handleConfirmPasswordReset = async (e) => {
+    if (e) e.preventDefault();
+    setError('');
+    setSuccessMsg('');
+
+    if (!newPassword) {
+      setError('Please enter a new password.');
+      return;
+    }
+    if (newPassword.length < 6) {
+      setError('Password must be at least 6 characters long.');
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await confirmPasswordReset(auth, resetCode, newPassword);
+      setResetSuccess(true);
+      setSuccessMsg('Password reset successful! You can now sign in with your new password.');
+      
+      // Clean up URL query parameters
+      if (window.history.replaceState) {
+        window.history.replaceState({}, document.title, window.location.pathname.replace(/\/reset-password\/?$/, '/') || '/');
+      }
+    } catch (err) {
+      console.error("[Firebase Confirm Password Reset Error]", err);
+      setError(formatFirebaseError(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // --- 5. FIREBASE GOOGLE SIGN-IN HANDLER ---
   const handleGoogleSignIn = async () => {
     setError('');
     setGoogleLoading(true);
 
     try {
-      await configurePersistence(rememberMe);
-      const userCredential = await signInWithPopup(auth, googleProvider);
-      await completeFirebaseLogin(userCredential.user, 'Inspector');
+      // Set persistence non-blockingly to maintain direct user-gesture context for popup
+      configurePersistence(rememberMe).catch((e) => console.warn("[Persistence notice]", e));
+      
+      const provider = getGoogleProvider();
+      const userCredential = await signInWithPopup(auth, provider);
+      if (userCredential && userCredential.user) {
+        await completeFirebaseLogin(userCredential.user, 'Inspector');
+      }
     } catch (err) {
       console.error("[Firebase Google Auth Error]", err);
-      if (err.code !== "auth/popup-closed-by-user") {
+      if (err.code === "auth/popup-blocked" || err.code === "auth/cancelled-popup-request") {
+        try {
+          const provider = getGoogleProvider();
+          await signInWithRedirect(auth, provider);
+          return;
+        } catch (redirectErr) {
+          console.error("[Firebase Redirect Error]", redirectErr);
+          setError(formatFirebaseError(redirectErr));
+        }
+      } else if (err.code === "auth/popup-closed-by-user") {
+        setError("Google Sign-In was cancelled. Please select a Google account to continue.");
+      } else {
         setError(formatFirebaseError(err));
       }
     } finally {
@@ -317,6 +512,7 @@ export default function LoginPage({ onLoginSuccess }) {
             {authMode === 'register' && 'Create your account to access the civil infrastructure risk platform'}
             {authMode === 'signin' && 'Sign in to access the road risk & maintenance intelligence system'}
             {authMode === 'forgot' && 'Reset your password via verified email link'}
+            {authMode === 'resetPassword' && 'Create a new secure password for your account'}
           </p>
         </div>
 
@@ -417,38 +613,34 @@ export default function LoginPage({ onLoginSuccess }) {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   autoComplete="email"
+                  disabled={loading}
                   required
-                  style={{ padding: '0.75rem 1rem', fontSize: '0.9rem' }}
                 />
               </div>
 
-              <div className="form-group" style={{ marginBottom: '1rem' }}>
+              <div className="form-group" style={{ marginBottom: '1.1rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                  <label className="form-label" style={{ fontSize: '0.82rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: 0 }}>
+                  <label className="form-label" style={{ fontSize: '0.82rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem', margin: 0 }}>
                     <Lock size={14} color="#60A5FA" />
                     <span>Password</span>
                   </label>
                   <button
                     type="button"
-                    onClick={() => {
-                      resetFields();
-                      setAuthMode('forgot');
-                    }}
+                    onClick={() => switchMode('forgot')}
                     style={{
                       background: 'none',
                       border: 'none',
                       color: '#60A5FA',
                       fontSize: '0.78rem',
-                      fontWeight: 600,
                       cursor: 'pointer',
-                      padding: 0
+                      padding: 0,
+                      fontWeight: 500
                     }}
-                    onMouseOver={(e) => e.target.style.textDecoration = 'underline'}
-                    onMouseOut={(e) => e.target.style.textDecoration = 'none'}
                   >
-                    Forgot Password?
+                    Forgot password?
                   </button>
                 </div>
+
                 <div style={{ position: 'relative' }}>
                   <input
                     type={showPassword ? 'text' : 'password'}
@@ -457,26 +649,23 @@ export default function LoginPage({ onLoginSuccess }) {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     autoComplete="current-password"
+                    disabled={loading}
                     required
-                    style={{ padding: '0.75rem 2.5rem 0.75rem 1rem', fontSize: '0.9rem' }}
+                    style={{ paddingRight: '2.5rem' }}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                    title={showPassword ? "Hide password" : "Show password"}
                     style={{
                       position: 'absolute',
-                      right: '10px',
+                      right: '0.75rem',
                       top: '50%',
                       transform: 'translateY(-50%)',
                       background: 'none',
                       border: 'none',
                       color: 'var(--text-muted)',
                       cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      padding: '4px'
+                      padding: 0
                     }}
                   >
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -485,16 +674,21 @@ export default function LoginPage({ onLoginSuccess }) {
               </div>
 
               {/* Remember Me Checkbox */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.4rem' }}>
                 <input
                   type="checkbox"
                   id="rememberMe"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  style={{ accentColor: '#3B82F6', cursor: 'pointer', width: '16px', height: '16px' }}
+                  style={{
+                    accentColor: '#3B82F6',
+                    cursor: 'pointer',
+                    width: '15px',
+                    height: '15px'
+                  }}
                 />
-                <label htmlFor="rememberMe" style={{ fontSize: '0.82rem', color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', fontWeight: 500 }}>
-                  Remember me
+                <label htmlFor="rememberMe" style={{ fontSize: '0.82rem', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                  Keep me signed in on this device
                 </label>
               </div>
 
@@ -504,34 +698,87 @@ export default function LoginPage({ onLoginSuccess }) {
                 disabled={loading}
                 style={{
                   width: '100%',
-                  padding: '0.85rem 1.25rem',
-                  fontSize: '0.95rem',
+                  padding: '0.75rem',
+                  fontSize: '0.92rem',
                   fontWeight: 700,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '0.5rem',
-                  borderRadius: 'var(--radius-md)',
-                  boxShadow: '0 4px 16px rgba(59, 130, 246, 0.3)'
+                  gap: '0.5rem'
                 }}
               >
-                {loading ? (
-                  <span>Signing In...</span>
-                ) : (
-                  <>
-                    <span>Sign In</span>
-                    <ArrowRight size={16} />
-                  </>
-                )}
+                <LogIn size={16} />
+                <span>{loading ? 'Authenticating...' : 'Sign In to Dashboard'}</span>
               </button>
             </form>
+
+            {/* Quick Demo Login Credentials Bar */}
+            <div style={{
+              marginTop: '1.5rem',
+              padding: '0.85rem',
+              background: 'rgba(255, 255, 255, 0.03)',
+              border: '1px dashed var(--border-subtle)',
+              borderRadius: 'var(--radius-md)'
+            }}>
+              <div style={{
+                fontSize: '0.72rem',
+                color: 'var(--text-dim)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                marginBottom: '0.5rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem'
+              }}>
+                <Sparkles size={12} color="#F59E0B" />
+                <span>Civil Quick Login Presets</span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setQuickCredentials('inspector@roadsense.ai', 'inspector123', 'Inspector')}
+                  style={{ fontSize: '0.75rem', padding: '0.35rem 0.5rem', justifyContent: 'center' }}
+                >
+                  Inspector Portal
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setQuickCredentials('admin@roadsense.ai', 'admin123', 'Admin')}
+                  style={{ fontSize: '0.75rem', padding: '0.35rem 0.5rem', justifyContent: 'center' }}
+                >
+                  Admin Console
+                </button>
+              </div>
+            </div>
+
+            {/* Switch to Register */}
+            <div style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+              <span>Don't have an account? </span>
+              <button
+                type="button"
+                onClick={() => switchMode('register')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#60A5FA',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  padding: 0
+                }}
+              >
+                Register here
+              </button>
+            </div>
           </div>
         )}
 
         {/* --- 2. REGISTER FORM --- */}
         {authMode === 'register' && (
           <div>
-            {/* Continue with Google Button */}
+            {/* Continue with Google on Register */}
             <button
               type="button"
               className="btn"
@@ -555,7 +802,7 @@ export default function LoginPage({ onLoginSuccess }) {
               }}
             >
               <GoogleIcon />
-              <span>{googleLoading ? 'Connecting to Google...' : 'Continue with Google'}</span>
+              <span>{googleLoading ? 'Connecting to Google...' : 'Sign up with Google'}</span>
             </button>
 
             <div style={{
@@ -574,17 +821,16 @@ export default function LoginPage({ onLoginSuccess }) {
               <div className="form-group" style={{ marginBottom: '1rem' }}>
                 <label className="form-label" style={{ fontSize: '0.82rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                   <User size={14} color="#60A5FA" />
-                  <span>Username / Full Name</span>
+                  <span>Full Name</span>
                 </label>
                 <input
                   type="text"
                   className="form-input"
-                  placeholder="e.g. Ramesh Kumar"
+                  placeholder="Er. Rajesh Sharma"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  autoComplete="name"
+                  disabled={loading}
                   required
-                  style={{ padding: '0.75rem 1rem', fontSize: '0.9rem' }}
                 />
               </div>
 
@@ -596,137 +842,97 @@ export default function LoginPage({ onLoginSuccess }) {
                 <input
                   type="email"
                   className="form-input"
-                  placeholder="name@roadsense.ai"
+                  placeholder="rajesh.sharma@nhai.gov.in"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  autoComplete="email"
+                  disabled={loading}
                   required
-                  style={{ padding: '0.75rem 1rem', fontSize: '0.9rem' }}
                 />
               </div>
 
               <div className="form-group" style={{ marginBottom: '1rem' }}>
                 <label className="form-label" style={{ fontSize: '0.82rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <Lock size={14} color="#60A5FA" />
-                  <span>Password</span>
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    className="form-input"
-                    placeholder="At least 6 characters"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    autoComplete="new-password"
-                    required
-                    style={{ padding: '0.75rem 2.5rem 0.75rem 1rem', fontSize: '0.9rem' }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                    title={showPassword ? "Hide password" : "Show password"}
-                    style={{
-                      position: 'absolute',
-                      right: '10px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      background: 'none',
-                      border: 'none',
-                      color: 'var(--text-muted)',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      padding: '4px'
-                    }}
-                  >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-
-                {/* Password Strength Indicator */}
-                {password.length > 0 && (
-                  <div style={{ marginTop: '0.45rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', marginBottom: '0.2rem' }}>
-                      <span style={{ color: 'var(--text-muted)' }}>Strength:</span>
-                      <span style={{ color: passwordStrength.color, fontWeight: 700 }}>{passwordStrength.label}</span>
-                    </div>
-                    <div style={{ width: '100%', height: '4px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '2px', overflow: 'hidden' }}>
-                      <div style={{ width: passwordStrength.width, height: '100%', background: passwordStrength.color, transition: 'all 0.3s' }} />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="form-group" style={{ marginBottom: '1rem' }}>
-                <label className="form-label" style={{ fontSize: '0.82rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <Lock size={14} color="#34D399" />
-                  <span>Confirm Password</span>
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    className="form-input"
-                    placeholder="Re-enter password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    autoComplete="new-password"
-                    required
-                    style={{ padding: '0.75rem 2.5rem 0.75rem 1rem', fontSize: '0.9rem' }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
-                    title={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
-                    style={{
-                      position: 'absolute',
-                      right: '10px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      background: 'none',
-                      border: 'none',
-                      color: 'var(--text-muted)',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      padding: '4px'
-                    }}
-                  >
-                    {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-                <label className="form-label" style={{ fontSize: '0.82rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <Shield size={14} color="#60A5FA" />
-                  <span>Assigned Role</span>
+                  <Briefcase size={14} color="#60A5FA" />
+                  <span>Civil Engineering Role</span>
                 </label>
                 <select
                   className="form-select"
                   value={role}
                   onChange={(e) => setRole(e.target.value)}
-                  style={{ padding: '0.75rem 1rem', fontSize: '0.9rem' }}
+                  disabled={loading}
                 >
-                  <option value="Inspector">Road Inspector / Field Engineer</option>
-                  <option value="Admin">System Administrator / Municipal Officer</option>
+                  <option value="Inspector">Field Road Quality Inspector</option>
+                  <option value="Engineer">Civil Highway Engineer</option>
+                  <option value="Admin">Municipal PWD / NHAI Administrator</option>
                 </select>
               </div>
 
-              {/* Terms & Conditions Checkbox */}
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '1.25rem' }}>
-                <input
-                  type="checkbox"
-                  id="acceptTerms"
-                  checked={acceptTerms}
-                  onChange={(e) => setAcceptTerms(e.target.checked)}
-                  style={{ accentColor: '#3B82F6', marginTop: '2px', cursor: 'pointer' }}
-                  required
-                />
-                <label htmlFor="acceptTerms" style={{ fontSize: '0.78rem', color: 'var(--text-muted)', cursor: 'pointer', lineHeight: 1.4 }}>
-                  I accept the <strong style={{ color: 'var(--text-main)' }}>Terms & Conditions</strong> and the <strong style={{ color: 'var(--text-main)' }}>Civil Infrastructure Data Policy</strong>.
-                </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label" style={{ fontSize: '0.82rem', fontWeight: 600 }}>Password</label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      className="form-input"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={loading}
+                      required
+                      style={{ paddingRight: '2rem' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      style={{
+                        position: 'absolute',
+                        right: '0.5rem',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--text-muted)',
+                        cursor: 'pointer',
+                        padding: 0
+                      }}
+                    >
+                      {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label" style={{ fontSize: '0.82rem', fontWeight: 600 }}>Confirm</label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      className="form-input"
+                      placeholder="••••••••"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      disabled={loading}
+                      required
+                      style={{ paddingRight: '2rem' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      style={{
+                        position: 'absolute',
+                        right: '0.5rem',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--text-muted)',
+                        cursor: 'pointer',
+                        padding: 0
+                      }}
+                    >
+                      {showConfirmPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                    </button>
+                  </div>
+                </div>
               </div>
 
               <button
@@ -735,168 +941,319 @@ export default function LoginPage({ onLoginSuccess }) {
                 disabled={loading}
                 style={{
                   width: '100%',
-                  padding: '0.85rem 1.25rem',
-                  fontSize: '0.95rem',
+                  padding: '0.75rem',
+                  fontSize: '0.92rem',
                   fontWeight: 700,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '0.5rem',
-                  borderRadius: 'var(--radius-md)',
-                  boxShadow: '0 4px 16px rgba(59, 130, 246, 0.3)'
+                  gap: '0.5rem'
                 }}
               >
-                {loading ? (
-                  <span>Creating Account...</span>
-                ) : (
-                  <>
-                    <span>Create Account</span>
-                    <ArrowRight size={16} />
-                  </>
-                )}
+                <UserPlus size={16} />
+                <span>{loading ? 'Creating Account...' : 'Create Account'}</span>
               </button>
             </form>
+
+            {/* Switch to Sign In */}
+            <div style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+              <span>Already registered? </span>
+              <button
+                type="button"
+                onClick={() => switchMode('signin')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#60A5FA',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  padding: 0
+                }}
+              >
+                Sign In here
+              </button>
+            </div>
           </div>
         )}
 
-        {/* --- 3. FORGOT PASSWORD FORM --- */}
+        {/* --- 3. FORGOT PASSWORD (REQUEST RESET LINK) --- */}
         {authMode === 'forgot' && (
-          <form onSubmit={handleForgotPassword} autoComplete="off">
+          <div>
             <div style={{
               background: 'rgba(59, 130, 246, 0.08)',
               border: '1px solid rgba(59, 130, 246, 0.25)',
               padding: '0.85rem',
               borderRadius: 'var(--radius-md)',
-              fontSize: '0.83rem',
+              fontSize: '0.82rem',
               color: 'var(--text-muted)',
               marginBottom: '1.25rem',
               lineHeight: 1.5
             }}>
-              Enter your registered account email. A secure password reset link will be sent directly to your inbox.
+              Enter your registered email address below. If an account exists, a secure password reset link will be sent to your inbox.
             </div>
 
-            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-              <label className="form-label" style={{ fontSize: '0.82rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <Mail size={14} color="#60A5FA" />
-                <span>Registered Email Address</span>
-              </label>
-              <input
-                type="email"
-                className="form-input"
-                placeholder="name@roadsense.ai"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                style={{ padding: '0.75rem 1rem', fontSize: '0.9rem' }}
-              />
-            </div>
+            <form onSubmit={handleForgotPassword} autoComplete="off">
+              <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+                <label className="form-label" style={{ fontSize: '0.82rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <Mail size={14} color="#60A5FA" />
+                  <span>Registered Email Address</span>
+                </label>
+                <input
+                  type="email"
+                  className="form-input"
+                  placeholder="name@roadsense.ai"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={loading}
+                  required
+                />
+              </div>
 
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={loading}
-              style={{
-                width: '100%',
-                padding: '0.85rem 1.25rem',
-                fontSize: '0.95rem',
-                fontWeight: 700,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.5rem',
-                borderRadius: 'var(--radius-md)'
-              }}
-            >
-              {loading ? (
-                <span>Sending Reset Link...</span>
-              ) : (
-                <>
-                  <span>Send Password Reset Email</span>
-                  <ArrowRight size={16} />
-                </>
-              )}
-            </button>
-          </form>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={loading}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  fontSize: '0.92rem',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  marginBottom: '1rem'
+                }}
+              >
+                <KeyRound size={16} />
+                <span>{loading ? 'Sending Link...' : 'Send Password Reset Link'}</span>
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => switchMode('signin')}
+                style={{ width: '100%', padding: '0.65rem', justifyContent: 'center', gap: '0.4rem' }}
+              >
+                <ArrowLeft size={15} />
+                <span>Back to Sign In</span>
+              </button>
+            </form>
+          </div>
         )}
 
-        {/* Footer Navigation */}
-        <div style={{
-          textAlign: 'center',
-          marginTop: '1.75rem',
-          paddingTop: '1.25rem',
-          borderTop: '1px solid var(--border-subtle)',
-          fontSize: '0.87rem',
-          color: 'var(--text-muted)'
-        }}>
-          {authMode === 'signin' && (
-            <div>
-              <span>Don't have an account? </span>
-              <button
-                type="button"
-                onClick={() => {
-                  resetFields();
-                  setAuthMode('register');
-                }}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#60A5FA',
-                  cursor: 'pointer',
-                  fontWeight: 700,
-                  marginLeft: '0.3rem'
-                }}
-              >
-                Create Account
-              </button>
-            </div>
-          )}
+        {/* --- 4. RESET PASSWORD PAGE (ENTER NEW PASSWORD FROM EMAIL LINK) --- */}
+        {authMode === 'resetPassword' && (
+          <div>
+            {verifyingCode ? (
+              <div style={{ textAlign: 'center', padding: '2rem 0' }}>
+                <RefreshCw size={28} color="#60A5FA" className="animate-spin" style={{ margin: '0 auto 1rem' }} />
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem' }}>
+                  Verifying password reset security code...
+                </p>
+              </div>
+            ) : codeError ? (
+              <div>
+                <div style={{
+                  background: 'rgba(239, 68, 68, 0.12)',
+                  border: '1px solid rgba(239, 68, 68, 0.35)',
+                  color: '#F87171',
+                  padding: '1rem',
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: '0.85rem',
+                  marginBottom: '1.25rem',
+                  lineHeight: 1.5
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem', fontWeight: 700 }}>
+                    <AlertCircle size={17} />
+                    <span>Reset Link Expired or Invalid</span>
+                  </div>
+                  {codeError}
+                </div>
 
-          {authMode === 'register' && (
-            <div>
-              <span>Already have an account? </span>
-              <button
-                type="button"
-                onClick={() => {
-                  resetFields();
-                  setAuthMode('signin');
-                }}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#60A5FA',
-                  cursor: 'pointer',
-                  fontWeight: 700,
-                  marginLeft: '0.3rem'
-                }}
-              >
-                Sign In
-              </button>
-            </div>
-          )}
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => switchMode('forgot')}
+                  style={{ width: '100%', padding: '0.75rem', justifyContent: 'center', gap: '0.4rem', marginBottom: '0.75rem' }}
+                >
+                  <KeyRound size={16} />
+                  <span>Request a New Reset Link</span>
+                </button>
 
-          {authMode === 'forgot' && (
-            <button
-              type="button"
-              onClick={() => {
-                resetFields();
-                setAuthMode('signin');
-              }}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#60A5FA',
-                cursor: 'pointer',
-                fontWeight: 600,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.35rem'
-              }}
-            >
-              <ArrowLeft size={15} />
-              <span>Back to Sign In</span>
-            </button>
-          )}
-        </div>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => switchMode('signin')}
+                  style={{ width: '100%', padding: '0.65rem', justifyContent: 'center' }}
+                >
+                  Back to Sign In
+                </button>
+              </div>
+            ) : resetSuccess ? (
+              <div style={{ textAlign: 'center' }}>
+                <div style={{
+                  width: '50px',
+                  height: '50px',
+                  borderRadius: '50%',
+                  background: 'rgba(16, 185, 129, 0.2)',
+                  color: '#34D399',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 1rem'
+                }}>
+                  <CheckCircle2 size={26} />
+                </div>
+
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.5rem' }}>
+                  Password Successfully Reset!
+                </h3>
+
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.84rem', marginBottom: '1.5rem', lineHeight: 1.5 }}>
+                  Your password has been updated in Firebase Authentication. You can now access your account with your new credentials.
+                </p>
+
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => switchMode('signin')}
+                  style={{ width: '100%', padding: '0.75rem', justifyContent: 'center', gap: '0.5rem' }}
+                >
+                  <LogIn size={16} />
+                  <span>Proceed to Sign In</span>
+                </button>
+              </div>
+            ) : (
+              <div>
+                <div style={{
+                  background: 'rgba(59, 130, 246, 0.08)',
+                  border: '1px solid rgba(59, 130, 246, 0.25)',
+                  padding: '0.75rem 1rem',
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: '0.82rem',
+                  color: 'var(--text-muted)',
+                  marginBottom: '1.25rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}>
+                  <LockKeyhole size={16} color="#60A5FA" style={{ flexShrink: 0 }} />
+                  <span>
+                    Setting new password for <strong style={{ color: '#93C5FD' }}>{resetEmail}</strong>
+                  </span>
+                </div>
+
+                <form onSubmit={handleConfirmPasswordReset} autoComplete="off">
+                  {/* New Password Field */}
+                  <div className="form-group" style={{ marginBottom: '1.1rem' }}>
+                    <label className="form-label" style={{ fontSize: '0.82rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <Lock size={14} color="#60A5FA" />
+                      <span>New Password</span>
+                    </label>
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        type={showNewPassword ? 'text' : 'password'}
+                        className="form-input"
+                        placeholder="••••••••"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        disabled={loading}
+                        required
+                        style={{ paddingRight: '2.5rem' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                        style={{
+                          position: 'absolute',
+                          right: '0.75rem',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--text-muted)',
+                          cursor: 'pointer',
+                          padding: 0
+                        }}
+                        aria-label="Toggle new password visibility"
+                      >
+                        {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Confirm New Password Field */}
+                  <div className="form-group" style={{ marginBottom: '1.35rem' }}>
+                    <label className="form-label" style={{ fontSize: '0.82rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <Lock size={14} color="#60A5FA" />
+                      <span>Confirm New Password</span>
+                    </label>
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        type={showConfirmNewPassword ? 'text' : 'password'}
+                        className="form-input"
+                        placeholder="••••••••"
+                        value={confirmNewPassword}
+                        onChange={(e) => setConfirmNewPassword(e.target.value)}
+                        disabled={loading}
+                        required
+                        style={{ paddingRight: '2.5rem' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)}
+                        style={{
+                          position: 'absolute',
+                          right: '0.75rem',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--text-muted)',
+                          cursor: 'pointer',
+                          padding: 0
+                        }}
+                        aria-label="Toggle confirm password visibility"
+                      >
+                        {showConfirmNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={loading}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      fontSize: '0.92rem',
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.5rem',
+                      marginBottom: '1rem'
+                    }}
+                  >
+                    <CheckCircle2 size={16} />
+                    <span>{loading ? 'Updating Password...' : 'Reset Password'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => switchMode('signin')}
+                    style={{ width: '100%', padding: '0.65rem', justifyContent: 'center' }}
+                  >
+                    Cancel & Return to Sign In
+                  </button>
+                </form>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

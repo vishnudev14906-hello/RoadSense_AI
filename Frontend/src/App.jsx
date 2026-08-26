@@ -21,8 +21,17 @@ import { api } from './api';
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState('dashboard');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(() => {
     try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const isResetFlow = urlParams.has('oobCode') || 
+                          urlParams.get('mode') === 'resetPassword' || 
+                          urlParams.get('mode') === 'reset' ||
+                          window.location.pathname.includes('reset-password') ||
+                          window.location.hash.includes('reset-password');
+      if (isResetFlow) return null;
+
       const persistent = localStorage.getItem('roadsense_user');
       if (persistent) return JSON.parse(persistent);
       const session = sessionStorage.getItem('roadsense_user');
@@ -42,6 +51,14 @@ export default function App() {
   // Synchronize Firebase Authentication State on Mount and Lifecycle
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const isResetFlow = urlParams.has('oobCode') || 
+                          urlParams.get('mode') === 'resetPassword' || 
+                          urlParams.get('mode') === 'reset' ||
+                          window.location.pathname.includes('reset-password') ||
+                          window.location.hash.includes('reset-password');
+      if (isResetFlow) return;
+
       if (firebaseUser) {
         try {
           const idToken = await firebaseUser.getIdToken();
@@ -55,8 +72,8 @@ export default function App() {
 
           const userObj = {
             id: firebaseUser.uid,
-            name: firebaseUser.displayName || firebaseUser.email.split('@')[0],
-            email: firebaseUser.email,
+            name: firebaseUser.displayName || (firebaseUser.email ? firebaseUser.email.split('@')[0] : 'Road Inspector'),
+            email: firebaseUser.email || '',
             role: role,
             photoURL: firebaseUser.photoURL || null,
             auth_provider: firebaseUser.providerData?.[0]?.providerId || 'firebase'
@@ -75,7 +92,6 @@ export default function App() {
           console.warn("[Firebase Token Sync Warning]", e);
         }
       } else {
-        // If not authenticated via Firebase, check if session is empty
         const storedUser = localStorage.getItem('roadsense_user') || sessionStorage.getItem('roadsense_user');
         if (!storedUser) {
           setCurrentUser(null);
@@ -94,6 +110,7 @@ export default function App() {
   const handleLaunchNewAssessment = () => {
     setPredictorInitialParams(null);
     setCurrentTab('predictor');
+    setMobileMenuOpen(false);
   };
 
   const handleVisionTransfer = (telemetry, roadName, location, imageMeta) => {
@@ -108,6 +125,7 @@ export default function App() {
       autoRun: true
     });
     setCurrentTab('predictor');
+    setMobileMenuOpen(false);
     setToastMessage(`✨ Visual damage telemetry transferred to AI Risk Predictor for "${roadName}"!`);
     setTimeout(() => setToastMessage(''), 4500);
   };
@@ -167,8 +185,11 @@ export default function App() {
             setPredictorInitialParams(null);
           }
           setCurrentTab(tab);
+          setMobileMenuOpen(false);
         }}
         onReseed={handleReseed}
+        isMobileOpen={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
       />
 
       {/* Main Content Area */}
@@ -178,6 +199,8 @@ export default function App() {
           currentUser={currentUser}
           onOpenAuth={() => setIsAuthModalOpen(true)}
           onLogout={handleLogout}
+          onToggleMobileMenu={() => setMobileMenuOpen(prev => !prev)}
+          isMobileMenuOpen={mobileMenuOpen}
         />
 
         {/* Global Toast Notification */}

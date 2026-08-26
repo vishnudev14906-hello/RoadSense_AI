@@ -29,7 +29,12 @@ DATA_DIR = BASE_DIR / "data"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 DATABASE_PATH = DATA_DIR / "roadsense.db"
-DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DATABASE_PATH}")
+# Ensure absolute normalized SQLite URI so database connection is robust regardless of CWD
+env_db_url = os.getenv("DATABASE_URL")
+if env_db_url and not env_db_url.startswith("sqlite:///./app/data") and not env_db_url.startswith("sqlite:///app/data"):
+    DATABASE_URL = env_db_url
+else:
+    DATABASE_URL = f"sqlite:///{DATABASE_PATH.resolve().as_posix()}"
 
 MODEL_PATH = DATA_DIR / "road_risk_model.joblib"
 DATASET_PATH = DATA_DIR / "road_dataset.csv"

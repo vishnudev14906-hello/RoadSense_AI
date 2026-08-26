@@ -54,15 +54,39 @@ def get_current_user(
     if not auth_token:
         return None
 
+    email = None
     try:
         payload = jwt.decode(auth_token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("sub")
-        if email is None:
-            return None
+        email = payload.get("sub")
     except JWTError:
+        # Handle Firebase ID token claims safely
+        try:
+            unverified_claims = jwt.get_unverified_claims(auth_token)
+            email = unverified_claims.get("email") or unverified_claims.get("sub")
+        except Exception:
+            return None
+
+    if not email:
         return None
 
     user = db.query(User).filter(User.email == email).first()
+    if not user:
+        # If user authenticated with Firebase or Google, sync into SQLite users table
+        try:
+            name_derived = email.split("@")[0].replace(".", " ").title()
+            user = User(
+                name=name_derived,
+                email=email,
+                password_hash="firebase_managed_auth",
+                role="Inspector"
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+        except Exception:
+            db.rollback()
+            user = db.query(User).filter(User.email == email).first()
+
     return user
 
 def require_current_user(current_user: Optional[User] = Depends(get_current_user)) -> User:

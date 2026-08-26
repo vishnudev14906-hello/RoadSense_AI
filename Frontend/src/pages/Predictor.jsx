@@ -1192,9 +1192,9 @@ export default function Predictor({ onOpenReport, initialParams }) {
          ========================================================================= */}
       {activeInputMode === 'image' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          
+
           {/* 2-Column Layout for Image Mode */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(380px, 1.15fr) minmax(420px, 1.25fr)', gap: '1.75rem' }}>
+          <div className="predictor-two-column-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(380px, 1.15fr) minmax(420px, 1.25fr)', gap: '1.75rem' }}>
             
             {/* Left Column: Image Canvas & Measurable Features Extractor */}
             <div className="glass-card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>

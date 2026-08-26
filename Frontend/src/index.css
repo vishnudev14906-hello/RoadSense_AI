@@ -1142,4 +1142,196 @@ code, .mono {
   }
 }
 
+/* ==========================================================================
+   MOBILE RESPONSIVENESS & RESPONSIVE DESIGN SYSTEM
+   ========================================================================== */
+
+.sidebar-close-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.35rem;
+  border-radius: var(--radius-sm);
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.sidebar-close-btn:hover {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 45;
+  animation: fadeIn 0.2s ease;
+}
+
+.mobile-menu-btn {
+  display: none;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-main);
+  border-radius: var(--radius-sm);
+  padding: 0.4rem;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.mobile-menu-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--border-glow);
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-responsive table {
+  min-width: 600px;
+}
+
+/* Laptops & Small Desktops (<= 1200px) */
+@media (max-width: 1200px) {
+  .content-wrapper {
+    padding: 1.5rem;
+  }
+  .predictor-two-column-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Tablets Landscape & Portrait (<= 1024px) */
+@media (max-width: 1024px) {
+  .mobile-menu-btn {
+    display: flex;
+  }
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 50;
+    transform: translateX(-100%);
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.7);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .sidebar.sidebar-mobile-open {
+    transform: translateX(0);
+  }
+  .sidebar-close-btn {
+    display: flex;
+  }
+  .sidebar-backdrop {
+    display: block;
+  }
+  .content-wrapper {
+    padding: 1.25rem 1rem;
+  }
+  .predictor-two-column-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1.25rem !important;
+  }
+}
+
+/* Mobile & Small Tablets (<= 768px) */
+@media (max-width: 768px) {
+  .navbar {
+    padding: 0.75rem 1rem;
+  }
+  .navbar-date {
+    display: none;
+  }
+  .navbar-username {
+    max-width: 90px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .content-wrapper {
+    padding: 1rem 0.75rem;
+  }
+  .grid-2, .grid-3, .grid-4, .stat-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .glass-card {
+    padding: 1rem !important;
+  }
+  .modal-content {
+    width: 95vw !important;
+    max-width: 95vw !important;
+    margin: 0.5rem auto !important;
+    padding: 1rem !important;
+  }
+}
+
+/* Small Mobile Screens (<= 480px) */
+@media (max-width: 480px) {
+  .navbar-clock {
+    display: none !important;
+  }
+  .navbar-logout-text {
+    display: none;
+  }
+  .navbar-user-role {
+    display: none;
+  }
+  .navbar-user-chip {
+    padding: 0.25rem 0.5rem !important;
+  }
+  .login-card {
+    padding: 1.25rem 1rem !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  .login-container {
+    padding: 0.75rem 0.5rem !important;
+  }
+  .btn {
+    padding: 0.5rem 0.85rem !important;
+    font-size: 0.82rem !important;
+  }
+  .stat-card-value {
+    font-size: 1.35rem !important;
+  }
+  .benchmark-scenario-card {
+    min-width: 100% !important;
+  }
+}
+
+/* Ultra-compact Mobile Screens (320px - 375px) */
+@media (max-width: 375px) {
+  .content-wrapper {
+    padding: 0.75rem 0.4rem;
+  }
+  .navbar {
+    padding: 0.5rem 0.65rem;
+  }
+  .glass-card {
+    padding: 0.75rem !important;
+    border-radius: var(--radius-sm) !important;
+  }
+  h1 {
+    font-size: 1.25rem !important;
+  }
+  h2 {
+    font-size: 1.1rem !important;
+  }
+  h3 {
+    font-size: 0.95rem !important;
+  }
+}
+
 
