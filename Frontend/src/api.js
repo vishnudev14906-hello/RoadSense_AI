@@ -1,13 +1,16 @@
 export const getApiBase = () => {
   let rawBase = (import.meta.env?.VITE_API_BASE_URL || "").trim();
-  if (!rawBase) {
-    return "http://127.0.0.1:8000/api";
+  if (rawBase) {
+    rawBase = rawBase.replace(/\/+$/, "");
+    if (!rawBase.endsWith("/api")) {
+      rawBase = `${rawBase}/api`;
+    }
+    return rawBase;
   }
-  rawBase = rawBase.replace(/\/+$/, "");
-  if (!rawBase.endsWith("/api")) {
-    rawBase = `${rawBase}/api`;
+  if (import.meta.env?.PROD) {
+    return "https://roadsense-ai-ziky.onrender.com/api";
   }
-  return rawBase;
+  return "http://127.0.0.1:8000/api";
 };
 
 const API_BASE = getApiBase();
