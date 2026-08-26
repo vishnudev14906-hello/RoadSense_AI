@@ -1,4 +1,16 @@
-const API_BASE = import.meta.env?.VITE_API_BASE_URL || "http://127.0.0.1:8000/api";
+export const getApiBase = () => {
+  let rawBase = (import.meta.env?.VITE_API_BASE_URL || "").trim();
+  if (!rawBase) {
+    return "http://127.0.0.1:8000/api";
+  }
+  rawBase = rawBase.replace(/\/+$/, "");
+  if (!rawBase.endsWith("/api")) {
+    rawBase = `${rawBase}/api`;
+  }
+  return rawBase;
+};
+
+const API_BASE = getApiBase();
 
 export const getStoredToken = () => {
   try {

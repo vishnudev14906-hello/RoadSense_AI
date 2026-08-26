@@ -36,6 +36,7 @@ export default function Roads({ onOpenReport }) {
   });
   
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(null);
   const [search, setSearch] = useState('');
   const [stateFilter, setStateFilter] = useState('All');
   const [districtFilter, setDistrictFilter] = useState('All');
@@ -69,6 +70,7 @@ export default function Roads({ onOpenReport }) {
 
   const loadRoads = async () => {
     setLoading(true);
+    setFetchError(null);
     try {
       const data = await api.getRoads({
         search: search || undefined,
@@ -79,9 +81,11 @@ export default function Roads({ onOpenReport }) {
         verification_status: verificationFilter !== 'All' ? verificationFilter : undefined,
         risk_level: riskFilter !== 'All' ? riskFilter : undefined,
       });
-      setRoads(data);
+      setRoads(data || []);
+      setFetchError(null);
     } catch (err) {
       console.error("Failed to load roads:", err);
+      setFetchError("Unable to connect to the backend service. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -345,10 +349,37 @@ export default function Roads({ onOpenReport }) {
             </tr>
           </thead>
           <tbody>
-            {roads.length === 0 ? (
+            {loading ? (
               <tr>
                 <td colSpan="7" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-dim)' }}>
-                  {loading ? 'Querying verified road network records...' : 'No road assets match the specified filters.'}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+                    <RefreshCw size={22} className="spin-animation" color="#3B82F6" />
+                    <span>Querying verified road network records...</span>
+                  </div>
+                </td>
+              </tr>
+            ) : fetchError ? (
+              <tr>
+                <td colSpan="7" style={{ textAlign: 'center', padding: '3rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem', maxWidth: '440px', margin: '0 auto' }}>
+                    <span style={{ color: '#F87171', fontWeight: 600, fontSize: '0.92rem' }}>
+                      {fetchError}
+                    </span>
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={loadRoads}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.25rem', color: '#60A5FA', border: '1px solid rgba(96, 165, 250, 0.4)' }}
+                    >
+                      <RefreshCw size={14} />
+                      <span>Retry</span>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ) : roads.length === 0 ? (
+              <tr>
+                <td colSpan="7" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-dim)' }}>
+                  No road assets match the specified filters.
                 </td>
               </tr>
             ) : (

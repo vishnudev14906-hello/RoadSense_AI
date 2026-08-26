@@ -1,3 +1,4 @@
+import os
 import sys
 import secrets
 import urllib.request
@@ -149,10 +150,27 @@ app = FastAPI(
     version="2.1.0"
 )
 
-# CORS
+# Safe CORS Configuration for Localhost & Production Deployments (Vercel & Render)
+allowed_origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
+
+frontend_env = os.getenv("FRONTEND_URL")
+if frontend_env:
+    for url_item in frontend_env.split(","):
+        clean_url = url_item.strip().rstrip("/")
+        if clean_url and clean_url not in allowed_origins:
+            allowed_origins.append(clean_url)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
