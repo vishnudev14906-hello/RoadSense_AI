@@ -1374,6 +1374,12 @@ def scan_and_predict_road_image(req: ImageScanRequest, db: Session = Depends(get
         location=req.location or "Field Survey Ingestion"
     )
 
+    if pipe_res.get("is_valid_road") is False or not pipe_res.get("risk_level"):
+        raise HTTPException(
+            status_code=400,
+            detail=pipe_res.get("message") or "Invalid image. Please upload a valid road image."
+        )
+
     meas = pipe_res.get("measurable_features", {})
     potholes = int(meas.get("pothole_count", 0))
     cracks = int(meas.get("crack_count", 0))

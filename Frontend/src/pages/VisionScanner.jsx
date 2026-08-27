@@ -17,6 +17,7 @@ import {
 import RiskBadge from '../components/RiskBadge';
 import { SAMPLE_INSPECTION_SCENARIOS } from '../utils/sampleScenarios';
 import { compressImageForUpload } from '../utils/imageUtils';
+import { api } from '../api';
 
 export default function VisionScanner({ onTransferToPredictor }) {
   const [selectedScenario, setSelectedScenario] = useState(SAMPLE_INSPECTION_SCENARIOS[0]);
@@ -24,9 +25,11 @@ export default function VisionScanner({ onTransferToPredictor }) {
   const [isScanning, setIsScanning] = useState(false);
   const [showBoxes, setShowBoxes] = useState(true);
   const [confidenceThreshold, setConfidenceThreshold] = useState(80);
+  const [validationError, setValidationError] = useState(null);
   const fileInputRef = useRef(null);
 
   const handleSelectScenario = (scenario) => {
+    setValidationError(null);
     setCustomImage(null);
     setSelectedScenario(scenario);
     triggerScanAnimation();
@@ -43,6 +46,7 @@ export default function VisionScanner({ onTransferToPredictor }) {
     const file = e.target.files[0];
     if (file) {
       try {
+        setValidationError(null);
         setIsScanning(true);
         const dataUrl = await compressImageForUpload(file, 1280, 0.88);
         if (!dataUrl) return;
@@ -50,11 +54,24 @@ export default function VisionScanner({ onTransferToPredictor }) {
         setCustomImage(dataUrl);
         const cleanName = file.name.replace(/\.[^/.]+$/, "");
         
-        const scanRes = await api.scanImage({
-          image_base64: dataUrl,
-          road_name: cleanName,
-          location: 'Field Survey Ingestion'
-        });
+        let scanRes;
+        try {
+          scanRes = await api.scanImage({
+            image_base64: dataUrl,
+            road_name: cleanName,
+            location: 'Field Survey Ingestion'
+          });
+        } catch (apiErr) {
+          setValidationError("Invalid image. Please upload a valid road image.");
+          return;
+        }
+
+        if (!scanRes || scanRes.is_valid_road === false || !scanRes.risk_level) {
+          setValidationError("Invalid image. Please upload a valid road image.");
+          return;
+        }
+
+        setValidationError(null);
         setSelectedScenario({
           id: 'custom-upload',
           title: `Field Survey: ${file.name}`,
@@ -75,6 +92,7 @@ export default function VisionScanner({ onTransferToPredictor }) {
         });
       } catch (err) {
         console.error("Scan error:", err);
+        setValidationError("Invalid image. Please upload a valid road image.");
       } finally {
         setIsScanning(false);
       }
@@ -126,6 +144,30 @@ export default function VisionScanner({ onTransferToPredictor }) {
           </button>
         </div>
       </div>
+
+      {/* Validation Error Alert Banner */}
+      {validationError && (
+        <div style={{
+          background: 'rgba(239, 68, 68, 0.15)',
+          border: '1px solid rgba(239, 68, 68, 0.4)',
+          color: '#FCA5A5',
+          padding: '1rem 1.25rem',
+          borderRadius: 'var(--radius-md)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem'
+        }}>
+          <AlertTriangle size={22} color="#EF4444" style={{ flexShrink: 0 }} />
+          <div>
+            <div style={{ fontWeight: 800, color: '#EF4444', fontSize: '1rem' }}>
+              Invalid image. Please upload a valid road image.
+            </div>
+            <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+              The uploaded file does not contain a recognizable roadway or asphalt pavement scene. The AI model will not process non-road images.
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Preset Scenarios Selector Bar */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem' }}>

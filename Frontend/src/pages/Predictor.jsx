@@ -106,6 +106,7 @@ export default function Predictor({ onOpenReport, initialParams }) {
   });
 
   const [imagePrediction, setImagePrediction] = useState(null);
+  const [imageValidationError, setImageValidationError] = useState(null);
   const [loadingImage, setLoadingImage] = useState(false);
   const [imageSaveSuccess, setImageSaveSuccess] = useState(false);
   const [imageSavedTime, setImageSavedTime] = useState(null);
@@ -378,6 +379,7 @@ export default function Predictor({ onOpenReport, initialParams }) {
   // --- Run End-to-End Road Image Risk Pipeline (Image Analysis + 8 Features + XGBoost) ---
   const runImageInference = async (inputParams, saveToDb = false, overrideImage = null) => {
     const reqId = ++latestImageReqId.current;
+    setImageValidationError(null);
     if (saveToDb) {
       setLoadingImage(true);
     }
@@ -393,6 +395,12 @@ export default function Predictor({ onOpenReport, initialParams }) {
             road_name: inputParams.road_name?.trim() || 'Surveyed Photo Corridor'
           });
         } catch (pipeErr) {
+          const detail = pipeErr?.response?.data?.detail || pipeErr?.message || "";
+          if (detail.includes("Invalid image") || pipeErr?.response?.status === 400) {
+            setImagePrediction(null);
+            setImageValidationError("Invalid image. Please upload a valid road image.");
+            return;
+          }
           try {
             pipelineRes = await api.predictImagePipeline({
               image_base64: imgB64,
@@ -400,76 +408,33 @@ export default function Predictor({ onOpenReport, initialParams }) {
               location: inputParams.location?.trim() || 'Field Survey Ingestion'
             });
           } catch (e2) {
-            console.warn("Image Pipeline API fallback:", e2);
+            const e2Detail = e2?.response?.data?.detail || e2?.message || "";
+            if (e2Detail.includes("Invalid image") || e2?.response?.status === 400) {
+              setImagePrediction(null);
+              setImageValidationError("Invalid image. Please upload a valid road image.");
+              return;
+            }
           }
         }
       }
 
-      let finalPrediction;
-      if (pipelineRes) {
-        const rawConf = pipelineRes.confidence;
-        const formattedConf = rawConf !== undefined ? (rawConf <= 1.0 ? Math.round(rawConf * 100) : Math.round(rawConf)) : 95;
-        finalPrediction = {
-          ...pipelineRes,
-          confidence: formattedConf,
-          confidence_percentage: formattedConf,
-          road_name: inputParams.road_name?.trim() || 'Surveyed Road Photo Corridor',
-          location: inputParams.location?.trim() || 'Field Survey Ingestion',
-          prediction_date: new Date()
-        };
-      } else {
-        const p_c = Number(inputParams.pothole_count !== undefined ? inputParams.pothole_count : 24);
-        const p_d = Number(inputParams.pothole_depth !== undefined ? inputParams.pothole_depth : (inputParams.average_pothole_depth_cm || 13.5));
-        const c_l = Number(inputParams.crack_length !== undefined ? inputParams.crack_length : (inputParams.total_crack_length_m || 85.0));
-        const r_a = Number(inputParams.road_age !== undefined ? inputParams.road_age : (inputParams.pavement_age_years || 12.5));
-        const t_v = inputParams.traffic_density || inputParams.traffic_volume || 'Very High';
-        const r_f = inputParams.rainfall || 'Heavy';
-
-        const payload = {
-          pothole_count: p_c,
-          average_pothole_depth_cm: p_d,
-          total_crack_length_m: c_l,
-          pavement_age_years: r_a,
-          traffic_volume: t_v,
-          rainfall: r_f,
-          road_length_km: Number(inputParams.road_length || 5.0),
-          road_name: inputParams.road_name?.trim() || 'Surveyed Road Photo Corridor',
-          location: inputParams.location?.trim() || 'Field Survey Ingestion',
-          latitude: inputParams.latitude !== undefined ? inputParams.latitude : null,
-          longitude: inputParams.longitude !== undefined ? inputParams.longitude : null,
-          save_prediction: saveToDb
-        };
-
-        const rfRes = await api.predict(payload);
-        finalPrediction = {
-          ...rfRes,
-          features: {
-            pothole_count: p_c,
-            pothole_area_ratio: 0.05,
-            crack_area_ratio: 0.12,
-            damage_area_ratio: 0.17,
-            damage_severity: 0.65,
-            pothole_detected: p_c > 0 ? 1 : 0,
-            crack_detected: c_l > 0 ? 1 : 0,
-            avg_confidence: 96.5
-          },
-          measurable_features: {
-            pothole_count: p_c,
-            pothole_area_ratio: 0.05,
-            crack_area_ratio: 0.12,
-            damage_area_ratio: 0.17,
-            damage_severity: 0.65,
-            pothole_detected: p_c > 0 ? 1 : 0,
-            crack_detected: c_l > 0 ? 1 : 0,
-            avg_confidence: 96.5
-          },
-          damage_type: p_c > 0 ? "Potholes & Structural Cracking" : "Surface Cracking",
-          damage_severity: p_c > 10 ? "Severe" : "Moderate",
-          confidence: rfRes.confidence ? (rfRes.confidence > 1 ? Math.round(rfRes.confidence) : Math.round(rfRes.confidence * 100)) : 98,
-          is_valid_road: true,
-          prediction_date: new Date()
-        };
+      if (!pipelineRes || pipelineRes.is_valid_road === false || !pipelineRes.risk_level) {
+        setImagePrediction(null);
+        setImageValidationError("Invalid image. Please upload a valid road image.");
+        return;
       }
+
+      setImageValidationError(null);
+      const rawConf = pipelineRes.confidence;
+      const formattedConf = rawConf !== undefined ? (rawConf <= 1.0 ? Math.round(rawConf * 100) : Math.round(rawConf)) : 95;
+      const finalPrediction = {
+        ...pipelineRes,
+        confidence: formattedConf,
+        confidence_percentage: formattedConf,
+        road_name: inputParams.road_name?.trim() || 'Surveyed Road Photo Corridor',
+        location: inputParams.location?.trim() || 'Field Survey Ingestion',
+        prediction_date: new Date()
+      };
 
       if (reqId === latestImageReqId.current) {
         setImagePrediction(finalPrediction);
@@ -482,6 +447,8 @@ export default function Predictor({ onOpenReport, initialParams }) {
       }
     } catch (err) {
       console.error("Image AI Prediction Error:", err);
+      setImagePrediction(null);
+      setImageValidationError("Invalid image. Please upload a valid road image.");
     } finally {
       if (saveToDb) {
         setLoadingImage(false);
@@ -1251,402 +1218,396 @@ export default function Predictor({ onOpenReport, initialParams }) {
                 </div>
               </div>
 
-              {/* Out of Domain / Blurry Rejection Alert */}
-              {imagePrediction && imagePrediction.is_valid_road === false && (
+              {/* Invalid Image Error Notice */}
+              {(imageValidationError || !imagePrediction || imagePrediction.is_valid_road === false || !imagePrediction.risk_level) && (
                 <div style={{
                   background: 'rgba(239, 68, 68, 0.15)',
                   border: '1px solid rgba(239, 68, 68, 0.4)',
                   color: '#FCA5A5',
-                  padding: '0.85rem 1rem',
+                  padding: '1rem 1.25rem',
                   borderRadius: 'var(--radius-md)',
-                  fontSize: '0.86rem',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.6rem'
+                  gap: '0.75rem'
                 }}>
-                  <AlertOctagon size={20} color="#EF4444" style={{ flexShrink: 0 }} />
+                  <AlertOctagon size={24} color="#EF4444" style={{ flexShrink: 0 }} />
                   <div>
-                    <div style={{ fontWeight: 700, color: '#EF4444' }}>Unable to reliably analyze this image as a road-condition image.</div>
-                    <div style={{ fontSize: '0.78rem', marginTop: '0.2rem' }}>
-                      {imagePrediction.message || imagePrediction.error || "The uploaded image does not appear to contain a supported road pavement surface, or the photo is too blurry."}
+                    <div style={{ fontWeight: 800, color: '#EF4444', fontSize: '1rem' }}>
+                      Invalid image. Please upload a valid road image.
+                    </div>
+                    <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                      The uploaded file does not contain a recognizable roadway or asphalt pavement scene. The AI Risk Prediction model will not classify non-road photos.
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* 8 Structured Measurable Features Extracted for XGBoost */}
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.75rem',
-                background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.8))',
-                padding: '1rem',
-                borderRadius: 'var(--radius-md)',
-                border: '1px solid rgba(168, 85, 247, 0.35)'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.82rem', fontWeight: 700, color: '#C084FC' }}>
-                    <Sliders size={15} color="#A855F7" />
-                    <span>Extract Measurable Features (XGBoost Input Vector)</span>
-                  </div>
-                  <span style={{
-                    fontSize: '0.68rem',
-                    fontWeight: 700,
-                    color: '#C084FC',
-                    background: 'rgba(168, 85, 247, 0.15)',
-                    border: '1px solid rgba(168, 85, 247, 0.3)',
-                    padding: '0.15rem 0.45rem',
-                    borderRadius: 'var(--radius-full)'
+              {/* 8 Structured Measurable Features Extracted for XGBoost (Only for valid road images) */}
+              {imagePrediction && imagePrediction.is_valid_road !== false && imagePrediction.risk_level && (
+                <>
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.75rem',
+                    background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.8))',
+                    padding: '1rem',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid rgba(168, 85, 247, 0.35)'
                   }}>
-                    8 Extracted Physical Indicators
-                  </span>
-                </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.82rem', fontWeight: 700, color: '#C084FC' }}>
+                        <Sliders size={15} color="#A855F7" />
+                        <span>Extract Measurable Features (XGBoost Input Vector)</span>
+                      </div>
+                      <span style={{
+                        fontSize: '0.68rem',
+                        fontWeight: 700,
+                        color: '#C084FC',
+                        background: 'rgba(168, 85, 247, 0.15)',
+                        border: '1px solid rgba(168, 85, 247, 0.3)',
+                        padding: '0.15rem 0.45rem',
+                        borderRadius: 'var(--radius-full)'
+                      }}>
+                        8 Extracted Physical Indicators
+                      </span>
+                    </div>
 
-                {/* Extracted Damage Type & Severity Badges */}
-                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  <div style={{ background: 'rgba(59, 130, 246, 0.15)', border: '1px solid rgba(59, 130, 246, 0.35)', padding: '0.3rem 0.6rem', borderRadius: 'var(--radius-sm)', fontSize: '0.75rem' }}>
-                    <span style={{ color: 'var(--text-dim)' }}>Detected Damage: </span>
-                    <strong style={{ color: '#93C5FD' }}>{imagePrediction?.damage_type || 'Potholes & Structural Cracking'}</strong>
-                  </div>
-                  <div style={{ background: 'rgba(245, 158, 11, 0.15)', border: '1px solid rgba(245, 158, 11, 0.35)', padding: '0.3rem 0.6rem', borderRadius: 'var(--radius-sm)', fontSize: '0.75rem' }}>
-                    <span style={{ color: 'var(--text-dim)' }}>Damage Severity: </span>
-                    <strong style={{ color: '#FCD34D' }}>{imagePrediction?.damage_severity || 'Moderate'}</strong>
-                  </div>
-                </div>
+                    {/* Extracted Damage Type & Severity Badges */}
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <div style={{ background: 'rgba(59, 130, 246, 0.15)', border: '1px solid rgba(59, 130, 246, 0.35)', padding: '0.3rem 0.6rem', borderRadius: 'var(--radius-sm)', fontSize: '0.75rem' }}>
+                        <span style={{ color: 'var(--text-dim)' }}>Detected Damage: </span>
+                        <strong style={{ color: '#93C5FD' }}>{imagePrediction?.damage_type || 'Potholes & Structural Cracking'}</strong>
+                      </div>
+                      <div style={{ background: 'rgba(245, 158, 11, 0.15)', border: '1px solid rgba(245, 158, 11, 0.35)', padding: '0.3rem 0.6rem', borderRadius: 'var(--radius-sm)', fontSize: '0.75rem' }}>
+                        <span style={{ color: 'var(--text-dim)' }}>Damage Severity: </span>
+                        <strong style={{ color: '#FCD34D' }}>{imagePrediction?.damage_severity || 'Moderate'}</strong>
+                      </div>
+                    </div>
 
-                {/* 8 Measurable Features Grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.6rem' }}>
-                  {/* Feature 1: Pothole Count */}
-                  <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '0.65rem' }}>
-                    <div style={{ fontSize: '0.68rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>• Pothole Count</div>
-                    <div style={{ fontSize: '1.15rem', fontWeight: 800, color: (imagePrediction?.features?.pothole_count ?? imagePrediction?.pothole_count ?? imageParams.pothole_count) > 15 ? '#EF4444' : (imagePrediction?.features?.pothole_count ?? imagePrediction?.pothole_count ?? imageParams.pothole_count) > 5 ? '#F59E0B' : '#10B981', marginTop: '0.1rem' }} className="mono">
-                      {imagePrediction?.features?.pothole_count ?? imagePrediction?.pothole_count ?? imageParams.pothole_count} <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-dim)' }}>craters</span>
+                    {/* 8 Measurable Features Grid */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.6rem' }}>
+                      {/* Feature 1: Pothole Count */}
+                      <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '0.65rem' }}>
+                        <div style={{ fontSize: '0.68rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>• Pothole Count</div>
+                        <div style={{ fontSize: '1.15rem', fontWeight: 800, color: (imagePrediction?.features?.pothole_count ?? imagePrediction?.pothole_count ?? imageParams.pothole_count) > 15 ? '#EF4444' : (imagePrediction?.features?.pothole_count ?? imagePrediction?.pothole_count ?? imageParams.pothole_count) > 5 ? '#F59E0B' : '#10B981', marginTop: '0.1rem' }} className="mono">
+                          {imagePrediction?.features?.pothole_count ?? imagePrediction?.pothole_count ?? imageParams.pothole_count} <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-dim)' }}>craters</span>
+                        </div>
+                      </div>
+
+                      {/* Feature 2: Pothole Area Ratio */}
+                      <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '0.65rem' }}>
+                        <div style={{ fontSize: '0.68rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>• Pothole Area %</div>
+                        <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#60A5FA', marginTop: '0.1rem' }} className="mono">
+                          {imagePrediction?.features?.pothole_area_ratio !== undefined ? `${(imagePrediction.features.pothole_area_ratio * 100).toFixed(1)}%` : '6.5%'}
+                        </div>
+                      </div>
+
+                      {/* Feature 3: Crack Area Ratio */}
+                      <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '0.65rem' }}>
+                        <div style={{ fontSize: '0.68rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>• Crack Area %</div>
+                        <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#F59E0B', marginTop: '0.1rem' }} className="mono">
+                          {imagePrediction?.features?.crack_area_ratio !== undefined ? `${(imagePrediction.features.crack_area_ratio * 100).toFixed(1)}%` : '12.0%'}
+                        </div>
+                      </div>
+
+                      {/* Feature 4: Damaged Area Percentage */}
+                      <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '0.65rem' }}>
+                        <div style={{ fontSize: '0.68rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>• Total Damaged %</div>
+                        <div style={{ fontSize: '1.15rem', fontWeight: 800, color: (imagePrediction?.features?.damage_area_ratio ?? (imagePrediction?.damaged_area_percentage ? imagePrediction.damaged_area_percentage / 100 : 0.18)) > 0.35 ? '#EF4444' : '#F59E0B', marginTop: '0.1rem' }} className="mono">
+                          {imagePrediction?.features?.damage_area_ratio !== undefined ? `${(imagePrediction.features.damage_area_ratio * 100).toFixed(1)}%` : `${imagePrediction?.damaged_area_percentage || 18.5}%`}
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Feature 2: Pothole Area Ratio */}
-                  <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '0.65rem' }}>
-                    <div style={{ fontSize: '0.68rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>• Pothole Area %</div>
-                    <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#60A5FA', marginTop: '0.1rem' }} className="mono">
-                      {imagePrediction?.features?.pothole_area_ratio !== undefined ? `${(imagePrediction.features.pothole_area_ratio * 100).toFixed(1)}%` : '6.5%'}
+                  {/* Metadata Input Fields */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label" style={{ fontSize: '0.78rem' }}>Corridor Label</label>
+                      <input
+                        type="text"
+                        className="form-input form-input-sm"
+                        value={imageParams.road_name}
+                        onChange={(e) => {
+                          const updated = { ...imageParams, road_name: e.target.value };
+                          setImageParams(updated);
+                        }}
+                      />
+                    </div>
+
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label" style={{ fontSize: '0.78rem' }}>Municipality / Location</label>
+                      <input
+                        type="text"
+                        className="form-input form-input-sm"
+                        value={imageParams.location}
+                        onChange={(e) => {
+                          const updated = { ...imageParams, location: e.target.value };
+                          setImageParams(updated);
+                        }}
+                      />
                     </div>
                   </div>
 
-                  {/* Feature 3: Crack Area Ratio */}
-                  <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '0.65rem' }}>
-                    <div style={{ fontSize: '0.68rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>• Crack Area %</div>
-                    <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#F59E0B', marginTop: '0.1rem' }} className="mono">
-                      {imagePrediction?.features?.crack_area_ratio !== undefined ? `${(imagePrediction.features.crack_area_ratio * 100).toFixed(1)}%` : '12.0%'}
-                    </div>
+                  {/* Save Assessment Button */}
+                  <div style={{ display: 'flex', marginTop: '0.3rem' }}>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      style={{ width: '100%', justifyContent: 'center' }}
+                      onClick={() => runImageInference(imageParams, true)}
+                      disabled={loadingImage}
+                    >
+                      <Save size={16} />
+                      <span>{loadingImage ? 'Logging Image Assessment...' : 'Save & Log Assessment'}</span>
+                    </button>
                   </div>
 
-                  {/* Feature 4: Damaged Area Percentage */}
-                  <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '0.65rem' }}>
-                    <div style={{ fontSize: '0.68rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>• Total Damaged %</div>
-                    <div style={{ fontSize: '1.15rem', fontWeight: 800, color: (imagePrediction?.features?.damage_area_ratio ?? (imagePrediction?.damaged_area_percentage ? imagePrediction.damaged_area_percentage / 100 : 0.18)) > 0.35 ? '#EF4444' : '#F59E0B', marginTop: '0.1rem' }} className="mono">
-                      {imagePrediction?.features?.damage_area_ratio !== undefined ? `${(imagePrediction.features.damage_area_ratio * 100).toFixed(1)}%` : `${imagePrediction?.damaged_area_percentage || 18.5}%`}
+                  {imageSaveSuccess && (
+                    <div style={{
+                      background: 'rgba(16, 185, 129, 0.18)',
+                      border: '1px solid rgba(16, 185, 129, 0.4)',
+                      color: '#34D399',
+                      padding: '0.65rem 0.85rem',
+                      borderRadius: 'var(--radius-md)',
+                      fontSize: '0.82rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.45rem'
+                    }}>
+                      <CheckCircle2 size={16} color="#34D399" />
+                      <span>
+                        ✨ Photo Assessment for <strong>"{imageParams.road_name || 'Corridor'}"</strong> saved to <strong>Road Networks</strong> & <strong>GIS Map</strong> at {formatTime(imageSavedTime || new Date(), true)}!
+                      </span>
                     </div>
-                  </div>
-
-                  {/* Feature 5: Damage Severity Index */}
-                  <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '0.65rem' }}>
-                    <div style={{ fontSize: '0.68rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>• Severity Index</div>
-                    <div style={{ fontSize: '1.15rem', fontWeight: 800, color: (imagePrediction?.features?.damage_severity ?? 0.65) >= 0.70 ? '#EF4444' : '#F59E0B', marginTop: '0.1rem' }} className="mono">
-                      {imagePrediction?.features?.damage_severity !== undefined ? imagePrediction.features.damage_severity : 0.65} <span style={{ fontSize: '0.68rem', color: 'var(--text-dim)' }}>/ 1.0</span>
-                    </div>
-                  </div>
-
-                  {/* Feature 6: Pothole Detected */}
-                  <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '0.65rem' }}>
-                    <div style={{ fontSize: '0.68rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>• Pothole Presence</div>
-                    <div style={{ fontSize: '1.15rem', fontWeight: 800, color: (imagePrediction?.features?.pothole_detected ?? 1) ? '#EF4444' : '#10B981', marginTop: '0.1rem' }}>
-                      {(imagePrediction?.features?.pothole_detected ?? 1) ? 'Detected' : 'None'}
-                    </div>
-                  </div>
-
-                  {/* Feature 7: Crack Detected */}
-                  <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '0.65rem' }}>
-                    <div style={{ fontSize: '0.68rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>• Crack Presence</div>
-                    <div style={{ fontSize: '1.15rem', fontWeight: 800, color: (imagePrediction?.features?.crack_detected ?? 1) ? '#F59E0B' : '#10B981', marginTop: '0.1rem' }}>
-                      {(imagePrediction?.features?.crack_detected ?? 1) ? 'Detected' : 'None'}
-                    </div>
-                  </div>
-
-                  {/* Feature 8: Average Confidence */}
-                  <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '0.65rem' }}>
-                    <div style={{ fontSize: '0.68rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>• Detector Conf.</div>
-                    <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#34D399', marginTop: '0.1rem' }} className="mono">
-                      {imagePrediction?.features?.avg_confidence || imagePrediction?.avg_confidence || 96.8}%
-                    </div>
-                  </div>
-                </div>
-
-                {/* Pipeline Context Notice */}
-                <div style={{
-                  fontSize: '0.72rem',
-                  color: '#C084FC',
-                  background: 'rgba(168, 85, 247, 0.08)',
-                  padding: '0.45rem 0.65rem',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid rgba(168, 85, 247, 0.2)',
-                  lineHeight: 1.4
-                }}>
-                  🔬 <strong>Measurable Feature Extraction Layer:</strong> The 8 physically measured distress features above are passed to the trained XGBoost Multi-Class Classifier to predict the IRC:82 risk probability distribution.
-                </div>
-              </div>
-
-              {/* Photo Metadata Form */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '0.6rem' }}>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label" style={{ fontSize: '0.78rem' }}>Corridor Label</label>
-                  <input
-                    type="text"
-                    className="form-input form-input-sm"
-                    value={imageParams.road_name}
-                    onChange={(e) => {
-                      const updated = { ...imageParams, road_name: e.target.value };
-                      setImageParams(updated);
-                    }}
-                  />
-                </div>
-
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label" style={{ fontSize: '0.78rem' }}>Municipality / Location</label>
-                  <input
-                    type="text"
-                    className="form-input form-input-sm"
-                    value={imageParams.location}
-                    onChange={(e) => {
-                      const updated = { ...imageParams, location: e.target.value };
-                      setImageParams(updated);
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Single Clean Action Button for Image Mode */}
-              <div style={{ display: 'flex', marginTop: '0.3rem' }}>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  style={{ width: '100%', justifyContent: 'center' }}
-                  onClick={() => runImageInference(imageParams, true)}
-                  disabled={loadingImage}
-                >
-                  <Save size={16} />
-                  <span>{loadingImage ? 'Logging Image Assessment...' : 'Save & Log Assessment'}</span>
-                </button>
-              </div>
-
-              {imageSaveSuccess && (
-                <div style={{
-                  background: 'rgba(16, 185, 129, 0.18)',
-                  border: '1px solid rgba(16, 185, 129, 0.4)',
-                  color: '#34D399',
-                  padding: '0.65rem 0.85rem',
-                  borderRadius: 'var(--radius-md)',
-                  fontSize: '0.82rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.45rem'
-                }}>
-                  <CheckCircle2 size={16} color="#34D399" />
-                  <span>
-                    ✨ Photo Assessment for <strong>"{imageParams.road_name || 'Corridor'}"</strong> saved to <strong>Road Networks</strong> & <strong>GIS Map</strong> at {formatTime(imageSavedTime || new Date(), true)}!
-                  </span>
-                </div>
+                  )}
+                </>
               )}
             </div>
 
             {/* Right Column: XGBoost ML Prediction & Maintenance Recommendation */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              
-              {/* Image Live Bar */}
-              <div style={{
-                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(59, 130, 246, 0.08))',
-                border: '1px solid rgba(16, 185, 129, 0.35)',
-                borderRadius: 'var(--radius-md)',
-                padding: '0.75rem 1rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '0.5rem'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                  <Scan size={16} color="#34D399" className="pulse-animation" />
-                  <div>
-                    <div style={{ fontSize: '0.7rem', color: '#6EE7B7', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                      Visual Defect Ingestion & ML Inference
-                    </div>
-                    <div style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-main)', fontFamily: 'JetBrains Mono, monospace' }}>
-                      {formatDateTime(imagePrediction?.prediction_date || new Date())}
-                    </div>
-                  </div>
-                </div>
-
-                <span style={{
-                  background: 'rgba(59, 130, 246, 0.2)',
-                  border: '1px solid rgba(59, 130, 246, 0.4)',
-                  color: '#60A5FA',
-                  fontSize: '0.72rem',
-                  fontWeight: 700,
-                  padding: '0.2rem 0.5rem',
-                  borderRadius: 'var(--radius-full)',
+              {(imageValidationError || !imagePrediction || imagePrediction.is_valid_road === false || !imagePrediction.risk_level) ? (
+                <div className="glass-card" style={{
+                  borderColor: 'rgba(239, 68, 68, 0.4)',
+                  background: 'rgba(239, 68, 68, 0.05)',
+                  padding: '2.5rem 1.5rem',
+                  textAlign: 'center',
                   display: 'flex',
+                  flexDirection: 'column',
                   alignItems: 'center',
-                  gap: '0.3rem'
+                  gap: '1rem'
                 }}>
-                  <span className="live-pulse" style={{ width: 6, height: 6, backgroundColor: '#60A5FA' }}></span>
-                  {loadingImage ? 'Inferencing Image ML...' : 'XGBoost Classifier Active'}
-                </span>
-              </div>
-
-              {/* Card 1: 1. XGBoost ML Risk Prediction (Road Images) */}
-              <div className="glass-card highlight" style={{ borderColor: 'rgba(16, 185, 129, 0.4)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <Cpu size={18} color="#10B981" />
-                    <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                      1. XGBoost ML Risk Prediction (Road Images)
-                    </h3>
-                  </div>
-                  <span style={{
-                    background: 'rgba(16, 185, 129, 0.15)',
-                    border: '1px solid rgba(16, 185, 129, 0.3)',
-                    color: '#34D399',
-                    fontSize: '0.78rem',
-                    fontWeight: 700,
-                    padding: '0.2rem 0.55rem',
-                    borderRadius: 'var(--radius-full)'
-                  }}>
-                    {imagePrediction?.confidence || 98}% XGBoost ML Confidence
-                  </span>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', alignItems: 'center' }}>
-                  <div>
-                    <RiskGauge
-                      score={imagePrediction?.risk_score || 94.5}
-                      level={imagePrediction?.risk_level || 'Critical Risk'}
-                    />
-                  </div>
-
-                  {/* 4-Tier Risk Probability Distribution */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                      Predicted Risk Probability Distribution:
-                    </span>
-                    {imagePrediction?.probabilities &&
-                      Object.entries(imagePrediction.probabilities).map(([cls, prob]) => {
-                        const color = cls.includes('Critical') ? '#EF4444' : cls.includes('High') ? '#F97316' : cls.includes('Medium') ? '#F59E0B' : '#10B981';
-                        return (
-                          <div key={cls}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', marginBottom: '0.2rem' }}>
-                              <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>{cls}</span>
-                              <span style={{ color, fontWeight: 700 }} className="mono">{prob}%</span>
-                            </div>
-                            <div style={{ height: 6, borderRadius: 3, background: 'rgba(255, 255, 255, 0.08)', overflow: 'hidden' }}>
-                              <div
-                                style={{
-                                  height: '100%',
-                                  width: `${prob}%`,
-                                  backgroundColor: color,
-                                  borderRadius: 3,
-                                  transition: 'width 0.4s ease'
-                                }}
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
-                  </div>
-                </div>
-              </div>
-
-              {/* Card 2: 2. AI Maintenance Decision Recommendation (IRC:82 Guidelines) */}
-              <div className="glass-card" style={{ borderColor: 'rgba(16, 185, 129, 0.35)', background: 'linear-gradient(135deg, rgba(18, 24, 40, 0.95), rgba(6, 78, 59, 0.25))' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <Wrench size={18} color="#34D399" />
-                    <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                      2. AI Maintenance Decision Recommendation (IRC:82 Guidelines)
-                    </h3>
-                  </div>
-                  
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span className={`priority-badge ${(imagePrediction?.priority || 'high').toLowerCase()}`}>
-                      {imagePrediction?.priority || 'High'}
-                    </span>
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => onOpenReport && onOpenReport({ ...imageParams, ...imagePrediction })}
-                      title="Generate Official Audit Document"
-                    >
-                      <FileText size={13} />
-                      <span>Report</span>
-                    </button>
-                  </div>
-                </div>
-
-                <div style={{
-                  background: 'rgba(255, 255, 255, 0.04)',
-                  border: '1px solid var(--border-subtle)',
-                  borderRadius: 'var(--radius-md)',
-                  padding: '1rem',
-                  marginBottom: '1rem'
-                }}>
-                  <div style={{ fontSize: '0.72rem', color: '#34D399', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.3rem' }}>
-                    🔧 Prescribed Civil Engineering Remediation
-                  </div>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                    {imagePrediction?.recommendation || 'Full-depth asphalt milling and hot-mix patching (HMA Grade I/II) + sub-base reconstruction.'}
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '0.8rem', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '0.75rem' }}>
-                    <div>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', textTransform: 'uppercase' }}>Urgency Window</div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#F87171' }}>
-                        {imagePrediction?.inspection_timeline || imagePrediction?.agent_recommendation?.inspection_timeline || 'Within 24 - 48 hours'}
-                      </div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', textTransform: 'uppercase' }}>Estimated Budget Scope</div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#34D399' }} className="mono">
-                        {imagePrediction?.estimated_budget || '₹4,50,000 - ₹9,50,000'}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {imagePrediction?.safety_hazard && (
                   <div style={{
-                    background: 'rgba(239, 68, 68, 0.12)',
-                    border: '1px solid rgba(239, 68, 68, 0.3)',
-                    borderRadius: 'var(--radius-md)',
-                    padding: '0.75rem 1rem',
-                    marginBottom: '1rem',
+                    width: '56px',
+                    height: '56px',
+                    borderRadius: '50%',
+                    background: 'rgba(239, 68, 68, 0.15)',
+                    border: '1px solid rgba(239, 68, 68, 0.4)',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.6rem'
+                    justifyContent: 'center'
                   }}>
-                    <AlertOctagon size={20} color="#F87171" style={{ flexShrink: 0 }} />
-                    <div style={{ fontSize: '0.8rem', color: '#FCA5A5', lineHeight: 1.4 }}>
-                      {imagePrediction.safety_hazard}
+                    <AlertOctagon size={28} color="#EF4444" />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#EF4444', marginBottom: '0.4rem' }}>
+                      Invalid image. Please upload a valid road image.
+                    </h3>
+                    <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)', maxWidth: '420px', margin: '0 auto' }}>
+                      The uploaded file does not contain a supported roadway or asphalt pavement scene. Prediction is stopped and no risk classification is generated.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Image Live Bar */}
+                  <div style={{
+                    background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(59, 130, 246, 0.08))',
+                    border: '1px solid rgba(16, 185, 129, 0.35)',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '0.75rem 1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '0.5rem'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                      <Scan size={16} color="#34D399" className="pulse-animation" />
+                      <div>
+                        <div style={{ fontSize: '0.7rem', color: '#6EE7B7', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                          Visual Defect Ingestion & ML Inference
+                        </div>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-main)', fontFamily: 'JetBrains Mono, monospace' }}>
+                          {formatDateTime(imagePrediction?.prediction_date || new Date())}
+                        </div>
+                      </div>
+                    </div>
+
+                    <span style={{
+                      background: 'rgba(59, 130, 246, 0.2)',
+                      border: '1px solid rgba(59, 130, 246, 0.4)',
+                      color: '#60A5FA',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      padding: '0.2rem 0.5rem',
+                      borderRadius: 'var(--radius-full)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.3rem'
+                    }}>
+                      <span className="live-pulse" style={{ width: 6, height: 6, backgroundColor: '#60A5FA' }}></span>
+                      {loadingImage ? 'Inferencing Image ML...' : 'XGBoost Classifier Active'}
+                    </span>
+                  </div>
+
+                  {/* Card 1: 1. XGBoost ML Risk Prediction (Road Images) */}
+                  <div className="glass-card highlight" style={{ borderColor: 'rgba(16, 185, 129, 0.4)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Cpu size={18} color="#10B981" />
+                        <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                          1. XGBoost ML Risk Prediction (Road Images)
+                        </h3>
+                      </div>
+                      <span style={{
+                        background: 'rgba(16, 185, 129, 0.15)',
+                        border: '1px solid rgba(16, 185, 129, 0.3)',
+                        color: '#34D399',
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        padding: '0.2rem 0.55rem',
+                        borderRadius: 'var(--radius-full)'
+                      }}>
+                        {imagePrediction?.confidence || 98}% XGBoost ML Confidence
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', alignItems: 'center' }}>
+                      <div>
+                        <RiskGauge
+                          score={imagePrediction?.risk_score || 94.5}
+                          level={imagePrediction?.risk_level || 'Critical Risk'}
+                        />
+                      </div>
+
+                      {/* 4-Tier Risk Probability Distribution */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                          Predicted Risk Probability Distribution:
+                        </span>
+                        {imagePrediction?.probabilities &&
+                          Object.entries(imagePrediction.probabilities).map(([cls, prob]) => {
+                            const color = cls.includes('Critical') ? '#EF4444' : cls.includes('High') ? '#F97316' : cls.includes('Medium') ? '#F59E0B' : '#10B981';
+                            return (
+                              <div key={cls}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', marginBottom: '0.2rem' }}>
+                                  <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>{cls}</span>
+                                  <span style={{ color, fontWeight: 700 }} className="mono">{prob}%</span>
+                                </div>
+                                <div style={{ height: 6, borderRadius: 3, background: 'rgba(255, 255, 255, 0.08)', overflow: 'hidden' }}>
+                                  <div
+                                    style={{
+                                      height: '100%',
+                                      width: `${prob}%`,
+                                      backgroundColor: color,
+                                      borderRadius: 3,
+                                      transition: 'width 0.4s ease'
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                      </div>
                     </div>
                   </div>
-                )}
 
-                <div>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.3rem' }}>
-                    💡 XGBoost Decision Reasoning Rationale
+                  {/* Card 2: 2. AI Maintenance Decision Recommendation (IRC:82 Guidelines) */}
+                  <div className="glass-card" style={{ borderColor: 'rgba(16, 185, 129, 0.35)', background: 'linear-gradient(135deg, rgba(18, 24, 40, 0.95), rgba(6, 78, 59, 0.25))' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Wrench size={18} color="#34D399" />
+                        <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                          2. AI Maintenance Decision Recommendation (IRC:82 Guidelines)
+                        </h3>
+                      </div>
+                      
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span className={`priority-badge ${(imagePrediction?.priority || 'high').toLowerCase()}`}>
+                          {imagePrediction?.priority || 'High'}
+                        </span>
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => onOpenReport && onOpenReport({ ...imageParams, ...imagePrediction })}
+                          title="Generate Official Audit Document"
+                        >
+                          <FileText size={13} />
+                          <span>Report</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div style={{
+                      background: 'rgba(255, 255, 255, 0.04)',
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: 'var(--radius-md)',
+                      padding: '1rem',
+                      marginBottom: '1rem'
+                    }}>
+                      <div style={{ fontSize: '0.72rem', color: '#34D399', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.3rem' }}>
+                        🔧 Prescribed Civil Engineering Remediation
+                      </div>
+                      <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                        {imagePrediction?.recommendation || 'Full-depth asphalt milling and hot-mix patching (HMA Grade I/II) + sub-base reconstruction.'}
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '0.8rem', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '0.75rem' }}>
+                        <div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', textTransform: 'uppercase' }}>Urgency Window</div>
+                          <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#F87171' }}>
+                            {imagePrediction?.inspection_timeline || imagePrediction?.agent_recommendation?.inspection_timeline || 'Within 24 - 48 hours'}
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', textTransform: 'uppercase' }}>Estimated Budget Scope</div>
+                          <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#34D399' }} className="mono">
+                            {imagePrediction?.estimated_budget || '₹4,50,000 - ₹9,50,000'}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {imagePrediction?.safety_hazard && (
+                      <div style={{
+                        background: 'rgba(239, 68, 68, 0.12)',
+                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                        borderRadius: 'var(--radius-md)',
+                        padding: '0.75rem 1rem',
+                        marginBottom: '1rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.6rem'
+                      }}>
+                        <AlertOctagon size={20} color="#F87171" style={{ flexShrink: 0 }} />
+                        <div style={{ fontSize: '0.8rem', color: '#FCA5A5', lineHeight: 1.4 }}>
+                          {imagePrediction.safety_hazard}
+                        </div>
+                      </div>
+                    )}
+
+                    <div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.3rem' }}>
+                        💡 XGBoost Decision Reasoning Rationale
+                      </div>
+                      <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                        {imagePrediction?.ai_reasoning || 'Evaluated combined impact of measured crater cavitation depth, fissure span, and pavement fatigue against trained XGBoost decision trees under IRC:82 civil engineering specifications.'}
+                      </p>
+                    </div>
                   </div>
-                  <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                    {imagePrediction?.ai_reasoning || 'Evaluated combined impact of measured crater cavitation depth, fissure span, and pavement fatigue against trained XGBoost decision trees under IRC:82 civil engineering specifications.'}
-                  </p>
-                </div>
-              </div>
-
+                </>
+              )}
             </div>
           </div>
         </div>

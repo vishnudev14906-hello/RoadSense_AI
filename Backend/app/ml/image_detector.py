@@ -81,7 +81,8 @@ class RoadImageDetectorService:
                 "confidence": 0.0,
                 "confidence_percentage": 0.0,
                 "is_road_damage": False,
-                "message": err_msg or "Unable to reliably analyze this image as a road-condition image.",
+                "is_valid_road": False,
+                "message": "Invalid image. Please upload a valid road image.",
                 "probabilities": {},
                 "model_version": "Custom-CNN-Scratch-v1.0"
             }
@@ -101,7 +102,8 @@ class RoadImageDetectorService:
                 "confidence": 0.15,
                 "confidence_percentage": 15.0,
                 "is_road_damage": False,
-                "message": "Unable to reliably analyze this image as a road-condition image. The image is too blurry.",
+                "is_valid_road": False,
+                "message": "Invalid image. Please upload a valid road image.",
                 "probabilities": {cls: 25.0 for cls in IMAGE_CLASSES},
                 "model_version": "Custom-CNN-Scratch-v1.0"
             }
@@ -125,7 +127,8 @@ class RoadImageDetectorService:
                 "confidence": 0.20,
                 "confidence_percentage": 20.0,
                 "is_road_damage": False,
-                "message": "Unable to reliably analyze this image as a road-condition image.",
+                "is_valid_road": False,
+                "message": "Invalid image. Please upload a valid road image.",
                 "probabilities": {cls: 25.0 for cls in IMAGE_CLASSES},
                 "model_version": "Custom-CNN-Scratch-v1.0"
             }

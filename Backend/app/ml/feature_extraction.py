@@ -28,10 +28,119 @@ FEATURE_COLUMNS = [
 ]
 
 
-def decode_and_validate_image(image_input: Union[Image.Image, str, bytes]) -> Tuple[Optional[Image.Image], Optional[str]]:
+def validate_road_image(img: Image.Image) -> Tuple[bool, str]:
+    """
+    Lightweight, deterministic computer vision validator to ensure an image
+    is a genuine roadway/pavement scene before ML risk prediction.
+    Rejects: faces/selfies, trees/plants, animals, buildings/facades, screenshots,
+             cartoons/art, pure sky/water, blank/solid images, and non-road scenes.
+    """
+    if img is None:
+        return False, "Invalid image. Please upload a valid road image."
+
+    width, height = img.size
+    if width < 64 or height < 64:
+        return False, "Invalid image. Please upload a valid road image."
+
+    img_norm = img.copy()
+    img_norm.thumbnail((320, 240))
+    w, h = img_norm.size
+    total_pixels = w * h
+    if total_pixels == 0:
+        return False, "Invalid image. Please upload a valid road image."
+
+    rgb = np.array(img_norm, dtype=np.float32)
+    r = rgb[:, :, 0]
+    g = rgb[:, :, 1]
+    b = rgb[:, :, 2]
+
+    # Fast Vectorized HSV conversion
+    max_c = np.maximum(np.maximum(r, g), b)
+    min_c = np.minimum(np.minimum(r, g), b)
+    delta = max_c - min_c
+    v = max_c / 255.0
+    s = np.zeros_like(v)
+    non_zero = max_c > 1e-5
+    s[non_zero] = delta[non_zero] / max_c[non_zero]
+
+    h_arr = np.zeros_like(v)
+    mask_r = (max_c == r) & (delta > 1e-5)
+    mask_g = (max_c == g) & (delta > 1e-5)
+    mask_b = (max_c == b) & (delta > 1e-5)
+    h_arr[mask_r] = ((g[mask_r] - b[mask_r]) / delta[mask_r]) % 6.0
+    h_arr[mask_g] = ((b[mask_g] - r[mask_g]) / delta[mask_g]) + 2.0
+    h_arr[mask_b] = ((r[mask_b] - g[mask_b]) / delta[mask_b]) + 4.0
+    h_arr = (h_arr / 6.0) % 1.0
+
+    gray = 0.2989 * r + 0.5870 * g + 0.1140 * b
+
+    # 1. Blank / Solid Color Check
+    if float(np.std(gray)) < 2.5:
+        return False, "Invalid image. Please upload a valid road image."
+
+    # 2. Screenshot / Document Flat Background Check (Pure white or dark UI blocks)
+    pure_white = (r > 242) & (g > 242) & (b > 242)
+    pure_black = (r < 12) & (g < 12) & (b < 12)
+    if (np.sum(pure_white | pure_black) / total_pixels) > 0.45:
+        return False, "Invalid image. Please upload a valid road image."
+
+    # 3. Human Face / Selfie / Skin Detection
+    skin_mask = (
+        ((h_arr <= 0.10) | (h_arr >= 0.90)) &
+        (s >= 0.14) & (s <= 0.70) &
+        (v >= 0.22) & (v <= 0.96) &
+        (r > g) & (g > b) & ((r - g) > 8.0)
+    )
+    if (np.sum(skin_mask) / total_pixels) > 0.14:
+        return False, "Invalid image. Please upload a valid road image."
+
+    # 4. Tree / Forest / Dense Green Foliage
+    foliage_mask = (h_arr >= 0.18) & (h_arr <= 0.48) & (s > 0.18) & (g > r + 6.0) & (g > b + 6.0)
+    if (np.sum(foliage_mask) / total_pixels) > 0.50:
+        return False, "Invalid image. Please upload a valid road image."
+
+    # 5. Blue Sky / Ocean / Swimming Pool Dominance
+    sky_water_mask = (h_arr >= 0.50) & (h_arr <= 0.78) & (s > 0.20) & (b > r + 12.0)
+    if (np.sum(sky_water_mask) / total_pixels) > 0.52:
+        return False, "Invalid image. Please upload a valid road image."
+
+    # 6. Cartoon / Graphic Illustration (High mean color saturation)
+    mean_sat = float(np.mean(s))
+    if mean_sat > 0.42 or (np.sum(s > 0.55) / total_pixels) > 0.35:
+        return False, "Invalid image. Please upload a valid road image."
+
+    # 7. Lower-Half Pavement Surface Ground-Plane Verification
+    lower_start_y = int(h * 0.40)
+    lower_rgb = rgb[lower_start_y:, :, :]
+    lower_s = s[lower_start_y:, :]
+    lower_v = v[lower_start_y:, :]
+    lower_pixels = lower_s.size
+
+    lower_r = lower_rgb[:, :, 0]
+    lower_g = lower_rgb[:, :, 1]
+    lower_b = lower_rgb[:, :, 2]
+    neutral_chroma = (np.abs(lower_r - lower_g) < 35.0) & (np.abs(lower_g - lower_b) < 35.0)
+    asphalt_ground_mask = (
+        neutral_chroma &
+        (lower_s < 0.38) &
+        (lower_v >= 0.06) & (lower_v <= 0.90)
+    )
+    asphalt_lower_pct = (np.sum(asphalt_ground_mask) / lower_pixels) * 100.0
+
+    lower_foliage = foliage_mask[lower_start_y:, :]
+    lower_foliage_pct = (np.sum(lower_foliage) / lower_pixels) * 100.0
+
+    if asphalt_lower_pct < 15.0 or lower_foliage_pct > 40.0:
+        return False, "Invalid image. Please upload a valid road image."
+
+    return True, "Valid road image."
+
+
+def decode_and_validate_image(image_input: Union[Image.Image, str, bytes], validate_road: bool = True) -> Tuple[Optional[Image.Image], Optional[str]]:
     """
     Decodes an image from PIL Image, base64 string, data URL, or raw bytes and validates size and format.
     Corrects mobile camera EXIF orientation and downscales full-resolution images before NumPy processing.
+    Validates that the image represents a genuine road scene before allowing prediction.
     Returns (PIL Image, error_message).
     """
     try:
@@ -44,6 +153,11 @@ def decode_and_validate_image(image_input: Union[Image.Image, str, bytes]) -> Tu
                 img = img.convert('RGB')
             if max(img.size) > MAX_INGEST_DIMENSION:
                 img.thumbnail((MAX_INGEST_DIMENSION, MAX_INGEST_DIMENSION), Image.Resampling.LANCZOS)
+            
+            if validate_road:
+                is_valid_road, val_msg = validate_road_image(img)
+                if not is_valid_road:
+                    return None, val_msg
             return img, None
 
         if isinstance(image_input, str):
@@ -82,9 +196,15 @@ def decode_and_validate_image(image_input: Union[Image.Image, str, bytes]) -> Tu
         if max(img.size) > MAX_INGEST_DIMENSION:
             img.thumbnail((MAX_INGEST_DIMENSION, MAX_INGEST_DIMENSION), Image.Resampling.LANCZOS)
 
+        # 3. Verify image depicts a supported road pavement scene
+        if validate_road:
+            is_valid_road, val_msg = validate_road_image(img)
+            if not is_valid_road:
+                return None, val_msg
+
         return img, None
     except Exception as e:
-        return None, f"Invalid image format or corrupted file: {str(e)}"
+        return None, "Invalid image. Please upload a valid road image."
 
 
 def compute_laplacian_variance(gray: np.ndarray) -> float:
