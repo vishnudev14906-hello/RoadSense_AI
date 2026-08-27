@@ -37,6 +37,7 @@ import 'leaflet/dist/leaflet.css';
 import { api } from '../api';
 import RiskBadge from '../components/RiskBadge';
 import { formatDate, formatTime, formatRelativeTime } from '../utils/dateUtils';
+import { batchLoadRoadRoutes, fetchRoadRouteGeometry } from '../utils/routingService';
 
 // Real-World Geographic Centers & Viewport Spans for Municipalities
 const CITY_GEO_PROFILES = {
@@ -142,6 +143,8 @@ export default function MapView({ onInspectRoad, onNavigate, onRunAiTest }) {
   const [isLocating, setIsLocating] = useState(false);
   const [spottingIndex, setSpottingIndex] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [routeGeometries, setRouteGeometries] = useState({});
+  const [routingProgress, setRoutingProgress] = useState({ loaded: 0, total: 0 });
 
   // Map DOM & Leaflet References
   const mapContainerRef = useRef(null);
@@ -208,6 +211,30 @@ export default function MapView({ onInspectRoad, onNavigate, onRunAiTest }) {
       return matchesCity && matchesRisk && matchesSearch;
     });
   }, [roads, selectedCity, selectedRiskFilter, searchTerm]);
+
+  // Batch-load authentic OSRM road-following geometries for all active corridors
+  useEffect(() => {
+    if (filteredRoads.length === 0) return;
+
+    let isCancelled = false;
+    setRoutingProgress({ loaded: 0, total: filteredRoads.length });
+
+    batchLoadRoadRoutes(
+      filteredRoads,
+      (roadId, routeData) => {
+        if (!isCancelled && routeData) {
+          setRouteGeometries((prev) => ({ ...prev, [roadId]: routeData }));
+          setRoutingProgress((prev) => ({ ...prev, loaded: prev.loaded + 1 }));
+        }
+      },
+      3,
+      50
+    );
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [filteredRoads]);
 
   // Initialize Leaflet Map with full 360-degree panning / dragging support
   useEffect(() => {
@@ -280,7 +307,7 @@ export default function MapView({ onInspectRoad, onNavigate, onRunAiTest }) {
     map.invalidateSize();
   }, [mapLayer]);
 
-  // Render Real Road Corridors & Spotting Markers on Map
+  // Render Real Road-Following Corridors & Spotting Markers on Map
   useEffect(() => {
     if (!leafletMapRef.current || !roadLayersGroupRef.current) return;
     const roadGroup = roadLayersGroupRef.current;
@@ -296,28 +323,25 @@ export default function MapView({ onInspectRoad, onNavigate, onRunAiTest }) {
       const pinColor = getRiskColor(riskLevel);
       const isSelected = selectedRoad?.id === road.id;
 
-      // Realistic Road Span Vector
-      const spanKm = road.road_length || 3.0;
-      const spanDeg = (spanKm / 111) * 0.35;
-      const startPt = [lat - spanDeg * 0.5, lng - spanDeg * 0.6];
-      const endPt = [lat + spanDeg * 0.5, lng + spanDeg * 0.6];
+      // 1. Draw Real Road-Following OSRM Polyline (Strictly follows visible street network)
+      const routeData = routeGeometries[road.id];
+      if (routeData && routeData.coordinates && routeData.coordinates.length > 1) {
+        const polyline = L.polyline(routeData.coordinates, {
+          color: pinColor,
+          weight: isSelected ? 7 : 4.5,
+          opacity: isSelected ? 0.95 : 0.78,
+          lineCap: 'round',
+          lineJoin: 'round',
+          dashArray: isSelected ? null : (riskLevel.includes('Critical') ? '8, 4' : null)
+        });
 
-      // Draw Glowing Polyline Corridor
-      const polyline = L.polyline([startPt, [lat, lng], endPt], {
-        color: pinColor,
-        weight: isSelected ? 8 : 5,
-        opacity: isSelected ? 0.95 : 0.75,
-        lineCap: 'round',
-        lineJoin: 'round',
-        dashArray: isSelected ? null : '6, 6'
-      });
+        polyline.on('click', () => {
+          setSelectedRoad(road);
+        });
+        polyline.addTo(roadGroup);
+      }
 
-      polyline.on('click', () => {
-        setSelectedRoad(road);
-      });
-      polyline.addTo(roadGroup);
-
-      // Custom HTML Beacon Marker for Hazard Spotting
+      // 2. Custom HTML Beacon Marker for Hazard Spotting at Exact Database Location
       const customIcon = L.divIcon({
         className: 'custom-hazard-div-icon',
         html: `
@@ -337,7 +361,7 @@ export default function MapView({ onInspectRoad, onNavigate, onRunAiTest }) {
       // Interactive Popup
       const popupContent = document.createElement('div');
       popupContent.style.padding = '0.85rem';
-      popupContent.style.minWidth = '230px';
+      popupContent.style.minWidth = '240px';
       popupContent.innerHTML = `
         <div style="font-size: 0.72rem; color: #94A3B8; text-transform: uppercase; font-weight: 700; margin-bottom: 0.2rem;">
           ${road.location} Municipality
@@ -352,12 +376,21 @@ export default function MapView({ onInspectRoad, onNavigate, onRunAiTest }) {
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; font-size: 0.75rem; color: #94A3B8; margin-bottom: 0.6rem;">
           <div>Potholes: <strong style="color: #FFFFFF;">${road.pothole_count || 0}</strong></div>
           <div>Cracks: <strong style="color: #FFFFFF;">${road.crack_length || 0} m</strong></div>
-          <div>Span: <strong style="color: #FFFFFF;">${road.road_length || 1} km</strong></div>
-          <div>Traffic: <strong style="color: #FFFFFF;">${road.traffic_density || 'Med'}</strong></div>
+          <div>Span: <strong style="color: #FFFFFF;">${road.road_length_km || road.road_length || 1} km</strong></div>
+          <div>Traffic: <strong style="color: #FFFFFF;">${road.traffic_volume || road.traffic_density || 'Med'}</strong></div>
         </div>
-        <div style="font-size: 0.72rem; color: #60A5FA; font-family: monospace;">
+        <div style="font-size: 0.72rem; color: #60A5FA; font-family: monospace; margin-bottom: 0.35rem;">
           GPS: ${lat.toFixed(4)}° N, ${lng.toFixed(4)}° E
         </div>
+        ${routeData ? `
+          <div style="font-size: 0.68rem; color: #34D399; font-weight: 600; background: rgba(16, 185, 129, 0.12); padding: 0.25rem 0.45rem; border-radius: 4px; border: 1px solid rgba(16, 185, 129, 0.25);">
+            ✓ OSRM Road Geometry: ${routeData.pointCount} pts (${routeData.routeDistanceKm} km)
+          </div>
+        ` : `
+          <div style="font-size: 0.68rem; color: #94A3B8;">
+            🛣️ Loading road-following route...
+          </div>
+        `}
       `;
 
       marker.bindPopup(popupContent, { className: 'roadsense-popup' });
@@ -367,7 +400,7 @@ export default function MapView({ onInspectRoad, onNavigate, onRunAiTest }) {
 
       marker.addTo(roadGroup);
     });
-  }, [filteredRoads, selectedRoad]);
+  }, [filteredRoads, selectedRoad, routeGeometries]);
 
   // Center camera when selected city changes
   useEffect(() => {
@@ -835,12 +868,35 @@ export default function MapView({ onInspectRoad, onNavigate, onRunAiTest }) {
                 </div>
                 <div>
                   <div style={{ color: 'var(--text-dim)', fontSize: '0.68rem', textTransform: 'uppercase' }}>Span Length</div>
-                  <div className="mono" style={{ fontWeight: 700, color: 'var(--text-main)' }}>{selectedRoad.road_length || 1.0} km</div>
+                  <div className="mono" style={{ fontWeight: 700, color: 'var(--text-main)' }}>{selectedRoad.road_length_km || selectedRoad.road_length || 1.0} km</div>
                 </div>
                 <div>
                   <div style={{ color: 'var(--text-dim)', fontSize: '0.68rem', textTransform: 'uppercase' }}>Traffic Volume</div>
-                  <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{selectedRoad.traffic_density}</div>
+                  <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{selectedRoad.traffic_volume || selectedRoad.traffic_density || 'Medium'}</div>
                 </div>
+
+                {/* OSRM Route Alignment Telemetry */}
+                {selectedRoad && routeGeometries[selectedRoad.id] && (
+                  <div style={{
+                    gridColumn: 'span 2',
+                    background: 'rgba(16, 185, 129, 0.08)',
+                    border: '1px solid rgba(16, 185, 129, 0.25)',
+                    borderRadius: 'var(--radius-sm)',
+                    padding: '0.4rem 0.6rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginTop: '0.2rem'
+                  }}>
+                    <div style={{ fontSize: '0.72rem', color: '#34D399', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <CheckCircle2 size={13} color="#34D399" />
+                      <span>OSRM Drivable Alignment</span>
+                    </div>
+                    <span className="mono" style={{ fontSize: '0.7rem', color: '#A7F3D0', fontWeight: 700 }}>
+                      {routeGeometries[selectedRoad.id].pointCount} road-following pts ({routeGeometries[selectedRoad.id].routeDistanceKm} km)
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Distress Snapshot */}
