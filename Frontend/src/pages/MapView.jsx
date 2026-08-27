@@ -837,7 +837,7 @@ export default function MapView({ onInspectRoad, onNavigate, onRunAiTest }) {
                     {selectedRoad.road_name}
                   </h3>
                 </div>
-                <RiskBadge riskLevel={selectedRisk} />
+                <RiskBadge level={selectedRisk} />
               </div>
 
               {/* Verified GPS Telemetry Card */}
@@ -986,7 +986,7 @@ export default function MapView({ onInspectRoad, onNavigate, onRunAiTest }) {
                         <span className="mono">{rCoords.lat.toFixed(2)}°N, {rCoords.lng.toFixed(2)}°E</span>
                       </div>
                     </div>
-                    <RiskBadge riskLevel={rRisk} />
+                    <RiskBadge level={rRisk} size="sm" />
                   </div>
                 );
               })}
