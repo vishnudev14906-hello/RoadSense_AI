@@ -86,8 +86,12 @@ class RoadImageDetectorService:
                 "model_version": "Custom-CNN-Scratch-v1.0"
             }
 
-        # Check for blurriness using Laplacian variance
-        img_arr = np.array(img, dtype=np.float32)
+        # Check for blurriness on bounded resolution (max 640px) to maintain ultra-low RAM footprint
+        img_check = img.copy()
+        if max(img_check.size) > 640:
+            img_check.thumbnail((640, 640), Image.Resampling.LANCZOS)
+
+        img_arr = np.array(img_check, dtype=np.float32)
         gray = 0.2989 * img_arr[:, :, 0] + 0.5870 * img_arr[:, :, 1] + 0.1140 * img_arr[:, :, 2]
         blur_var = compute_laplacian_variance(gray)
 

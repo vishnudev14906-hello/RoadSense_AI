@@ -15,8 +15,8 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 import RiskBadge from '../components/RiskBadge';
-import { api } from '../api';
 import { SAMPLE_INSPECTION_SCENARIOS } from '../utils/sampleScenarios';
+import { compressImageForUpload } from '../utils/imageUtils';
 
 export default function VisionScanner({ onTransferToPredictor }) {
   const [selectedScenario, setSelectedScenario] = useState(SAMPLE_INSPECTION_SCENARIOS[0]);
@@ -42,43 +42,42 @@ export default function VisionScanner({ onTransferToPredictor }) {
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = async (uploadEvent) => {
-        const dataUrl = uploadEvent.target.result;
-        setCustomImage(dataUrl);
+      try {
         setIsScanning(true);
+        const dataUrl = await compressImageForUpload(file, 1280, 0.88);
+        if (!dataUrl) return;
+
+        setCustomImage(dataUrl);
         const cleanName = file.name.replace(/\.[^/.]+$/, "");
-        try {
-          const scanRes = await api.scanImage({
-            image_base64: dataUrl,
-            road_name: cleanName,
-            location: 'Field Survey Ingestion'
-          });
-          setSelectedScenario({
-            id: 'custom-upload',
-            title: `Field Survey: ${file.name}`,
-            location: 'Field Survey Ingestion',
-            road_name: cleanName,
-            imageUrl: dataUrl,
-            description: scanRes.surface_condition_summary || 'Uploaded roadway photo segmented by neural computer vision pipeline.',
-            detections: scanRes.detections || [],
-            telemetry: {
-              pothole_count: scanRes.pothole_count,
-              pothole_depth: scanRes.pothole_depth,
-              crack_length: scanRes.crack_length,
-              road_age: scanRes.road_age,
-              traffic_density: scanRes.traffic_density,
-              rainfall: scanRes.rainfall,
-              estimated_risk: scanRes.risk_level
-            }
-          });
-        } catch (err) {
-          console.error("Scan error:", err);
-        } finally {
-          setIsScanning(false);
-        }
-      };
-      reader.readAsDataURL(file);
+        
+        const scanRes = await api.scanImage({
+          image_base64: dataUrl,
+          road_name: cleanName,
+          location: 'Field Survey Ingestion'
+        });
+        setSelectedScenario({
+          id: 'custom-upload',
+          title: `Field Survey: ${file.name}`,
+          location: 'Field Survey Ingestion',
+          road_name: cleanName,
+          imageUrl: dataUrl,
+          description: scanRes.surface_condition_summary || 'Uploaded roadway photo segmented by neural computer vision pipeline.',
+          detections: scanRes.detections || [],
+          telemetry: {
+            pothole_count: scanRes.pothole_count,
+            pothole_depth: scanRes.pothole_depth,
+            crack_length: scanRes.crack_length,
+            road_age: scanRes.road_age,
+            traffic_density: scanRes.traffic_density,
+            rainfall: scanRes.rainfall,
+            estimated_risk: scanRes.risk_level
+          }
+        });
+      } catch (err) {
+        console.error("Scan error:", err);
+      } finally {
+        setIsScanning(false);
+      }
     }
   };
 

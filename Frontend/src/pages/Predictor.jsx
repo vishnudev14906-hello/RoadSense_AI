@@ -34,6 +34,7 @@ import RiskBadge from '../components/RiskBadge';
 import { api } from '../api';
 import { formatDateTime, formatTime } from '../utils/dateUtils';
 import { SAMPLE_INSPECTION_SCENARIOS } from '../utils/sampleScenarios';
+import { compressImageForUpload } from '../utils/imageUtils';
 
 const CITIES = [
   'All Municipalities',
@@ -345,15 +346,16 @@ export default function Predictor({ onOpenReport, initialParams }) {
   };
 
   // --- Handle Custom Image File Upload for Road Image AI Inspection ---
-  const handleImageFileUpload = (e) => {
+  const handleImageFileUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64Data = event.target.result;
-      setCustomImage(base64Data);
+    try {
       setIsScanningImage(true);
+      const base64Data = await compressImageForUpload(file, 1280, 0.88);
+      if (!base64Data) return;
+
+      setCustomImage(base64Data);
 
       const cleanedName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ') || 'Uploaded Inspection Corridor';
       const updatedImgParams = {
@@ -367,8 +369,10 @@ export default function Predictor({ onOpenReport, initialParams }) {
         setIsScanningImage(false);
         runImageInference(updatedImgParams, false, base64Data);
       }, 400);
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.error("Image processing error:", err);
+      setIsScanningImage(false);
+    }
   };
 
   // --- Run End-to-End Road Image Risk Pipeline (Image Analysis + 8 Features + XGBoost) ---

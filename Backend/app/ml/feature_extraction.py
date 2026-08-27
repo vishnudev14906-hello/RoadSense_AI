@@ -2,7 +2,7 @@ import io
 import sys
 import base64
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageOps
 from typing import Dict, Any, List, Tuple, Optional, Union
 
 if hasattr(sys.stdout, 'reconfigure'):
@@ -14,6 +14,7 @@ MAX_FILE_SIZE_BYTES = 15 * 1024 * 1024  # 15 MB
 SUPPORTED_FORMATS = ["JPEG", "JPG", "PNG", "MPO", "WEBP"]
 MIN_ASPHALT_COVERAGE_PCT = 8.0
 BLUR_VARIANCE_THRESHOLD = 8.0
+MAX_INGEST_DIMENSION = 1024
 
 FEATURE_COLUMNS = [
     "pothole_count",
@@ -30,11 +31,20 @@ FEATURE_COLUMNS = [
 def decode_and_validate_image(image_input: Union[Image.Image, str, bytes]) -> Tuple[Optional[Image.Image], Optional[str]]:
     """
     Decodes an image from PIL Image, base64 string, data URL, or raw bytes and validates size and format.
+    Corrects mobile camera EXIF orientation and downscales full-resolution images before NumPy processing.
     Returns (PIL Image, error_message).
     """
     try:
         if isinstance(image_input, Image.Image):
-            return image_input.convert('RGB'), None
+            try:
+                img = ImageOps.exif_transpose(image_input)
+            except Exception:
+                img = image_input
+            if img.mode != 'RGB':
+                img = img.convert('RGB')
+            if max(img.size) > MAX_INGEST_DIMENSION:
+                img.thumbnail((MAX_INGEST_DIMENSION, MAX_INGEST_DIMENSION), Image.Resampling.LANCZOS)
+            return img, None
 
         if isinstance(image_input, str):
             if image_input.startswith("http://") or image_input.startswith("https://"):
@@ -53,13 +63,24 @@ def decode_and_validate_image(image_input: Union[Image.Image, str, bytes]) -> Tu
         if len(image_bytes) > MAX_FILE_SIZE_BYTES:
             return None, f"Image file size ({len(image_bytes)/(1024*1024):.1f}MB) exceeds maximum allowed 15MB."
 
-        img = Image.open(io.BytesIO(image_bytes))
-        fmt = (img.format or "").upper()
-        if fmt not in SUPPORTED_FORMATS and img.format is not None:
+        raw_img = Image.open(io.BytesIO(image_bytes))
+        
+        # 1. Correct mobile camera orientation via EXIF metadata
+        try:
+            img = ImageOps.exif_transpose(raw_img)
+        except Exception:
+            img = raw_img
+
+        fmt = (raw_img.format or "").upper()
+        if fmt not in SUPPORTED_FORMATS and raw_img.format is not None:
             return None, f"Unsupported image format '{fmt}'. Supported formats: JPG, JPEG, PNG, WEBP."
 
         if img.mode != 'RGB':
             img = img.convert('RGB')
+
+        # 2. Limit maximum dimension to 1024px to prevent large mobile images from causing RAM spikes/OOM
+        if max(img.size) > MAX_INGEST_DIMENSION:
+            img.thumbnail((MAX_INGEST_DIMENSION, MAX_INGEST_DIMENSION), Image.Resampling.LANCZOS)
 
         return img, None
     except Exception as e:
