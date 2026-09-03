@@ -484,24 +484,27 @@ export default function LoginPage({ onLoginSuccess }) {
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
-            width: '54px',
-            height: '54px',
-            borderRadius: '16px',
-            background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)',
-            boxShadow: '0 8px 24px rgba(59, 130, 246, 0.35)',
+            width: '58px',
+            height: '58px',
+            borderRadius: '18px',
+            background: 'linear-gradient(135deg, #2563EB 0%, #4F46E5 100%)',
+            boxShadow: '0 0 25px rgba(59, 130, 246, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.35)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
             marginBottom: '1rem'
           }}>
-            <Activity size={28} color="#FFFFFF" />
+            <Activity size={30} color="#FFFFFF" />
           </div>
 
           <h1 style={{
-            fontSize: '1.6rem',
+            fontSize: '1.7rem',
             fontWeight: 800,
-            letterSpacing: '-0.02em',
-            color: 'var(--text-main)',
-            marginBottom: '0.5rem'
+            letterSpacing: '-0.025em',
+            background: 'linear-gradient(135deg, #FFFFFF 0%, #BAE6FD 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            marginBottom: '0.4rem'
           }}>
-            RoadSense <span style={{ color: '#60A5FA' }}>AI</span>
+            RoadSense AI
           </h1>
 
           <p style={{

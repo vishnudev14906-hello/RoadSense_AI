@@ -42,6 +42,12 @@ export default function Navbar({ currentUser, onOpenAuth, onLogout, onToggleMobi
           <span className="navbar-date" style={{ color: 'var(--text-muted)' }}>{formatDate(currentTime)}</span>
           <span style={{ color: '#93C5FD', fontWeight: 700 }}>{formatTime(currentTime, true)}</span>
         </div>
+
+        {/* Live Telemetry Radar Pill */}
+        <div className="live-badge" title="Civil Infrastructure Telemetry Synchronized">
+          <span className="live-pulse"></span>
+          <span>TELEMETRY ACTIVE</span>
+        </div>
       </div>
 
       <div className="navbar-right">

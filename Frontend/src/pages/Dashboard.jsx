@@ -188,16 +188,7 @@ export default function Dashboard({ onNavigate, onInspectRoad }) {
             {priorityQueue.map((item) => (
               <div
                 key={item.rank}
-                style={{
-                  background: 'rgba(255, 255, 255, 0.03)',
-                  border: '1px solid var(--border-subtle)',
-                  borderRadius: 'var(--radius-md)',
-                  padding: '0.9rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '0.75rem'
-                }}
+                className="dashboard-interactive-row"
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                   <span style={{
@@ -258,15 +249,7 @@ export default function Dashboard({ onNavigate, onInspectRoad }) {
             {recentPredictions.map((pred) => (
               <div
                 key={pred.id}
-                style={{
-                  background: 'rgba(255, 255, 255, 0.03)',
-                  border: '1px solid var(--border-subtle)',
-                  borderRadius: 'var(--radius-md)',
-                  padding: '0.85rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between'
-                }}
+                className="dashboard-interactive-row"
               >
                 <div>
                   <div style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-main)' }}>

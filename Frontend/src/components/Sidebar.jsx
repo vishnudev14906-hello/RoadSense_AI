@@ -99,14 +99,7 @@ export default function Sidebar({ currentTab, setCurrentTab, onReseed, isMobileO
                 <Icon size={18} />
                 <span style={{ flex: 1, textAlign: 'left' }}>{item.label}</span>
                 {item.badge && (
-                  <span style={{
-                    fontSize: '0.65rem',
-                    padding: '0.15rem 0.4rem',
-                    borderRadius: '4px',
-                    background: 'linear-gradient(135deg, #3B82F6, #6366F1)',
-                    color: 'white',
-                    fontWeight: 700
-                  }}>
+                  <span className={`nav-badge nav-badge-${item.badge.toLowerCase()}`}>
                     {item.badge}
                   </span>
                 )}
