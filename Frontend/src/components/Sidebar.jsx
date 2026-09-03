@@ -13,7 +13,8 @@ import {
   TrendingDown,
   RefreshCw,
   CheckCircle2,
-  X
+  X,
+  Activity
 } from 'lucide-react';
 
 export default function Sidebar({ currentTab, setCurrentTab, onReseed, isMobileOpen, onClose }) {
