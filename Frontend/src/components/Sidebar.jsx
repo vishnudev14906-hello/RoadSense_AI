@@ -24,7 +24,7 @@ export default function Sidebar({ currentTab, setCurrentTab, onReseed, isMobileO
     { id: 'dashboard', label: 'Network Dashboard', icon: LayoutDashboard },
     { id: 'map', label: 'GIS Hazard Map', icon: Navigation, badge: 'GIS' },
     { id: 'vision', label: 'Vision Damage Scanner', icon: Scan, badge: 'CV' },
-    { id: 'predictor', label: 'AI Risk Predictor & Assessment', icon: Cpu, badge: 'ML' },
+    { id: 'predictor', label: 'The Living Road (AI Predictor)', icon: Activity, badge: 'VITAL' },
     { id: 'prioritization', label: 'Priority Matrix & Budget Optimizer', icon: ListOrdered, badge: 'PRIO' },
     { id: 'lifecycle', label: 'Pavement Lifecycle & ROI', icon: TrendingDown, badge: 'ROI' },
     { id: 'roads', label: 'Road Network Database', icon: Milestone },

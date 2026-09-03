@@ -1399,6 +1399,109 @@ code, .mono {
 }
 
 /* ==========================================================================
+   THE LIVING ROAD EXPERIENCE & DIAGNOSTIC SYSTEM
+   ========================================================================== */
+
+/* Road ECG Heartbeat Animation */
+@keyframes ecg-dash {
+  0% {
+    stroke-dashoffset: 1400;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+.ecg-line-pulse {
+  stroke-dasharray: 1400;
+  animation: ecg-dash 3.2s linear infinite;
+}
+
+/* Radar Sweep Loading Animation */
+@keyframes radar-sweep-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.radar-sweep-beam {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0deg, transparent 270deg, rgba(6, 182, 212, 0.4) 360deg);
+  animation: radar-sweep-spin 1.8s linear infinite;
+  pointer-events: none;
+}
+
+/* Precision Slider Customization */
+.living-road-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  outline: none;
+  transition: background 0.2s;
+}
+
+.living-road-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #3B82F6;
+  border: 2px solid #FFFFFF;
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.8);
+  cursor: pointer;
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.15s;
+}
+
+.living-road-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.25);
+  box-shadow: 0 0 16px rgba(59, 130, 246, 1);
+}
+
+.living-road-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #3B82F6;
+  border: 2px solid #FFFFFF;
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.8);
+  cursor: pointer;
+}
+
+/* Control Panel Toggle Pills */
+.living-toggle-btn {
+  padding: 0.45rem 0.9rem;
+  border-radius: var(--radius-md);
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.living-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-main);
+}
+
+.living-toggle-btn.active {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.5);
+  color: #60A5FA;
+  box-shadow: 0 0 14px rgba(59, 130, 246, 0.25);
+}
+
+/* ==========================================================================
    LIGHT MODE CIVIL DRAFTING SYSTEM
    ========================================================================== */
 [data-theme="light"] {

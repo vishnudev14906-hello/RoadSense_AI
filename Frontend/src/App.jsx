@@ -8,6 +8,7 @@ import ReportModal from './components/ReportModal';
 import Dashboard from './pages/Dashboard';
 import Roads from './pages/Roads';
 import Predictor from './pages/Predictor';
+import LivingRoadExperience from './pages/LivingRoadExperience';
 import Prioritization from './pages/Prioritization';
 import Reports from './pages/Reports';
 import History from './pages/History';
@@ -254,7 +255,7 @@ export default function App() {
           )}
 
           {currentTab === 'predictor' && (
-            <Predictor
+            <LivingRoadExperience
               onOpenReport={handleOpenReport}
               initialParams={predictorInitialParams}
             />
