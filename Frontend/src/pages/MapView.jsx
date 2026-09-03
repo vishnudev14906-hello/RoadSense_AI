@@ -689,7 +689,7 @@ export default function MapView({ onInspectRoad, onNavigate, onRunAiTest }) {
           />
 
           {/* Floating HUD: Active City Badge */}
-          <div style={{
+          <div className="map-hud-badge" style={{
             position: 'absolute',
             top: '1rem',
             left: '1rem',
@@ -713,7 +713,7 @@ export default function MapView({ onInspectRoad, onNavigate, onRunAiTest }) {
           </div>
 
           {/* Floating 4-Directional Pan Controls (Pan Sideways Left/Right, Up/Down) */}
-          <div style={{
+          <div className="map-directional-pad" style={{
             position: 'absolute',
             top: '1rem',
             right: '1rem',

@@ -1802,7 +1802,7 @@ code, .mono {
   background: rgba(0, 0, 0, 0.65);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
-  z-index: 45;
+  z-index: 9990;
   animation: fadeIn 0.2s ease;
 }
 
@@ -1852,9 +1852,11 @@ code, .mono {
     top: 0;
     left: 0;
     bottom: 0;
-    z-index: 50;
+    width: min(290px, 84vw) !important;
+    max-width: 84vw !important;
+    z-index: 9999 !important;
     transform: translateX(-100%);
-    box-shadow: 0 0 40px rgba(0, 0, 0, 0.75);
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.9);
     transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .sidebar.sidebar-mobile-open {
@@ -1865,6 +1867,7 @@ code, .mono {
   }
   .sidebar-backdrop {
     display: block;
+    z-index: 9990 !important;
   }
   .content-wrapper {
     padding: 1.25rem 1rem;
@@ -1988,6 +1991,18 @@ code, .mono {
   .living-road-recommendations-grid {
     grid-template-columns: 1fr !important;
     gap: 1rem !important;
+  }
+
+  /* Map View Mobile Controls Collision Fix */
+  .map-directional-pad {
+    display: none !important;
+  }
+  .map-hud-badge {
+    top: 0.5rem !important;
+    left: 0.5rem !important;
+    padding: 0.35rem 0.65rem !important;
+    font-size: 0.76rem !important;
+    max-width: calc(100% - 1rem) !important;
   }
 }
 
