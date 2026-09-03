@@ -169,40 +169,6 @@ export default function VisionScanner({ onTransferToPredictor }) {
         </div>
       )}
 
-      {/* Preset Scenarios Selector Bar */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem' }}>
-        {SAMPLE_INSPECTION_SCENARIOS.map((scen) => {
-          const isSelected = activeScenario.id === scen.id;
-          return (
-            <div
-              key={scen.id}
-              onClick={() => handleSelectScenario(scen)}
-              className="glass-card"
-              style={{
-                padding: '0.85rem 1rem',
-                cursor: 'pointer',
-                border: isSelected ? '2px solid #3B82F6' : '1px solid var(--border-subtle)',
-                background: isSelected ? 'rgba(59, 130, 246, 0.1)' : 'var(--bg-card)',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
-                <span style={{ fontSize: '0.7rem', color: '#60A5FA', fontWeight: 700, textTransform: 'uppercase' }}>
-                  Sample {scen.id.split('-')[0]}
-                </span>
-                <RiskBadge level={scen.telemetry.estimated_risk} size="sm" />
-              </div>
-              <div style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {scen.title}
-              </div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                {scen.location}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
       {/* Main Scanner Viewport & Detection Readout */}
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)', gap: '1.25rem', alignItems: 'start' }}>
         {/* Left: Interactive Image Canvas with Bounding Boxes */}
