@@ -166,7 +166,7 @@ export default function Dashboard({ onNavigate, onInspectRoad }) {
         </div>
 
         {/* Right Station: Appearance Control & Primary Simulator Action */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.85rem' }}>
+        <div className="dashboard-hero-actions" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.85rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
             {/* Dedicated Appearance Switcher (Light / Dark / System) */}
             <DashboardAppearanceControl appearance={appearance} setAppearance={setAppearance} />
@@ -359,7 +359,7 @@ export default function Dashboard({ onNavigate, onInspectRoad }) {
       </div>
 
       {/* 4. ANALYTICS COMMAND CONSOLES */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '1.5rem' }}>
+      <div className="dashboard-analytics-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
         {/* Console 1: Pavement Risk Distribution */}
         <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '1.35rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
@@ -448,7 +448,7 @@ export default function Dashboard({ onNavigate, onInspectRoad }) {
       </div>
 
       {/* 5. ACTIONABLE OPERATIONS HUB */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '1.5rem' }}>
+      <div className="dashboard-operations-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
         {/* Left Hub: Top Maintenance Priorities */}
         <div className="glass-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.15rem' }}>

@@ -248,7 +248,7 @@ export default function LivingRoadExperience({ onOpenReport, initialParams }) {
   ];
 
   return (
-    <div style={{
+    <div className="living-road-container" style={{
       display: 'flex',
       flexDirection: 'column',
       gap: '3.5rem',
@@ -262,7 +262,7 @@ export default function LivingRoadExperience({ onOpenReport, initialParams }) {
       {/* =========================================================================
           SECTION 1: HERO — "THE LIVING ROAD" ECG HEARTBEAT
           ========================================================================= */}
-      <section style={{
+      <section className="living-road-hero" style={{
         position: 'relative',
         minHeight: '460px',
         display: 'flex',
@@ -458,7 +458,7 @@ export default function LivingRoadExperience({ onOpenReport, initialParams }) {
         id="diagnostic-control-panel"
         style={{ padding: '0 1.5rem' }}
       >
-        <div style={{
+        <div className="living-road-control-card" style={{
           background: 'rgba(15, 23, 42, 0.75)',
           backdropFilter: 'blur(24px)',
           border: '1px solid rgba(255, 255, 255, 0.1)',
@@ -522,7 +522,7 @@ export default function LivingRoadExperience({ onOpenReport, initialParams }) {
           )}
 
           {/* Panel Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '1.25rem' }}>
+          <div className="living-road-panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '1.25rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <div style={{
                 width: 42,
@@ -552,6 +552,7 @@ export default function LivingRoadExperience({ onOpenReport, initialParams }) {
               <MapPin size={15} color="#94A3B8" />
               <input
                 type="text"
+                className="living-road-corridor-input"
                 value={params.road_name}
                 onChange={(e) => setParams({ ...params, road_name: e.target.value })}
                 placeholder="Enter Road Corridor Name..."
@@ -569,7 +570,7 @@ export default function LivingRoadExperience({ onOpenReport, initialParams }) {
           </div>
 
           {/* 7 Core Existing ML Features formatted as Precision Controls */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem' }}>
+          <div className="living-road-inputs-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem' }}>
             
             {/* 1. Pothole Count */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
@@ -749,7 +750,7 @@ export default function LivingRoadExperience({ onOpenReport, initialParams }) {
           </div>
 
           {/* Diagnostic Action Bar */}
-          <div style={{
+          <div className="living-road-action-bar" style={{
             marginTop: '2.5rem',
             paddingTop: '1.5rem',
             borderTop: '1px solid rgba(255, 255, 255, 0.08)',
@@ -809,7 +810,7 @@ export default function LivingRoadExperience({ onOpenReport, initialParams }) {
           SECTION 3: RISK RESULT — THE LIVING ROAD VITAL SIGNS GAUGE
           ========================================================================= */}
       <section style={{ padding: '0 1.5rem' }}>
-        <div style={{
+        <div className="living-road-gauge-container" style={{
           background: 'linear-gradient(135deg, rgba(17, 24, 39, 0.8) 0%, rgba(10, 14, 20, 0.95) 100%)',
           backdropFilter: 'blur(20px)',
           border: `1px solid ${riskTheme.accent}40`,
@@ -817,13 +818,13 @@ export default function LivingRoadExperience({ onOpenReport, initialParams }) {
           padding: '2.5rem 2rem',
           boxShadow: `0 20px 50px -10px rgba(0, 0, 0, 0.9), 0 0 35px ${riskTheme.glow}`,
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
           alignItems: 'center',
           gap: '2.5rem'
         }}>
           {/* Radial Circular Vital Signs Speedometer Gauge */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
-            <div style={{ position: 'relative', width: 280, height: 160 }}>
+            <div className="living-gauge-dial-box" style={{ position: 'relative', width: 280, height: 160, maxWidth: '100%' }}>
               <svg width="280" height="160" viewBox="0 0 280 160">
                 <defs>
                   <linearGradient id="livingGaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -1083,7 +1084,7 @@ export default function LivingRoadExperience({ onOpenReport, initialParams }) {
           </div>
 
           {/* Tiered Priority Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+          <div className="living-road-recommendations-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.25rem' }}>
             
             {/* Card 1: Primary Remediation Action */}
             <div style={{

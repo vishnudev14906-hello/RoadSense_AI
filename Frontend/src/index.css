@@ -83,6 +83,11 @@
   box-sizing: border-box;
 }
 
+html, body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
 body {
   font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background-color: var(--bg-main);
@@ -1868,35 +1873,121 @@ code, .mono {
     grid-template-columns: 1fr !important;
     gap: 1.25rem !important;
   }
+  .vision-scanner-grid {
+    grid-template-columns: 1fr !important;
+  }
 }
 
 @media (max-width: 768px) {
   .navbar {
-    padding: 0.75rem 1rem;
+    padding: 0.75rem 0.85rem;
   }
   .navbar-date {
     display: none;
   }
   .navbar-username {
-    max-width: 90px;
+    max-width: 80px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
   .content-wrapper {
-    padding: 1rem 0.75rem;
+    padding: 0.85rem 0.65rem;
+    overflow-x: hidden;
   }
   .grid-2, .grid-3, .grid-4, .stat-grid {
     grid-template-columns: 1fr !important;
   }
   .glass-card {
-    padding: 1.15rem !important;
+    padding: 1rem !important;
   }
   .modal-content {
     width: 95vw !important;
     max-width: 95vw !important;
     margin: 0.5rem auto !important;
     padding: 1rem !important;
+  }
+
+  /* Dashboard Mobile Polish */
+  .dashboard-hero-banner {
+    padding: 1.25rem 1rem !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 1.25rem !important;
+  }
+  .dashboard-hero-actions {
+    align-items: stretch !important;
+    width: 100% !important;
+  }
+  .dashboard-hero-actions .btn {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+  .dashboard-pillars-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.85rem !important;
+  }
+  .dashboard-analytics-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1.15rem !important;
+  }
+  .dashboard-operations-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1.15rem !important;
+  }
+  .dashboard-ticker-strip {
+    padding: 0.5rem 0.75rem !important;
+  }
+
+  /* The Living Road Mobile Polish */
+  .living-road-container {
+    padding: 0.5rem 0 2rem !important;
+    gap: 2rem !important;
+  }
+  .living-road-hero {
+    padding: 2.25rem 1rem 1.5rem !important;
+    min-height: 380px !important;
+  }
+  .living-road-hero h1 {
+    font-size: 2rem !important;
+    line-height: 1.15 !important;
+  }
+  .living-road-hero p {
+    font-size: 0.88rem !important;
+  }
+  .living-road-control-card {
+    padding: 1.25rem 1rem !important;
+  }
+  .living-road-panel-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 1rem !important;
+  }
+  .living-road-corridor-input {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+  .living-road-inputs-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1.25rem !important;
+  }
+  .living-road-action-bar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 1rem !important;
+  }
+  .living-road-action-bar button {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+  .living-road-gauge-container {
+    grid-template-columns: 1fr !important;
+    gap: 1.5rem !important;
+    padding: 1.5rem 1rem !important;
+  }
+  .living-road-recommendations-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
   }
 }
 
@@ -1913,11 +2004,24 @@ code, .mono {
   .navbar-user-chip {
     padding: 0.25rem 0.5rem !important;
   }
+  .live-badge span:last-child {
+    display: none;
+  }
+  .live-badge {
+    padding: 0.25rem 0.5rem !important;
+  }
   .btn {
     padding: 0.5rem 0.85rem !important;
     font-size: 0.82rem !important;
   }
   .stat-value {
     font-size: 1.6rem !important;
+  }
+  .living-road-hero h1 {
+    font-size: 1.7rem !important;
+  }
+  .living-gauge-dial-box {
+    transform: scale(0.9);
+    transform-origin: center top;
   }
 }

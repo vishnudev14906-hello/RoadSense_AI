@@ -170,7 +170,7 @@ export default function VisionScanner({ onTransferToPredictor }) {
       )}
 
       {/* Main Scanner Viewport & Detection Readout */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)', gap: '1.25rem', alignItems: 'start' }}>
+      <div className="vision-scanner-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)', gap: '1.25rem', alignItems: 'start' }}>
         {/* Left: Interactive Image Canvas with Bounding Boxes */}
         <div className="glass-card" style={{ padding: '0', overflow: 'hidden', position: 'relative' }}>
           {/* Top Canvas Bar */}
