@@ -11,7 +11,9 @@ import {
   Sparkles,
   ExternalLink,
   Shield,
-  CheckCircle2
+  CheckCircle2,
+  Cpu,
+  PieChart
 } from 'lucide-react';
 import StatCard from '../components/StatCard';
 import RiskBadge from '../components/RiskBadge';
@@ -145,23 +147,83 @@ export default function Dashboard({ onNavigate, onInspectRoad }) {
       {/* Charts & Analytics Row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '1.5rem' }}>
         {/* Risk Distribution Card */}
-        <div className="glass-card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)' }}>
-              Risk Level Classification
-            </h3>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>XGBoost Output</span>
+        <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <div style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.2))',
+                border: '1px solid rgba(16, 185, 129, 0.35)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#34D399'
+              }}>
+                <PieChart size={16} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                  Risk Level Classification
+                </h3>
+                <p style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>Real-time verified hazard distribution</p>
+              </div>
+            </div>
+            <span style={{
+              fontSize: '0.72rem',
+              color: '#34D399',
+              background: 'rgba(16, 185, 129, 0.12)',
+              border: '1px solid rgba(16, 185, 129, 0.3)',
+              padding: '0.2rem 0.55rem',
+              borderRadius: '999px',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em'
+            }}>
+              Live Telemetry
+            </span>
           </div>
           <RiskDonutChart data={charts?.risk_distribution || []} />
         </div>
 
         {/* AI Model Feature Importances */}
-        <div className="glass-card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)' }}>
-              ML Feature Importance Drivers
-            </h3>
-            <span style={{ fontSize: '0.75rem', color: '#60A5FA', fontWeight: 600 }}>Trained Model Weights</span>
+        <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <div style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(99, 102, 241, 0.2))',
+                border: '1px solid rgba(59, 130, 246, 0.35)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#60A5FA'
+              }}>
+                <Cpu size={16} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                  ML Feature Importance Drivers
+                </h3>
+                <p style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>XGBoost v3.0 Pavement Risk Contribution Weights</p>
+              </div>
+            </div>
+            <span style={{
+              fontSize: '0.72rem',
+              color: '#60A5FA',
+              background: 'rgba(59, 130, 246, 0.12)',
+              border: '1px solid rgba(59, 130, 246, 0.3)',
+              padding: '0.2rem 0.55rem',
+              borderRadius: '999px',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em'
+            }}>
+              Trained Model
+            </span>
           </div>
           <FeatureImportanceChart data={charts?.feature_importances || {}} />
         </div>

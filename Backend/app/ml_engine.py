@@ -20,7 +20,15 @@ class MLEngine:
             "model_name": "XGBoost Road Condition Risk Classifier",
             "feature_cols": ["pothole_count", "average_pothole_depth", "total_crack_length", "pavement_age", "road_length", "traffic_density", "rainfall"],
             "accuracy": 0.98,
-            "classes": ["Low Risk", "Medium Risk", "High Risk", "Critical Risk"]
+            "classes": ["Low Risk", "Medium Risk", "High Risk", "Critical Risk"],
+            "feature_importances": {
+                "pothole_count": 0.288,
+                "total_crack_length": 0.242,
+                "pavement_age": 0.185,
+                "average_pothole_depth": 0.143,
+                "traffic_density": 0.098,
+                "rainfall": 0.044
+            }
         }
 
     def predict(
