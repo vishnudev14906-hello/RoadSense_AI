@@ -6,22 +6,17 @@ import {
   ShieldCheck, 
   Activity, 
   ArrowUpRight, 
-  Clock, 
   Sparkles,
   ExternalLink,
   Shield,
   CheckCircle2,
   Cpu,
   PieChart,
-  Navigation,
-  Scan,
-  ListOrdered,
-  TrendingDown,
-  Radio,
   Zap,
-  Layers
+  Radio,
+  Clock,
+  Compass
 } from 'lucide-react';
-import StatCard from '../components/StatCard';
 import RiskBadge from '../components/RiskBadge';
 import { RiskDonutChart, FeatureImportanceChart } from '../components/Charts';
 import { DashboardAppearanceControl } from '../components/AppearanceSelector';
@@ -35,6 +30,7 @@ export default function Dashboard({ onNavigate, onInspectRoad }) {
   const [charts, setCharts] = useState(null);
   const [priorityQueue, setPriorityQueue] = useState([]);
   const [recentPredictions, setRecentPredictions] = useState([]);
+  const [allRoads, setAllRoads] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -44,16 +40,18 @@ export default function Dashboard({ onNavigate, onInspectRoad }) {
   const loadDashboardData = async () => {
     setLoading(true);
     try {
-      const [statsData, chartsData, prioData, predsData] = await Promise.all([
-        api.getDashboardStats(),
-        api.getDashboardCharts(),
-        api.getPrioritization(),
-        api.getPredictions({ limit: 5 })
+      const [statsData, chartsData, prioData, predsData, roadsData] = await Promise.all([
+        api.getDashboardStats().catch(() => null),
+        api.getDashboardCharts().catch(() => null),
+        api.getPrioritization().catch(() => []),
+        api.getPredictions({ limit: 5 }).catch(() => []),
+        api.getRoads({ limit: 12 }).catch(() => [])
       ]);
       setStats(statsData);
       setCharts(chartsData);
-      setPriorityQueue(prioData.slice(0, 4));
-      setRecentPredictions(predsData);
+      setPriorityQueue(prioData?.slice(0, 4) || []);
+      setRecentPredictions(predsData || []);
+      setAllRoads(roadsData || []);
     } catch (err) {
       console.error("Error loading dashboard data:", err);
     } finally {
@@ -86,18 +84,28 @@ export default function Dashboard({ onNavigate, onInspectRoad }) {
   }
 
   const verifiedCount = stats?.verified_roads_count ?? stats?.total_roads ?? 33;
-  const criticalCount = stats?.critical_risk_count ?? 4;
-  const highCount = stats?.high_risk_count ?? 6;
+  const criticalCount = stats?.critical_risk_count ?? 3;
+  const highCount = stats?.high_risk_count ?? 10;
   const safeCount = (stats?.low_risk_count || 14) + (stats?.medium_risk_count || 9);
-  const healthScore = stats?.avg_network_health_score || 78;
+  const healthScore = stats?.avg_network_health_score || 52.3;
+
+  // Fallback corridors if allRoads is not yet populated
+  const displayCorridors = allRoads.length > 0 ? allRoads : (priorityQueue.length > 0 ? priorityQueue : [
+    { id: 1, road_name: "Avinashi Road Express Corridor", location: "Coimbatore", risk_level: "Critical Risk" },
+    { id: 2, road_name: "OMR IT Highway Corridor", location: "Chennai", risk_level: "High Risk" },
+    { id: 3, road_name: "NH-44 Bangalore-Salem Expressway", location: "Hosur", risk_level: "Medium Risk" },
+    { id: 4, road_name: "GST Road Arterial", location: "Chennai", risk_level: "Medium Risk" },
+    { id: 5, road_name: "Outer Ring Road IT Corridor", location: "Bengaluru", risk_level: "High Risk" },
+    { id: 6, road_name: "Trichy Bypass Highway", location: "Trichy", risk_level: "Low Risk" }
+  ]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      {/* 1. COMMAND CENTER HERO BANNER */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+      {/* 1. EXECUTIVE CIVIL COMMAND HERO BANNER (Clean, without redundant quick launch pills) */}
       <div className="dashboard-hero-banner">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', maxWidth: '780px' }}>
-          {/* Status Beacon Pill */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxWidth: '750px' }}>
+          {/* Status Beacon & Tags */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
             <div style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -127,11 +135,23 @@ export default function Dashboard({ onNavigate, onInspectRoad }) {
             }}>
               {verifiedCount} Verified Indian Corridors
             </span>
+
+            <span style={{
+              fontSize: '0.72rem',
+              color: 'var(--text-muted)',
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid var(--border-subtle)',
+              padding: '0.22rem 0.6rem',
+              borderRadius: '999px',
+              fontWeight: 600
+            }}>
+              IRC:82-2015 Civil Standards
+            </span>
           </div>
 
           {/* Heading */}
           <h1 style={{
-            fontSize: '2rem',
+            fontSize: '1.95rem',
             fontWeight: 800,
             letterSpacing: '-0.03em',
             color: 'var(--text-main)',
@@ -141,41 +161,14 @@ export default function Dashboard({ onNavigate, onInspectRoad }) {
           </h1>
 
           <p style={{ color: 'var(--text-muted)', fontSize: '0.92rem', lineHeight: 1.5 }}>
-            Real-time AI telemetry, pavement structural degradation analysis, and automated maintenance mitigation pipeline calibrated for Indian road networks.
+            Autonomous neural road condition assessment, structural distress segmentation, and maintenance mitigation pipeline calibrated for Indian expressways and municipal corridors.
           </p>
-
-          {/* Quick Jump Modules Station */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.35rem' }}>
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginRight: '0.2rem' }}>
-              Quick Launch:
-            </span>
-            <button className="dashboard-quick-pill" onClick={() => onNavigate('map')}>
-              <Navigation size={13} color="#06B6D4" />
-              <span>GIS Hazard Map</span>
-            </button>
-            <button className="dashboard-quick-pill" onClick={() => onNavigate('vision')}>
-              <Scan size={13} color="#8B5CF6" />
-              <span>Vision Scanner</span>
-            </button>
-            <button className="dashboard-quick-pill" onClick={() => onNavigate('predictor')}>
-              <Cpu size={13} color="#3B82F6" />
-              <span>AI Predictor</span>
-            </button>
-            <button className="dashboard-quick-pill" onClick={() => onNavigate('prioritization')}>
-              <ListOrdered size={13} color="#F59E0B" />
-              <span>Priority Matrix</span>
-            </button>
-            <button className="dashboard-quick-pill" onClick={() => onNavigate('lifecycle')}>
-              <TrendingDown size={13} color="#10B981" />
-              <span>ROI Simulator</span>
-            </button>
-          </div>
         </div>
 
-        {/* Right Station: Controls & Primary Action */}
+        {/* Right Station: Appearance Control & Primary Simulator Action */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.85rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-            {/* Theme switcher */}
+            {/* Dedicated Appearance Switcher (Light / Dark / System) */}
             <DashboardAppearanceControl appearance={appearance} setAppearance={setAppearance} />
 
             <span style={{
@@ -183,7 +176,7 @@ export default function Dashboard({ onNavigate, onInspectRoad }) {
               color: '#60A5FA',
               background: 'rgba(59, 130, 246, 0.12)',
               border: '1px solid rgba(59, 130, 246, 0.3)',
-              padding: '0.32rem 0.65rem',
+              padding: '0.35rem 0.65rem',
               borderRadius: 'var(--radius-sm)',
               fontWeight: 700,
               fontFamily: 'JetBrains Mono, monospace'
@@ -195,7 +188,7 @@ export default function Dashboard({ onNavigate, onInspectRoad }) {
           <button
             className="btn btn-primary"
             onClick={() => onNavigate('predictor')}
-            style={{ padding: '0.75rem 1.4rem', fontSize: '0.92rem', borderRadius: 'var(--radius-md)' }}
+            style={{ padding: '0.75rem 1.45rem', fontSize: '0.92rem', borderRadius: 'var(--radius-md)' }}
           >
             <Sparkles size={17} />
             <span>Launch AI Risk Simulator</span>
@@ -203,59 +196,171 @@ export default function Dashboard({ onNavigate, onInspectRoad }) {
         </div>
       </div>
 
-      {/* 2. DYNAMIC KPI TELEMETRY GRID */}
-      <div className="stats-grid">
-        {/* Card 1: Network Health Score */}
-        <StatCard
-          title="Network Integrity"
-          value={`${healthScore}%`}
-          icon={Activity}
-          accentColor="#3B82F6"
-          subtitle="Average Pavement Quality across network"
-          trend={{ positive: true, text: "Optimal Condition" }}
-        />
+      {/* 2. LIVE HIGHWAY CORRIDOR DISTRESS TICKER (Dynamic Civil Pulse Strip) */}
+      <div className="dashboard-ticker-strip">
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.45rem',
+          fontSize: '0.74rem',
+          fontWeight: 800,
+          color: 'var(--accent-cyan)',
+          letterSpacing: '0.06em',
+          textTransform: 'uppercase',
+          whiteSpace: 'nowrap',
+          paddingRight: '0.5rem',
+          borderRight: '1px solid var(--border-subtle)'
+        }}>
+          <Radio size={14} className="pulse-animation" />
+          <span>Highway Corridor Pulse:</span>
+        </div>
 
-        {/* Card 2: Critical Interventions */}
-        <StatCard
-          title="Critical Risk"
-          value={criticalCount}
-          icon={Flame}
-          accentColor="#EF4444"
-          subtitle="Immediate hazard (24-48h intervention)"
-          trend={{ positive: false, text: "Requires Attention" }}
-        />
-
-        {/* Card 3: High Fatigue */}
-        <StatCard
-          title="High Risk"
-          value={highCount}
-          icon={AlertTriangle}
-          accentColor="#F97316"
-          subtitle="Deep fissures & alligator cracks"
-        />
-
-        {/* Card 4: Safe / Routine */}
-        <StatCard
-          title="Routine / Sound"
-          value={safeCount}
-          icon={ShieldCheck}
-          accentColor="#10B981"
-          subtitle="Operational within IRC tolerance"
-        />
-
-        {/* Card 5: Verified Corridors */}
-        <StatCard
-          title="Monitored Corridors"
-          value={verifiedCount}
-          icon={Milestone}
-          accentColor="#06B6D4"
-          subtitle="Verified Indian highway network"
-        />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', overflowX: 'auto' }}>
+          {displayCorridors.slice(0, 8).map((corridor, idx) => (
+            <div
+              key={corridor.id || idx}
+              className="dashboard-ticker-pill"
+              onClick={() => onInspectRoad(corridor)}
+              title={`Inspect ${corridor.road_name} (${corridor.location || 'Tamil Nadu'})`}
+            >
+              <span>{corridor.road_name}</span>
+              <span style={{ color: 'var(--text-dim)', fontSize: '0.72rem' }}>• {corridor.location}</span>
+              <RiskBadge level={corridor.risk_level || 'Medium Risk'} size="sm" showIcon={false} />
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* 3. ANALYTICS COMMAND CONSOLES */}
+      {/* 3. INNOVATIVE 4-PILLAR CIVIL TELEMETRY MATRIX */}
+      <div className="dashboard-pillars-grid">
+        {/* Pillar 1: Pavement Condition Index (PCI) / Overall Network Health */}
+        <div className="dashboard-pillar-card" style={{ "--pillar-accent": "#3B82F6" }}>
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <span className="stat-title">Pavement Health Index</span>
+              <div className="stat-icon" style={{ color: "#3B82F6", background: "rgba(59, 130, 246, 0.12)" }}>
+                <Activity size={18} />
+              </div>
+            </div>
+            
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginTop: '0.4rem' }}>
+              <span className="stat-value mono" style={{ fontSize: '2.4rem' }}>{healthScore}%</span>
+              <span style={{
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                color: healthScore >= 70 ? '#10B981' : (healthScore >= 50 ? '#F59E0B' : '#EF4444'),
+                background: healthScore >= 70 ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                padding: '0.15rem 0.5rem',
+                borderRadius: '4px',
+                textTransform: 'uppercase'
+              }}>
+                {healthScore >= 70 ? 'Optimal' : (healthScore >= 50 ? 'Moderate Wear' : 'Critical')}
+              </span>
+            </div>
+          </div>
+
+          <div>
+            {/* Visual Health Indicator Bar */}
+            <div style={{ height: 6, background: 'rgba(255, 255, 255, 0.08)', borderRadius: 4, overflow: 'hidden', marginBottom: '0.5rem' }}>
+              <div style={{
+                height: '100%',
+                width: `${healthScore}%`,
+                background: 'linear-gradient(90deg, #3B82F6, #06B6D4)',
+                borderRadius: 4,
+                boxShadow: '0 0 10px rgba(59, 130, 246, 0.5)'
+              }} />
+            </div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+              Average Pavement Quality across {verifiedCount} verified expressways
+            </div>
+          </div>
+        </div>
+
+        {/* Pillar 2: Critical Emergency Hazard Dispatch */}
+        <div className="dashboard-pillar-card" style={{ "--pillar-accent": "#EF4444" }}>
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <span className="stat-title" style={{ color: '#F87171' }}>Critical Risk Alert</span>
+              <div className="stat-icon" style={{ color: "#EF4444", background: "rgba(239, 68, 68, 0.15)", boxShadow: "0 0 12px rgba(239, 68, 68, 0.3)" }}>
+                <Flame size={18} />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginTop: '0.4rem' }}>
+              <span className="stat-value mono" style={{ fontSize: '2.4rem', color: '#F87171' }}>{criticalCount}</span>
+              <span style={{ fontSize: '0.78rem', color: '#F87171', fontWeight: 700, textTransform: 'uppercase' }}>
+                Corridors in Distress
+              </span>
+            </div>
+          </div>
+
+          <div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+              Severe cavity formations requiring immediate 24-48h intervention
+            </div>
+            {priorityQueue.length > 0 && (
+              <button
+                className="btn btn-danger btn-sm"
+                style={{ width: '100%', justifyContent: 'space-between', fontSize: '0.75rem' }}
+                onClick={() => onInspectRoad(priorityQueue[0])}
+              >
+                <span>Inspect Priority: {priorityQueue[0].road_name?.split(' ')[0]}</span>
+                <ArrowUpRight size={13} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Pillar 3: High Structural Fatigue */}
+        <div className="dashboard-pillar-card" style={{ "--pillar-accent": "#F97316" }}>
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <span className="stat-title" style={{ color: '#FB923C' }}>High Structural Fatigue</span>
+              <div className="stat-icon" style={{ color: "#F97316", background: "rgba(249, 115, 22, 0.15)" }}>
+                <AlertTriangle size={18} />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginTop: '0.4rem' }}>
+              <span className="stat-value mono" style={{ fontSize: '2.4rem', color: '#FB923C' }}>{highCount}</span>
+              <span style={{ fontSize: '0.78rem', color: '#FB923C', fontWeight: 700, textTransform: 'uppercase' }}>
+                Degrading Corridors
+              </span>
+            </div>
+          </div>
+
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+            Alligator fissures, base course fatigue & heavy commercial axle rutting
+          </div>
+        </div>
+
+        {/* Pillar 4: Operationally Sound & Stable */}
+        <div className="dashboard-pillar-card" style={{ "--pillar-accent": "#10B981" }}>
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <span className="stat-title" style={{ color: '#34D399' }}>Routine / Sound Status</span>
+              <div className="stat-icon" style={{ color: "#10B981", background: "rgba(16, 185, 129, 0.15)" }}>
+                <ShieldCheck size={18} />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginTop: '0.4rem' }}>
+              <span className="stat-value mono" style={{ fontSize: '2.4rem', color: '#34D399' }}>{safeCount}</span>
+              <span style={{ fontSize: '0.78rem', color: '#34D399', fontWeight: 700, textTransform: 'uppercase' }}>
+                Safe Corridors
+              </span>
+            </div>
+          </div>
+
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+            Operating securely within standard IRC highway roughness & friction thresholds
+          </div>
+        </div>
+      </div>
+
+      {/* 4. ANALYTICS COMMAND CONSOLES */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '1.5rem' }}>
-        {/* Console 1: Risk Level Donut Classification */}
+        {/* Console 1: Pavement Risk Distribution */}
         <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '1.35rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
@@ -298,7 +403,7 @@ export default function Dashboard({ onNavigate, onInspectRoad }) {
           <RiskDonutChart data={charts?.risk_distribution || []} />
         </div>
 
-        {/* Console 2: Futuristic ML Feature Importance Drivers */}
+        {/* Console 2: ML Feature Importance Drivers */}
         <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '1.35rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
@@ -342,7 +447,7 @@ export default function Dashboard({ onNavigate, onInspectRoad }) {
         </div>
       </div>
 
-      {/* 4. ACTIONABLE OPERATIONS HUB */}
+      {/* 5. ACTIONABLE OPERATIONS HUB */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '1.5rem' }}>
         {/* Left Hub: Top Maintenance Priorities */}
         <div className="glass-card">

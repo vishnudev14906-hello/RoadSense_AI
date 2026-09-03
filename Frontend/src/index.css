@@ -1312,6 +1312,92 @@ code, .mono {
   transform: translateX(4px);
 }
 
+/* Highway Corridor Live Distress Ticker Strip */
+.dashboard-ticker-strip {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(90deg, rgba(16, 24, 46, 0.8) 0%, rgba(10, 15, 30, 0.9) 100%);
+  border: 1px solid var(--border-subtle);
+  overflow-x: auto;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.dashboard-ticker-strip::-webkit-scrollbar {
+  height: 4px;
+}
+
+.dashboard-ticker-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.42rem 0.85rem;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-main);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dashboard-ticker-pill:hover {
+  background: rgba(59, 130, 246, 0.16);
+  border-color: rgba(59, 130, 246, 0.45);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.25);
+}
+
+/* 4-Pillar Telemetry Command Grid */
+.dashboard-pillars-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.35rem;
+}
+
+.dashboard-pillar-card {
+  background: linear-gradient(145deg, rgba(18, 26, 48, 0.78) 0%, rgba(10, 15, 32, 0.88) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1.45rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.85rem;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dashboard-pillar-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 16px 36px -6px rgba(0, 0, 0, 0.75), 0 0 25px rgba(59, 130, 246, 0.18);
+}
+
+.dashboard-pillar-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--pillar-accent, #3B82F6), transparent);
+  opacity: 0.85;
+}
+
+.dashboard-pillar-card:hover::before {
+  opacity: 1;
+  box-shadow: 0 0 12px var(--pillar-accent, #3B82F6);
+}
+
 /* ==========================================================================
    LIGHT MODE CIVIL DRAFTING SYSTEM
    ========================================================================== */
@@ -1407,6 +1493,50 @@ code, .mono {
 [data-theme="light"] .glass-card:hover {
   border-color: #CBD5E1;
   box-shadow: var(--shadow-card-hover);
+}
+
+[data-theme="light"] .dashboard-hero-banner {
+  background: linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%);
+  border-color: #CBD5E1;
+  box-shadow: 0 12px 30px -4px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .dashboard-ticker-strip {
+  background: #FFFFFF;
+  border-color: #E2E8F0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="light"] .dashboard-ticker-pill {
+  background: #F8FAFC;
+  border-color: #E2E8F0;
+  color: #0F172A;
+}
+
+[data-theme="light"] .dashboard-ticker-pill:hover {
+  background: #EFF6FF;
+  border-color: #93C5FD;
+}
+
+[data-theme="light"] .dashboard-pillar-card {
+  background: #FFFFFF;
+  border-color: #E2E8F0;
+  box-shadow: var(--shadow-card);
+}
+
+[data-theme="light"] .dashboard-pillar-card:hover {
+  border-color: #CBD5E1;
+  box-shadow: var(--shadow-card-hover);
+}
+
+[data-theme="light"] .feature-importance-row {
+  background: #F8FAFC !important;
+  border-color: #E2E8F0 !important;
+}
+
+[data-theme="light"] .feature-importance-row:hover {
+  background: #EFF6FF !important;
+  border-color: #BFDBFE !important;
 }
 
 [data-theme="light"] .glass-card.highlight {
