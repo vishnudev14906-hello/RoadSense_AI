@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Activity, 
   Flame, 
@@ -28,28 +27,33 @@ import {
 import { api } from '../api';
 import RiskBadge from '../components/RiskBadge';
 
-// Helper hook for smooth number count-up
-function useCountUp(targetValue, duration = 1.2) {
+// Robust, leak-free helper hook for smooth number count-up
+function useCountUp(targetValue, duration = 1.0) {
   const [count, setCount] = useState(0);
 
   useEffect(() => {
     let startTimestamp = null;
-    const startVal = count;
+    let animationFrameId;
     const finalVal = typeof targetValue === 'number' ? targetValue : parseFloat(targetValue) || 0;
+    const startVal = 0;
 
     const step = (timestamp) => {
       if (!startTimestamp) startTimestamp = timestamp;
       const progress = Math.min((timestamp - startTimestamp) / (duration * 1000), 1);
-      // Ease out quad
       const easedProgress = 1 - (1 - progress) * (1 - progress);
       const current = startVal + (finalVal - startVal) * easedProgress;
       setCount(parseFloat(current.toFixed(1)));
       if (progress < 1) {
-        window.requestAnimationFrame(step);
+        animationFrameId = window.requestAnimationFrame(step);
       }
     };
 
-    window.requestAnimationFrame(step);
+    animationFrameId = window.requestAnimationFrame(step);
+    return () => {
+      if (animationFrameId) {
+        window.cancelAnimationFrame(animationFrameId);
+      }
+    };
   }, [targetValue, duration]);
 
   return count;
@@ -115,7 +119,7 @@ export default function LivingRoadExperience({ onOpenReport, initialParams }) {
     }
   ];
 
-  // Control panel input states (Strictly preserving the 7 existing backend ML features)
+  // Control panel input states (Strictly preserving all 7 existing backend ML features)
   const [params, setParams] = useState({
     road_name: initialParams?.road_name || PRESET_CORRIDORS[0].name,
     location: initialParams?.location || PRESET_CORRIDORS[0].location,
@@ -169,10 +173,9 @@ export default function LivingRoadExperience({ onOpenReport, initialParams }) {
     } catch (err) {
       console.error("Living Road prediction failed:", err);
     } finally {
-      // Small delay to let the radar sweep animation breathe
       setTimeout(() => {
         setIsAnalyzing(false);
-      }, 550);
+      }, 500);
     }
   };
 
@@ -231,7 +234,7 @@ export default function LivingRoadExperience({ onOpenReport, initialParams }) {
 
   const riskTheme = getRiskTheme(score);
 
-  // Gauge rotation with spring settling: -90deg to +90deg
+  // Gauge rotation: -90deg to +90deg
   const needleRotation = -90 + (Math.min(100, Math.max(0, countedScore)) / 100) * 180;
 
   // Contributing factors from backend or verified default
@@ -261,7 +264,7 @@ export default function LivingRoadExperience({ onOpenReport, initialParams }) {
           ========================================================================= */}
       <section style={{
         position: 'relative',
-        minHeight: '480px',
+        minHeight: '460px',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -335,11 +338,16 @@ export default function LivingRoadExperience({ onOpenReport, initialParams }) {
         </div>
 
         {/* Hero Content Overlay */}
-        <motion.div 
-          initial={{ opacity: 0, y: 25 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-          style={{ position: 'relative', zIndex: 1, maxWidth: '820px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.25rem' }}
+        <div 
+          style={{ 
+            position: 'relative', 
+            zIndex: 1, 
+            maxWidth: '820px', 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center', 
+            gap: '1.25rem' 
+          }}
         >
           {/* Mission Control Status Pill */}
           <div style={{
@@ -416,10 +424,8 @@ export default function LivingRoadExperience({ onOpenReport, initialParams }) {
             ))}
           </div>
 
-          {/* Call to Action: Scrolls to Control Panel */}
-          <motion.button
-            whileHover={{ scale: 1.04, boxShadow: `0 0 25px ${riskTheme.glow}` }}
-            whileTap={{ scale: 0.98 }}
+          {/* Call to Action */}
+          <button
             onClick={scrollToDiagnostic}
             style={{
               marginTop: '0.75rem',
@@ -434,13 +440,14 @@ export default function LivingRoadExperience({ onOpenReport, initialParams }) {
               fontWeight: 700,
               border: 'none',
               cursor: 'pointer',
-              boxShadow: `0 8px 24px -4px ${riskTheme.glow}`
+              boxShadow: `0 8px 24px -4px ${riskTheme.glow}`,
+              transition: 'transform 0.2s, box-shadow 0.2s'
             }}
           >
             <span>Initiate Structural Diagnostic</span>
             <ArrowDown size={17} />
-          </motion.button>
-        </motion.div>
+          </button>
+        </div>
       </section>
 
 
@@ -462,62 +469,57 @@ export default function LivingRoadExperience({ onOpenReport, initialParams }) {
           overflow: 'hidden'
         }}>
           {/* Radar Sweep Loading Overlay when Analyzing */}
-          <AnimatePresence>
-            {isAnalyzing && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                style={{
+          {isAnalyzing && (
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                background: 'rgba(10, 14, 20, 0.88)',
+                backdropFilter: 'blur(16px)',
+                zIndex: 20,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '1.5rem'
+              }}
+            >
+              <div style={{ position: 'relative', width: 140, height: 140 }}>
+                <div className="radar-sweep-beam" />
+                <div style={{
                   position: 'absolute',
                   inset: 0,
-                  background: 'rgba(10, 14, 20, 0.88)',
-                  backdropFilter: 'blur(16px)',
-                  zIndex: 20,
+                  borderRadius: '50%',
+                  border: '1px solid rgba(6, 182, 212, 0.4)',
+                  boxShadow: '0 0 30px rgba(6, 182, 212, 0.2)'
+                }} />
+                <div style={{
+                  position: 'absolute',
+                  inset: '25%',
+                  borderRadius: '50%',
+                  border: '1px dashed rgba(59, 130, 246, 0.5)'
+                }} />
+                <div style={{
+                  position: 'absolute',
+                  inset: 0,
                   display: 'flex',
-                  flexDirection: 'column',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '1.5rem'
-                }}
-              >
-                <div style={{ position: 'relative', width: 140, height: 140 }}>
-                  <div className="radar-sweep-beam" />
-                  <div style={{
-                    position: 'absolute',
-                    inset: 0,
-                    borderRadius: '50%',
-                    border: '1px solid rgba(6, 182, 212, 0.4)',
-                    boxShadow: '0 0 30px rgba(6, 182, 212, 0.2)'
-                  }} />
-                  <div style={{
-                    position: 'absolute',
-                    inset: '25%',
-                    borderRadius: '50%',
-                    border: '1px dashed rgba(59, 130, 246, 0.5)'
-                  }} />
-                  <div style={{
-                    position: 'absolute',
-                    inset: 0,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    <Zap size={28} color="#06B6D4" className="pulse-animation" />
-                  </div>
+                  justifyContent: 'center'
+                }}>
+                  <Zap size={28} color="#06B6D4" className="pulse-animation" />
                 </div>
+              </div>
 
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#F8FAFC' }}>
-                    Scanning Structural Core & Acoustic Telemetry...
-                  </div>
-                  <div style={{ fontSize: '0.8rem', color: '#94A3B8', marginTop: '0.25rem' }} className="mono">
-                    Executing XGBoost Multi-Class Road Condition Risk Matrix
-                  </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#F8FAFC' }}>
+                  Scanning Structural Core & Acoustic Telemetry...
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                <div style={{ fontSize: '0.8rem', color: '#94A3B8', marginTop: '0.25rem' }} className="mono">
+                  Executing XGBoost Multi-Class Road Condition Risk Matrix
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Panel Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '1.25rem' }}>
@@ -1022,15 +1024,14 @@ export default function LivingRoadExperience({ onOpenReport, initialParams }) {
                     background: 'rgba(255, 255, 255, 0.08)',
                     overflow: 'hidden'
                   }}>
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${Math.min(100, Math.max(8, importancePct))}%` }}
-                      transition={{ duration: 0.9, delay: idx * 0.08, ease: "easeOut" }}
+                    <div
                       style={{
                         height: '100%',
+                        width: `${Math.min(100, Math.max(8, importancePct))}%`,
                         borderRadius: '999px',
                         background: `linear-gradient(90deg, ${barColor}, #60A5FA)`,
-                        boxShadow: `0 0 12px ${barColor}80`
+                        boxShadow: `0 0 12px ${barColor}80`,
+                        transition: 'width 0.8s cubic-bezier(0.16, 1, 0.3, 1)'
                       }}
                     />
                   </div>
