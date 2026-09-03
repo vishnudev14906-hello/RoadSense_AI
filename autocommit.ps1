@@ -199,7 +199,7 @@ function Invoke-GitCommitPush {
 $activeBranch = if ($Branch) { $Branch } else { Get-GitBranch }
 $remoteUrl = git remote get-url $Remote 2>$null
 
-Clear-Host
+try { Clear-Host } catch {}
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host "         RoadSense_AI - Git Auto-Commit & Push              " -ForegroundColor White
 Write-Host "============================================================" -ForegroundColor Cyan
