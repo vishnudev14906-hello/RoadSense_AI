@@ -6,27 +6,14 @@ export default defineConfig({
   plugins: [react()],
   build: {
     target: 'esnext',
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 2000,
     cssCodeSplit: true,
     minify: 'esbuild',
     rollupOptions: {
       output: {
-        manualChunks(id) {
-          if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom') || id.includes('scheduler')) {
-              return 'vendor-react';
-            }
-            if (id.includes('firebase')) {
-              return 'vendor-firebase';
-            }
-            if (id.includes('leaflet')) {
-              return 'vendor-leaflet';
-            }
-            if (id.includes('lucide-react')) {
-              return 'vendor-lucide';
-            }
-            return 'vendor-libs';
-          }
+        manualChunks: {
+          'vendor-leaflet': ['leaflet'],
+          'vendor-firebase': ['firebase/app', 'firebase/auth', 'firebase/analytics']
         }
       }
     }

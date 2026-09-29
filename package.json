@@ -1,0 +1,10 @@
+{
+  "name": "roadsense-ai",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "build": "npm run build --prefix Frontend",
+    "install-frontend": "npm install --prefix Frontend",
+    "vercel-build": "npm install --prefix Frontend && npm run build --prefix Frontend"
+  }
+}
