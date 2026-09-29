@@ -6,16 +6,6 @@ export default defineConfig({
   plugins: [react()],
   build: {
     target: 'esnext',
-    chunkSizeWarningLimit: 2000,
-    cssCodeSplit: true,
-    minify: 'esbuild',
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          'vendor-leaflet': ['leaflet'],
-          'vendor-firebase': ['firebase/app', 'firebase/auth', 'firebase/analytics']
-        }
-      }
-    }
+    chunkSizeWarningLimit: 2000
   }
 })

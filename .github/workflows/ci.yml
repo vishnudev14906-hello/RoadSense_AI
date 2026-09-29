@@ -24,11 +24,13 @@ jobs:
 
       - name: Install Frontend Dependencies
         run: |
-          npm install --prefix Frontend
+          cd Frontend
+          npm install
 
       - name: Build Frontend
         run: |
-          npm run build --prefix Frontend
+          cd Frontend
+          npm run build
 
   verify-backend:
     name: Verify Backend Python
