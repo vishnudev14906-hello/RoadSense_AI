@@ -111,90 +111,8 @@ export default function LoginPage({ onLoginSuccess }) {
   // Helper to persist user token and role into session/local storage
   const completeFirebaseLogin = async (firebaseUser, userRole = role) => {
     try {
-      // Try Firebase auth first
-      try {
-        await configurePersistence(rememberMe);
-        const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
-        await completeFirebaseLogin(userCredential.user);
-      } catch (firebaseErr) {
-        console.warn("[Firebase Auth] Falling back to backend API:", firebaseErr.code);
-        // Fallback: try backend JWT auth
-        try {
-          const res = await fetch('http://127.0.0.1:8000/api/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: email.trim(), password, remember_me: rememberMe })
-          });
-          if (!res.ok) {
-            const errData = await res.json().catch(() => ({}));
-            throw new Error(errData.detail || 'Invalid email or password');
-          }
-          const data = await res.json();
-          const userPayload = {
-            id: data.user.id,
-            name: data.user.name,
-            email: data.user.email,
-            role: data.user.role || 'Inspector',
-            photoURL: null,
-            auth_provider: 'backend'
-          };
-          if (rememberMe) {
-            localStorage.setItem('roadsense_token', data.access_token);
-            localStorage.setItem('roadsense_user', JSON.stringify(userPayload));
-            sessionStorage.removeItem('roadsense_token');
-            sessionStorage.removeItem('roadsense_user');
-          } else {
-            sessionStorage.setItem('roadsense_token', data.access_token);
-            sessionStorage.setItem('roadsense_user', JSON.stringify(userPayload));
-            localStorage.removeItem('roadsense_token');
-            localStorage.removeItem('roadsense_user');
-          }
-          onLoginSuccess(userPayload, rememberMe);
-        } catch (backendErr) {
-          console.error("[Backend Auth Error]", backendErr);
-          setError(backendErr.message || formatFirebaseError(firebaseErr));
-        }
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // --- 2. FIREBASE REGISTER HANDLER ---
-  const handleRegister = async (e) => {
-    e.preventDefault();
-    setError('');
-    setSuccessMsg('');
-
-    const cleanName = name.trim();
-    const cleanEmail = email.trim();
-
-    if (!cleanName) {
-      setError('Please enter your full name');
-      return;
-    }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(cleanEmail)) {
-      setError('Please enter a valid email address');
-      return;
-    }
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters long');
-      return;
-    }
-    if (password !== confirmPassword) {
-      setError('Passwords do not match. Please verify your confirm password.');
-      return;
-    }
-    if (!acceptTerms) {
-      setError('You must accept the Terms & Conditions and Civil Data Usage Policy');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await configurePersistence(rememberMe);
-      const userCredential = await createUserWithEmailAndPassword(auth, cleanEmail, password);
+      const idToken = await firebaseUser.getIdToken();
+      const displayName = firebaseUser.displayName || name.trim() || firebaseUser.email?.split('@')[0] || 'Civil Inspector';
       
       const userPayload = {
         id: firebaseUser.uid,
@@ -202,7 +120,7 @@ export default function LoginPage({ onLoginSuccess }) {
         email: firebaseUser.email || '',
         role: userRole || 'Inspector',
         photoURL: firebaseUser.photoURL || null,
-        auth_provider: firebaseUser.providerData?.[0]?.providerId || 'google'
+        auth_provider: firebaseUser.providerData?.[0]?.providerId || 'firebase'
       };
 
       if (rememberMe) {
