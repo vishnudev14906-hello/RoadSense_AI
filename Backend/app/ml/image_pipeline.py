@@ -55,11 +55,15 @@ class RoadImageRiskPipelineService:
 
     def _load_xgb_model(self):
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        model_path = os.path.join(base_dir, "saved_models", "image_risk_rf_pipeline.joblib")
+        model_path = os.path.join(base_dir, "saved_models", "image_risk_xgb_pipeline.joblib")
+        legacy_path = os.path.join(base_dir, "saved_models", "image_risk_rf_pipeline.joblib")
         if not os.path.exists(model_path):
-            from .train_image_random_forest import train_and_save_image_risk_rf
-            print(f"[INFO] Image-feature XGBoost model not found at {model_path}. Training now...")
-            train_and_save_image_risk_rf()
+            if os.path.exists(legacy_path):
+                model_path = legacy_path
+            else:
+                from .train_image_xgboost import train_and_save_image_risk_xgb
+                print(f"[INFO] Image-feature XGBoost model not found at {model_path}. Training now...")
+                train_and_save_image_risk_xgb()
 
         self.pipeline = joblib.load(model_path)
         self.class_names = TARGET_CLASSES

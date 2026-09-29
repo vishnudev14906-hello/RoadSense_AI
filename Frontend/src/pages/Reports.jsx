@@ -15,26 +15,28 @@ import {
 import RiskBadge from '../components/RiskBadge';
 import { api } from '../api';
 import { formatDate, formatTime } from '../utils/dateUtils';
+import { DEFAULT_ROADS } from '../data/roadsData';
 
 export default function Reports() {
-  const [roads, setRoads] = useState([]);
-  const [selectedRoad, setSelectedRoad] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [roads, setRoads] = useState(DEFAULT_ROADS);
+  const [selectedRoad, setSelectedRoad] = useState(DEFAULT_ROADS[0] || null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     loadRoads();
   }, []);
 
   const loadRoads = async () => {
-    setLoading(true);
     try {
       const data = await api.getRoads();
-      setRoads(data);
-      if (data.length > 0) {
-        setSelectedRoad(data[0]);
+      if (data && data.length > 0) {
+        setRoads(data);
+        if (!selectedRoad) {
+          setSelectedRoad(data[0]);
+        }
       }
     } catch (err) {
-      console.error("Failed to fetch roads for reports:", err);
+      console.warn("Using local verified road dataset for reports:", err);
     } finally {
       setLoading(false);
     }

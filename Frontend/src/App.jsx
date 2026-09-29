@@ -1,26 +1,53 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import AuthModal from './components/AuthModal';
 import ReportModal from './components/ReportModal';
+import MobileBottomNav from './components/MobileBottomNav';
 
-// Unified Civil Infrastructure Platform Views
+// Eagerly loaded default view for instantaneous first-contentful-paint
 import Dashboard from './pages/Dashboard';
-import Roads from './pages/Roads';
-import Predictor from './pages/Predictor';
-import Prioritization from './pages/Prioritization';
-import Reports from './pages/Reports';
-import History from './pages/History';
-import MapView from './pages/MapView';
-import VisionScanner from './pages/VisionScanner';
-import LifecycleForecast from './pages/LifecycleForecast';
-import LoginPage from './pages/LoginPage';
+
+// Dynamically code-split secondary views for high performance & minimal bundle size on Vercel
+const Roads = lazy(() => import('./pages/Roads'));
+const Predictor = lazy(() => import('./pages/Predictor'));
+const Prioritization = lazy(() => import('./pages/Prioritization'));
+const Reports = lazy(() => import('./pages/Reports'));
+const History = lazy(() => import('./pages/History'));
+const MapView = lazy(() => import('./pages/MapView'));
+const VisionScanner = lazy(() => import('./pages/VisionScanner'));
+const LifecycleForecast = lazy(() => import('./pages/LifecycleForecast'));
+const LoginPage = lazy(() => import('./pages/LoginPage'));
 
 import { auth, signOut, onAuthStateChanged } from './firebase';
 import { api } from './api';
 
+function PageFallback() {
+  return (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: '380px',
+      gap: '1rem',
+      color: 'var(--text-muted)'
+    }}>
+      <div className="animate-spin" style={{
+        width: 36,
+        height: 36,
+        border: '3px solid rgba(59, 130, 246, 0.2)',
+        borderTopColor: '#3B82F6',
+        borderRadius: '50%'
+      }} />
+      <span style={{ fontSize: '0.88rem' }}>Loading view...</span>
+    </div>
+  );
+}
+
 export default function App() {
   const [currentTab, setCurrentTab] = useState('dashboard');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(() => {
     try {
       const persistent = localStorage.getItem('roadsense_user');
@@ -75,7 +102,6 @@ export default function App() {
           console.warn("[Firebase Token Sync Warning]", e);
         }
       } else {
-        // If not authenticated via Firebase, check if session is empty
         const storedUser = localStorage.getItem('roadsense_user') || sessionStorage.getItem('roadsense_user');
         if (!storedUser) {
           setCurrentUser(null);
@@ -94,6 +120,7 @@ export default function App() {
   const handleLaunchNewAssessment = () => {
     setPredictorInitialParams(null);
     setCurrentTab('predictor');
+    setIsMobileMenuOpen(false);
   };
 
   const handleVisionTransfer = (telemetry, roadName, location, imageMeta) => {
@@ -108,6 +135,7 @@ export default function App() {
       autoRun: true
     });
     setCurrentTab('predictor');
+    setIsMobileMenuOpen(false);
     setToastMessage(`✨ Visual damage telemetry transferred to AI Risk Predictor for "${roadName}"!`);
     setTimeout(() => setToastMessage(''), 4500);
   };
@@ -118,57 +146,60 @@ export default function App() {
       setToastMessage("✅ SQLite database successfully synchronized with verified real-world Indian road network!");
       setTimeout(() => {
         window.location.reload();
-      }, 1200);
+      }, 1500);
     } catch (err) {
-      setToastMessage("❌ Failed to sync database: " + err.message);
-      setTimeout(() => setToastMessage(''), 5000);
+      console.error("Reseed failure:", err);
+      setToastMessage("⚠️ Failed to synchronize database. Please verify backend connection.");
+      setTimeout(() => setToastMessage(''), 4000);
     }
-  };
-
-  const handleLoginSuccess = (user, rememberMe = true) => {
-    setCurrentUser(user);
-    setCurrentTab('dashboard');
-    setToastMessage(`👋 Welcome to RoadSense AI, ${user.name}!`);
-    setTimeout(() => setToastMessage(''), 3500);
   };
 
   const handleLogout = async () => {
     try {
       await signOut(auth);
-    } catch (e) {
-      console.error("[Firebase SignOut Error]", e);
-    }
+    } catch {}
+    localStorage.removeItem('roadsense_token');
+    localStorage.removeItem('roadsense_user');
+    sessionStorage.removeItem('roadsense_token');
+    sessionStorage.removeItem('roadsense_user');
     setCurrentUser(null);
-    try {
-      localStorage.removeItem('roadsense_token');
-      localStorage.removeItem('roadsense_user');
-      sessionStorage.removeItem('roadsense_token');
-      sessionStorage.removeItem('roadsense_user');
-    } catch (e) {
-      console.error(e);
-    }
-    setToastMessage("🔒 Session terminated. You have been logged out.");
+    setToastMessage("Successfully signed out.");
+    setTimeout(() => setToastMessage(''), 3000);
+  };
+
+  const handleLoginSuccess = (user) => {
+    setCurrentUser(user);
+    setIsAuthModalOpen(false);
+    setToastMessage(`Welcome back, ${user.name}!`);
     setTimeout(() => setToastMessage(''), 3500);
   };
 
-  // 1. DEFAULT PAGE: If unauthenticated, always render the dedicated Sign In / Register / Forgot Password portal
-  if (!currentUser) {
-    return <LoginPage onLoginSuccess={handleLoginSuccess} />;
-  }
+  const handleLaunchPredictorWithParams = (roadParams) => {
+    setPredictorInitialParams({ ...roadParams, autoRun: true });
+    setCurrentTab('predictor');
+    setIsMobileMenuOpen(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (roadParams?.road_name) {
+      setToastMessage(`⚡ Loaded "${roadParams.road_name}" telemetry into AI Risk Predictor!`);
+      setTimeout(() => setToastMessage(''), 4000);
+    }
+  };
 
-  // 2. AUTHENTICATED: Render full RoadSense AI platform & Dashboard
+  const handleTabChange = (tab) => {
+    setCurrentTab(tab);
+    setIsMobileMenuOpen(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <div className="app-container">
       {/* Sidebar Navigation */}
       <Sidebar
         currentTab={currentTab}
-        setCurrentTab={(tab) => {
-          if (tab === 'predictor' && currentTab !== 'predictor') {
-            setPredictorInitialParams(null);
-          }
-          setCurrentTab(tab);
-        }}
+        setCurrentTab={handleTabChange}
         onReseed={handleReseed}
+        isOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
       />
 
       {/* Main Content Area */}
@@ -178,6 +209,7 @@ export default function App() {
           currentUser={currentUser}
           onOpenAuth={() => setIsAuthModalOpen(true)}
           onLogout={handleLogout}
+          onToggleMobileMenu={() => setIsMobileMenuOpen(prev => !prev)}
         />
 
         {/* Global Toast Notification */}
@@ -197,75 +229,78 @@ export default function App() {
 
         {/* Content Wrapper */}
         <main className="content-wrapper">
-          {currentTab === 'dashboard' && (
-            <Dashboard
-              onNavigate={(tab) => {
-                if (tab === 'predictor') {
-                  handleLaunchNewAssessment();
-                } else {
-                  setCurrentTab(tab);
-                }
-              }}
-              onInspectRoad={handleOpenReport}
-              onLaunchPredictor={handleLaunchNewAssessment}
-            />
-          )}
+          <Suspense fallback={<PageFallback />}>
+            {currentTab === 'dashboard' && (
+              <Dashboard
+                onNavigate={(tab) => {
+                  if (tab === 'predictor') {
+                    handleLaunchNewAssessment();
+                  } else {
+                    handleTabChange(tab);
+                  }
+                }}
+                onInspectRoad={handleOpenReport}
+                onLaunchPredictor={handleLaunchNewAssessment}
+              />
+            )}
 
-          {currentTab === 'map' && (
-            <MapView
-              onInspectRoad={handleOpenReport}
-              onNavigate={(tab) => setCurrentTab(tab)}
-              onRunAiTest={(roadParams) => {
-                setPredictorInitialParams({ ...roadParams, autoRun: true });
-                setCurrentTab('predictor');
-                setToastMessage(`⚡ Loaded "${roadParams.road_name}" telemetry into AI Risk Predictor!`);
-                setTimeout(() => setToastMessage(''), 4000);
-              }}
-            />
-          )}
+            {currentTab === 'map' && (
+              <MapView
+                onInspectRoad={handleOpenReport}
+                onNavigate={handleTabChange}
+                onRunAiTest={handleLaunchPredictorWithParams}
+              />
+            )}
 
-          {currentTab === 'vision' && (
-            <VisionScanner
-              onTransferToPredictor={handleVisionTransfer}
-            />
-          )}
+            {currentTab === 'vision' && (
+              <VisionScanner
+                onTransferToPredictor={handleVisionTransfer}
+              />
+            )}
 
-          {currentTab === 'predictor' && (
-            <Predictor
-              onOpenReport={handleOpenReport}
-              initialParams={predictorInitialParams}
-            />
-          )}
+            {currentTab === 'predictor' && (
+              <Predictor
+                onOpenReport={handleOpenReport}
+                initialParams={predictorInitialParams}
+              />
+            )}
 
-          {currentTab === 'prioritization' && (
-            <Prioritization onOpenReport={handleOpenReport} />
-          )}
+            {currentTab === 'prioritization' && (
+              <Prioritization onOpenReport={handleOpenReport} />
+            )}
 
-          {currentTab === 'lifecycle' && (
-            <LifecycleForecast
-              onNavigate={(tab) => setCurrentTab(tab)}
-              onLaunchPredictor={(roadParams) => {
-                setPredictorInitialParams({ ...roadParams, autoRun: true });
-                setCurrentTab('predictor');
-                setToastMessage(`⚡ Loaded "${roadParams.road_name}" into AI Risk Predictor from ROI Simulator!`);
-                setTimeout(() => setToastMessage(''), 4000);
-              }}
-            />
-          )}
+            {currentTab === 'lifecycle' && (
+              <LifecycleForecast
+                onNavigate={handleTabChange}
+                onLaunchPredictor={handleLaunchPredictorWithParams}
+              />
+            )}
 
-          {currentTab === 'roads' && (
-            <Roads onOpenReport={handleOpenReport} />
-          )}
+            {currentTab === 'roads' && (
+              <Roads 
+                onOpenReport={handleOpenReport} 
+                onNavigate={handleTabChange}
+                onLaunchPredictor={handleLaunchPredictorWithParams}
+              />
+            )}
 
-          {currentTab === 'reports' && (
-            <Reports />
-          )}
+            {currentTab === 'reports' && (
+              <Reports />
+            )}
 
-          {currentTab === 'history' && (
-            <History onOpenReport={handleOpenReport} />
-          )}
+            {currentTab === 'history' && (
+              <History onOpenReport={handleOpenReport} />
+            )}
+          </Suspense>
         </main>
       </div>
+
+      {/* Mobile Bottom Navigation Bar (Visible only on mobile) */}
+      <MobileBottomNav
+        currentTab={currentTab}
+        setCurrentTab={handleTabChange}
+        onOpenMenu={() => setIsMobileMenuOpen(true)}
+      />
 
       {/* Authentication Modal */}
       <AuthModal

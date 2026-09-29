@@ -21,7 +21,7 @@ class MLEngine:
 
     def load_or_train(self, force_retrain: bool = False):
         if force_retrain or not MODEL_PATH.exists():
-            print("[INFO] Training new Random Forest model...")
+            print("[INFO] Training new XGBoost risk model...")
             self.model_artifact = train_and_save_model()
         else:
             try:
@@ -47,7 +47,7 @@ class MLEngine:
         rainfall: str = "Moderate"
     ) -> Dict[str, Any]:
         """
-        Predict pavement failure risk using multi-variable civil distress modeling & Random Forest Classifier:
+        Predict pavement failure risk using multi-variable civil distress modeling & XGBoost Classifier:
         - Pothole Count
         - Pothole Depth (cm)
         - Crack Length (m)
@@ -75,10 +75,10 @@ class MLEngine:
             "rain_num": rain_num
         }])[self.feature_cols]
 
-        # 1. Random Forest Classifier probabilities
+        # 1. XGBoost Classifier probabilities
         probs = self.model.predict_proba(input_data)[0]
         classes = list(self.model.classes_)
-        rf_prob_dict = {cls: float(prob) for cls, prob in zip(classes, probs)}
+        xgb_prob_dict = {cls: float(prob) for cls, prob in zip(classes, probs)}
 
         # 2. Continuous Civil Engineering Pavement Distress Index (MoRTH / IRC Standards)
         # Pothole Cavitation Score (0 - 100)
@@ -93,17 +93,17 @@ class MLEngine:
         # Weighted Composite Risk Score
         raw_composite = (p_score * 0.45) + (c_score * 0.35) + (env_score * 0.20)
         
-        # Blend RF prediction weight with continuous physical distress
+        # Blend XGBoost prediction weight with continuous physical distress
         class_base_weights = {
             "Low Risk": 12.0,
             "Medium Risk": 45.0,
             "High Risk": 72.0,
             "Critical Risk": 94.0
         }
-        rf_score = sum(rf_prob_dict.get(cls, 0.0) * weight for cls, weight in class_base_weights.items())
+        xgb_score = sum(xgb_prob_dict.get(cls, 0.0) * weight for cls, weight in class_base_weights.items())
         
         # Blended smooth continuous risk score
-        risk_score = round(min(100.0, max(5.0, (raw_composite * 0.65) + (rf_score * 0.35))), 1)
+        risk_score = round(min(100.0, max(5.0, (raw_composite * 0.65) + (xgb_score * 0.35))), 1)
 
         # 3. Derive Risk Level Classification based on score thresholds
         if risk_score >= 85.0:

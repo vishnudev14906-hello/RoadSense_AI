@@ -23,19 +23,12 @@ import RoadModal from '../components/RoadModal';
 import DataToolsModal from '../components/DataToolsModal';
 import { api } from '../api';
 import { formatDate, formatTime, formatRelativeTime } from '../utils/dateUtils';
+import { DEFAULT_ROADS, DEFAULT_FILTERS } from '../data/roadsData';
 
-export default function Roads({ onOpenReport }) {
-  const [roads, setRoads] = useState([]);
-  const [filters, setFilters] = useState({
-    states: [],
-    districts: [],
-    cities: [],
-    surface_types: [],
-    verification_statuses: ["Verified", "Source Available", "Derived from Source", "Not Available"],
-    risk_levels: ["Low Risk", "Medium Risk", "High Risk", "Critical Risk"]
-  });
-  
-  const [loading, setLoading] = useState(true);
+export default function Roads({ onOpenReport, onNavigate, onLaunchPredictor }) {
+  const [roads, setRoads] = useState(DEFAULT_ROADS);
+  const [filters, setFilters] = useState(DEFAULT_FILTERS);
+  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [stateFilter, setStateFilter] = useState('All');
   const [districtFilter, setDistrictFilter] = useState('All');
@@ -68,7 +61,9 @@ export default function Roads({ onOpenReport }) {
   };
 
   const loadRoads = async () => {
-    setLoading(true);
+    if (!roads || roads.length === 0) {
+      setLoading(true);
+    }
     try {
       const data = await api.getRoads({
         search: search || undefined,
@@ -79,9 +74,11 @@ export default function Roads({ onOpenReport }) {
         verification_status: verificationFilter !== 'All' ? verificationFilter : undefined,
         risk_level: riskFilter !== 'All' ? riskFilter : undefined,
       });
-      setRoads(data);
+      if (data) {
+        setRoads(data);
+      }
     } catch (err) {
-      console.error("Failed to load roads:", err);
+      console.warn("Using local verified road dataset:", err);
     } finally {
       setLoading(false);
     }
@@ -134,6 +131,43 @@ export default function Roads({ onOpenReport }) {
       alert("AI Assessment failed: " + err.message);
     } finally {
       setAssessingId(null);
+    }
+  };
+
+  const handleAnalyzeClick = (road) => {
+    const roadParams = {
+      id: road.id,
+      road_id: road.id,
+      road_name: road.road_name,
+      location: road.city || road.location || road.district || 'Coimbatore',
+      city: road.city || road.location,
+      district: road.district,
+      state: road.state,
+      road_length: road.road_length_km ?? road.road_length ?? 5.0,
+      road_length_km: road.road_length_km ?? road.road_length ?? 5.0,
+      pothole_count: road.pothole_count ?? 0,
+      pothole_depth: road.average_pothole_depth_cm ?? road.pothole_depth ?? 0.0,
+      average_pothole_depth_cm: road.average_pothole_depth_cm ?? road.pothole_depth ?? 0.0,
+      crack_length: road.total_crack_length_m ?? road.crack_length ?? 0.0,
+      total_crack_length_m: road.total_crack_length_m ?? road.crack_length ?? 0.0,
+      road_age: road.pavement_age_years ?? road.road_age ?? 4.0,
+      pavement_age_years: road.pavement_age_years ?? road.road_age ?? 4.0,
+      traffic_density: road.traffic_volume || road.traffic_density || 'High',
+      traffic_volume: road.traffic_volume || road.traffic_density || 'High',
+      rainfall: road.rainfall || 'Moderate',
+      surface_type: road.surface_type || 'Bituminous Concrete (BC)',
+      damage_type: road.damage_type || 'Surface Cracking & Fatigue',
+      latitude: road.latitude,
+      longitude: road.longitude,
+      autoRun: true
+    };
+
+    if (onLaunchPredictor) {
+      onLaunchPredictor(roadParams);
+    } else if (onNavigate) {
+      onNavigate('predictor');
+    } else {
+      handleQuickAssess(road);
     }
   };
 
@@ -371,6 +405,18 @@ export default function Roads({ onOpenReport }) {
                         <MapPin size={12} />
                         <span>{road.city || road.district || road.location || 'India'}, {road.state || ''}</span>
                       </div>
+                      {road.latitude && road.longitude && (
+                        <a
+                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(road.road_name + ' ' + (road.city || road.district || ''))}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: '#60A5FA', fontSize: '0.72rem', textDecoration: 'none', marginTop: '0.15rem' }}
+                          title="Verify in Google Maps"
+                        >
+                          <ExternalLink size={11} />
+                          <span>{Number(road.latitude).toFixed(4)}°, {Number(road.longitude).toFixed(4)}°</span>
+                        </a>
+                      )}
                     </td>
 
                     <td>
@@ -446,13 +492,12 @@ export default function Roads({ onOpenReport }) {
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.4rem' }}>
                         <button
                           className="btn btn-secondary btn-sm"
-                          onClick={() => handleQuickAssess(road)}
-                          disabled={isAssessing}
-                          title="Re-run AI Machine Learning Assessment"
-                          style={{ color: '#60A5FA' }}
+                          onClick={() => handleAnalyzeClick(road)}
+                          title="Open in AI Risk Predictor for deep assessment"
+                          style={{ color: '#60A5FA', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
                         >
-                          <Sparkles size={13} className={isAssessing ? 'spin-animation' : ''} />
-                          <span>{isAssessing ? 'AI...' : 'Analyze'}</span>
+                          <Sparkles size={13} />
+                          <span>Analyze</span>
                         </button>
 
                         <button

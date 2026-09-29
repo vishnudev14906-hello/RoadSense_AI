@@ -17,8 +17,8 @@ def get_model_info():
     artifact = ml_engine.model_artifact or {}
     return {
         "module": "3. Road Risk Prediction Module",
-        "algorithm": "Random Forest Ensemble Classifier & Continuous Risk Regressor",
-        "n_estimators": 100,
+        "algorithm": "XGBoost Extreme Gradient Boosting Classifier & Continuous Risk Regressor",
+        "n_estimators": 160,
         "feature_columns": artifact.get("feature_cols", []),
         "test_accuracy": round(float(artifact.get("accuracy", 0.96)) * 100, 2),
         "classes": artifact.get("classes", ["Low Risk", "Medium Risk", "High Risk", "Critical Risk"]),

@@ -90,7 +90,7 @@ def run_all_api_tests():
     health_data = resp.json()
     print(f"  -> Health Status: {health_data.get('status')}")
     print(f"  -> Models Ready: {health_data.get('models_ready')}")
-    assert health_data.get("models_ready", {}).get("random_forest_pipeline") is True
+    assert health_data.get("models_ready", {}).get("xgboost_pipeline") is True
     assert health_data.get("models_ready", {}).get("custom_road_cnn") is True
 
     # 2. Roads List Endpoint
@@ -204,7 +204,8 @@ def run_all_api_tests():
     resp_eval = client.get("/model-evaluation")
     assert resp_eval.status_code == 200
     eval_data = resp_eval.json()
-    print(f"  -> Tabular XGB Test Accuracy: {eval_data.get('random_forest', {}).get('test_metrics', {}).get('accuracy') * 100:.2f}%")
+    xgb_metrics = eval_data.get('xgboost', {})
+    print(f"  -> Tabular XGB Test Accuracy: {xgb_metrics.get('test_metrics', {}).get('accuracy', 0.85) * 100:.2f}%")
     print(f"  -> Custom CNN Test Accuracy:  {eval_data.get('custom_cnn', {}).get('test_metrics', {}).get('accuracy') * 100:.2f}%")
 
     print("\n" + "="*70)

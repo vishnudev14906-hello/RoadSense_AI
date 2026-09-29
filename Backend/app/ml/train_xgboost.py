@@ -31,7 +31,7 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 DATASET_CSV_PATH = DATA_DIR / "road_condition_dataset.csv"
 PIPELINE_JOB_PATH = SAVED_MODELS_DIR / "road_risk_pipeline.joblib"
-METRICS_JSON_PATH = SAVED_MODELS_DIR / "rf_evaluation_metrics.json"
+METRICS_JSON_PATH = SAVED_MODELS_DIR / "xgb_evaluation_metrics.json"
 
 TARGET_CLASSES = ["Low Risk", "Medium Risk", "High Risk", "Critical Risk"]
 
@@ -324,12 +324,12 @@ def build_preprocessing_pipeline() -> ColumnTransformer:
     return preprocessor
 
 
-def train_random_forest_pipeline():
+def train_xgboost_pipeline():
     """
     Full End-to-End Training, Cross-Validation, Hyperparameter Tuning & Evaluation Pipeline.
     """
     print("\n" + "="*70)
-    print("  ROADSENSE AI - TABULAR RANDOM FOREST RISK CLASSIFICATION PIPELINE")
+    print("  ROADSENSE AI - TABULAR XGBOOST RISK CLASSIFICATION PIPELINE")
     print("="*70)
 
     # 1. Force regenerate expanded verified dataset
@@ -475,4 +475,4 @@ def train_random_forest_pipeline():
 
 
 if __name__ == "__main__":
-    train_random_forest_pipeline()
+    train_xgboost_pipeline()

@@ -13,10 +13,11 @@ import {
   TrendingDown,
   RefreshCw,
   CheckCircle2,
-  Award
+  Award,
+  X
 } from 'lucide-react';
 
-export default function Sidebar({ currentTab, setCurrentTab, onReseed }) {
+export default function Sidebar({ currentTab, setCurrentTab, onReseed, isOpen = false, onClose }) {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncedSuccess, setSyncedSuccess] = useState(false);
 
@@ -48,28 +49,49 @@ export default function Sidebar({ currentTab, setCurrentTab, onReseed }) {
     }
   };
 
-  return (
-    <aside className="sidebar">
-      <div className="sidebar-logo">
-        <div className="sidebar-logo-icon">
-          <ShieldAlert size={22} />
-        </div>
-        <div className="sidebar-logo-text">
-          <h1>RoadSense AI</h1>
-          <span>Civil Infrastructure Risk & Maintenance</span>
-        </div>
-      </div>
+  const handleItemClick = (tabId) => {
+    setCurrentTab(tabId);
+    if (onClose) onClose();
+  };
 
-      <nav className="sidebar-nav">
-        {menuItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = currentTab === item.id;
-          return (
-            <button
-              key={item.id}
-              className={`nav-item ${isActive ? 'active' : ''}`}
-              onClick={() => setCurrentTab(item.id)}
-            >
+  return (
+    <>
+      {/* Mobile Drawer Backdrop */}
+      <div 
+        className={`sidebar-backdrop ${isOpen ? 'active' : ''}`}
+        onClick={onClose}
+        aria-hidden="true"
+      />
+
+      <aside className={`sidebar ${isOpen ? 'mobile-open' : ''}`}>
+        <div className="sidebar-logo">
+          <div className="sidebar-logo-icon">
+            <ShieldAlert size={22} />
+          </div>
+          <div className="sidebar-logo-text" style={{ flex: 1 }}>
+            <h1>RoadSense AI</h1>
+            <span>Civil Infrastructure Risk & Maintenance</span>
+          </div>
+          {/* Mobile Close Button */}
+          <button 
+            className="btn-icon mobile-sidebar-close" 
+            onClick={onClose}
+            aria-label="Close navigation"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <nav className="sidebar-nav">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = currentTab === item.id;
+            return (
+              <button
+                key={item.id}
+                className={`nav-item ${isActive ? 'active' : ''}`}
+                onClick={() => handleItemClick(item.id)}
+              >
               <Icon size={18} />
               <span style={{ flex: 1 }}>{item.label}</span>
               {item.badge && (
@@ -116,5 +138,6 @@ export default function Sidebar({ currentTab, setCurrentTab, onReseed }) {
         </button>
       </div>
     </aside>
+  </>
   );
 }

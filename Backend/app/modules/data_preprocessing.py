@@ -63,7 +63,7 @@ def get_preprocessing_pipeline_info():
             {
                 "step": 4,
                 "name": "Feature Scaling & Vector Assembly",
-                "description": "Standardizes feature distributions for Random Forest and regression models."
+                "description": "Standardizes feature distributions for XGBoost and classification models."
             }
         ]
     }

@@ -26,11 +26,34 @@ import {
 import RiskBadge from '../components/RiskBadge';
 import { api } from '../api';
 import { formatDate, formatTime, formatRelativeTime } from '../utils/dateUtils';
+import { DEFAULT_ROADS } from '../data/roadsData';
+
+const defaultPrioritizationQueue = DEFAULT_ROADS
+  .filter(r => r.latest_prediction)
+  .sort((a, b) => (b.latest_prediction.urgency_score || b.risk_score || 0) - (a.latest_prediction.urgency_score || a.risk_score || 0))
+  .map((r, idx) => ({
+    rank: idx + 1,
+    road_id: r.id,
+    road_name: r.road_name,
+    location: r.location,
+    city: r.city,
+    priority: r.latest_prediction.priority || 'Immediate',
+    risk_level: r.latest_prediction.risk_level || r.risk_level,
+    urgency_score: r.latest_prediction.urgency_score || r.risk_score,
+    pothole_count: r.pothole_count,
+    average_pothole_depth_cm: r.average_pothole_depth_cm || r.pothole_depth,
+    crack_length: r.crack_length || r.total_crack_length_m,
+    traffic_density: r.traffic_density,
+    rainfall: r.rainfall,
+    recommendation: r.latest_prediction.recommendation,
+    estimated_budget: r.latest_prediction.estimated_budget,
+    ai_reasoning: r.latest_prediction.ai_reasoning
+  }));
 
 export default function Prioritization({ onOpenReport }) {
   const [activeTab, setActiveTab] = useState('queue'); // 'queue' or 'budget'
-  const [queue, setQueue] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [queue, setQueue] = useState(defaultPrioritizationQueue);
+  const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [locationFilter, setLocationFilter] = useState('All');
   const [riskFilter, setRiskFilter] = useState('All');
@@ -52,16 +75,20 @@ export default function Prioritization({ onOpenReport }) {
   }, [activeTab, budgetLakhs]);
 
   const loadQueue = async () => {
-    setLoading(true);
+    if (!queue || queue.length === 0) {
+      setLoading(true);
+    }
     try {
       const data = await api.getPrioritization({
         search: searchTerm || undefined,
         location: locationFilter,
         min_risk: riskFilter
       });
-      setQueue(data);
+      if (data && data.length > 0) {
+        setQueue(data);
+      }
     } catch (err) {
-      console.error("Failed to load priority queue:", err);
+      console.warn("Using local verified priority queue:", err);
     } finally {
       setLoading(false);
     }

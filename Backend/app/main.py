@@ -966,7 +966,7 @@ def health_check():
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "service": "RoadSense AI Core Backend",
         "models_ready": {
-            "random_forest_pipeline": risk_predictor.pipeline is not None,
+            "xgboost_pipeline": risk_predictor.pipeline is not None,
             "custom_road_cnn": image_detector.model is not None
         }
     }
@@ -983,7 +983,7 @@ def predict_road_condition(req: PredictRequest, db: Session = Depends(get_db)):
     t_vol = req.traffic_density or req.traffic_volume or "Medium"
     rain = req.rainfall or "Moderate"
 
-    # Execute inference via trained Random Forest pipeline service
+    # Execute inference via trained XGBoost pipeline service
     pred_res = risk_predictor.predict_risk(
         pothole_count=p_cnt,
         average_pothole_depth=p_dep,
@@ -1300,7 +1300,7 @@ def get_recommendation_rules():
 @app.post("/api/combined-assessment", response_model=CombinedAssessmentResponse)
 def get_combined_road_assessment(req: CombinedAssessmentRequest):
     """
-    Transparent Decision Layer combining Tabular Random Forest risk & Visual CNN damage.
+    Transparent Decision Layer combining Tabular XGBoost risk & Visual CNN damage.
     Follows deterministic MoRTH / IRC:82 civil engineering decision matrix.
     """
     return synthesize_combined_road_assessment(
@@ -1325,29 +1325,34 @@ def get_model_evaluation_metrics():
     1. Tabular XGBoost Classifier (Accuracy, Precision, Recall, F1, Confusion Matrix, 5-Fold CV)
     2. Custom Deep CNN Road Damage Detector (Accuracy, Precision, Recall, F1, Loss/Accuracy Curves)
     """
-    from .ml.predict_risk import METRICS_JSON_PATH as RF_METRICS_PATH
+    from .ml.predict_risk import METRICS_JSON_PATH as XGB_METRICS_PATH
+    from .ml.predict_risk import SAVED_MODELS_DIR as MODELS_DIR
     from .ml.image_detector import METRICS_JSON_PATH as CNN_METRICS_PATH
 
-    rf_data = {}
+    xgb_data = {}
     cnn_data = {}
 
-    if RF_METRICS_PATH.exists():
-        with open(RF_METRICS_PATH, "r", encoding="utf-8") as f:
-            rf_data = json.load(f)
+    # Try new xgb metrics path, fall back to old rf metrics path for legacy compatibility
+    xgb_path = XGB_METRICS_PATH  # xgb_evaluation_metrics.json
+    if not xgb_path.exists():
+        xgb_path = MODELS_DIR / "rf_evaluation_metrics.json"
+    if xgb_path.exists():
+        with open(xgb_path, "r", encoding="utf-8") as f:
+            xgb_data = json.load(f)
 
     if CNN_METRICS_PATH.exists():
         with open(CNN_METRICS_PATH, "r", encoding="utf-8") as f:
             cnn_data = json.load(f)
 
     return {
-        "random_forest": rf_data,
+        "xgboost": xgb_data,
         "custom_cnn": cnn_data,
         "zero_fabrication_guarantee": "Measured strictly on authentic held-out test splits without pre-trained weights."
     }
 
 @app.post("/api/scan-image", response_model=ImageScanOut)
 def scan_and_predict_road_image(req: ImageScanRequest, db: Session = Depends(get_db)):
-    # Run the unified Road Image Vision AI & Random Forest Pipeline
+    # Run the unified Road Image Vision AI & XGBoost Pipeline
     pipe_res = image_pipeline_service.run_full_pipeline(
         image_input=req.image_base64,
         road_name=req.road_name or "Uploaded Road Photo",
@@ -1488,7 +1493,7 @@ def predict_image_pipeline(
     """
     Executes the Complete 7-Stage Road Image Risk Pipeline:
     Uploaded Road Image -> Preprocessing -> YOLO Detection -> Extract Measurable Features -> 
-    Random Forest Classifier -> Risk Probability -> Maintenance Recommendation
+    XGBoost Classifier -> Risk Probability -> Maintenance Recommendation
     """
     return image_pipeline_service.run_full_pipeline(
         image_input=req.image_base64,

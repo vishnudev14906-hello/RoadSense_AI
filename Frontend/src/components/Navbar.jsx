@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { LogIn, LogOut, ShieldCheck, Clock, User, Sparkles } from 'lucide-react';
+import { LogIn, LogOut, ShieldCheck, Clock, User, Sparkles, Menu, ShieldAlert } from 'lucide-react';
 import { formatDateTime, formatTime, formatDate } from '../utils/dateUtils';
 
-export default function Navbar({ currentUser, onOpenAuth, onLogout }) {
+export default function Navbar({ currentUser, onOpenAuth, onLogout, onToggleMobileMenu }) {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -14,9 +14,25 @@ export default function Navbar({ currentUser, onOpenAuth, onLogout }) {
 
   return (
     <header className="navbar">
-      <div className="navbar-left" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+      <div className="navbar-left" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        {/* Mobile Hamburger Menu Toggle Button */}
+        <button 
+          className="btn-icon mobile-menu-btn" 
+          onClick={onToggleMobileMenu}
+          aria-label="Toggle navigation menu"
+          title="Open menu"
+        >
+          <Menu size={20} color="#3B82F6" />
+        </button>
+
+        {/* Mobile Brand Name (visible only on mobile) */}
+        <div className="mobile-brand-title">
+          <ShieldAlert size={18} color="#3B82F6" />
+          <span>RoadSense AI</span>
+        </div>
+
         {/* Clock */}
-        <div style={{
+        <div className="navbar-clock" style={{
           display: 'flex',
           alignItems: 'center',
           gap: '0.45rem',

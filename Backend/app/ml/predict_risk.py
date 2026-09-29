@@ -15,7 +15,7 @@ CURRENT_DIR = Path(__file__).resolve().parent
 APP_DIR = CURRENT_DIR.parent
 SAVED_MODELS_DIR = APP_DIR / "saved_models"
 PIPELINE_JOB_PATH = SAVED_MODELS_DIR / "road_risk_pipeline.joblib"
-METRICS_JSON_PATH = SAVED_MODELS_DIR / "rf_evaluation_metrics.json"
+METRICS_JSON_PATH = SAVED_MODELS_DIR / "xgb_evaluation_metrics.json"
 
 class RoadRiskPredictorService:
     """
@@ -38,19 +38,22 @@ class RoadRiskPredictorService:
     def load_model(self):
         if not PIPELINE_JOB_PATH.exists():
             print("[INFO] Model pipeline not found. Triggering automated training...")
-            from .train_random_forest import train_random_forest_pipeline
-            self.pipeline, self.metrics = train_random_forest_pipeline()
+            from .train_xgboost import train_xgboost_pipeline
+            self.pipeline, self.metrics = train_xgboost_pipeline()
         else:
             try:
                 self.pipeline = joblib.load(PIPELINE_JOB_PATH)
                 if METRICS_JSON_PATH.exists():
                     with open(METRICS_JSON_PATH, "r", encoding="utf-8") as f:
                         self.metrics = json.load(f)
+                elif (SAVED_MODELS_DIR / "rf_evaluation_metrics.json").exists():
+                    with open(SAVED_MODELS_DIR / "rf_evaluation_metrics.json", "r", encoding="utf-8") as f:
+                        self.metrics = json.load(f)
                 print(f"[OK] XGBoost Pipeline loaded successfully from {PIPELINE_JOB_PATH}")
             except Exception as e:
                 print(f"[WARN] Error loading model pipeline ({e}). Retraining...")
-                from .train_random_forest import train_random_forest_pipeline
-                self.pipeline, self.metrics = train_random_forest_pipeline()
+                from .train_xgboost import train_xgboost_pipeline
+                self.pipeline, self.metrics = train_xgboost_pipeline()
 
     def predict_risk(
         self,
@@ -169,7 +172,7 @@ class RoadRiskPredictorService:
             "confidence": confidence_ratio,
             "confidence_percentage": raw_confidence,
             "probabilities": prob_dict,
-            "model_version": "RandomForest-v2.5-IRC82-Pipeline",
+            "model_version": "XGBoost-v2.5-IRC82-Pipeline",
             "recommendation": agent_res["action"],
             "priority": agent_res["priority"],
             "urgency_score": agent_res["urgency_score"],

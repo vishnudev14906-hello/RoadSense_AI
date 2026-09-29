@@ -100,7 +100,7 @@ def get_classification_metrics(db: Session = Depends(get_db)):
     ]
 
     return {
-        "model_name": "Multi-Class Random Forest Classifier & Risk Tier Engine (Verified Dataset)",
+        "model_name": "Multi-Class XGBoost Risk Classifier & Risk Tier Engine (Verified Dataset)",
         "test_accuracy": acc,
         "precision_macro": acc,
         "recall_macro": acc,

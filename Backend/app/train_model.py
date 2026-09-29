@@ -9,7 +9,6 @@ if hasattr(sys.stdout, 'reconfigure'):
 if hasattr(sys.stderr, 'reconfigure'):
     sys.stderr.reconfigure(encoding='utf-8')
 
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, accuracy_score
 from .config import DATASET_PATH, MODEL_PATH, DATA_DIR
@@ -163,7 +162,7 @@ def train_and_save_model():
     class_counts = y.value_counts().to_dict()
     print(f"[INFO] Verified class distributions: {class_counts}")
 
-    print("[2/4] Preparing dataset for Random Forest model training...")
+    print("[2/4] Preparing dataset for XGBoost model training...")
     can_stratify = all(cnt >= 2 for cnt in class_counts.values()) and len(df) >= 10
     if can_stratify:
         X_train, X_test, y_train, y_test = train_test_split(
@@ -175,7 +174,7 @@ def train_and_save_model():
         )
 
     print("[3/4] Training XGBoost Classifier on genuine verified road data...")
-    from .ml.train_random_forest import XGBoostRiskClassifier
+    from .ml.train_xgboost import XGBoostRiskClassifier
     clf = XGBoostRiskClassifier(
         n_estimators=160,
         learning_rate=0.08,

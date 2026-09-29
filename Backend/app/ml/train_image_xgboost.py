@@ -125,7 +125,7 @@ def generate_image_feature_dataset(num_samples_per_class: int = 300) -> pd.DataF
     return df
 
 
-def train_and_save_image_risk_rf(
+def train_and_save_image_risk_xgb(
     data_dir: str = None,
     model_dir: str = None
 ) -> Dict[str, Any]:
@@ -190,7 +190,7 @@ def train_and_save_image_risk_rf(
     print(f"[FEATURE IMPORTANCES] {feature_importances}")
 
     # Save Pipeline Model
-    model_path = os.path.join(model_dir, "image_risk_rf_pipeline.joblib")
+    model_path = os.path.join(model_dir, "image_risk_xgb_pipeline.joblib")
     joblib.dump(pipeline, model_path)
     print(f"[SAVED] Image Risk XGBoost pipeline to {model_path}")
 
@@ -213,7 +213,7 @@ def train_and_save_image_risk_rf(
         "feature_importances": feature_importances
     }
 
-    metrics_path = os.path.join(model_dir, "image_rf_evaluation_metrics.json")
+    metrics_path = os.path.join(model_dir, "image_xgb_evaluation_metrics.json")
     with open(metrics_path, "w", encoding="utf-8") as f:
         json.dump(metrics, f, indent=2)
     print(f"[SAVED] Evaluation metrics to {metrics_path}")
@@ -222,4 +222,4 @@ def train_and_save_image_risk_rf(
 
 
 if __name__ == "__main__":
-    train_and_save_image_risk_rf()
+    train_and_save_image_risk_xgb()

@@ -34,6 +34,7 @@ import RiskBadge from '../components/RiskBadge';
 import { api } from '../api';
 import { formatDateTime, formatTime } from '../utils/dateUtils';
 import { SAMPLE_INSPECTION_SCENARIOS } from '../utils/sampleScenarios';
+import { DEFAULT_ROADS } from '../data/roadsData';
 
 const CITIES = [
   'All Municipalities',
@@ -55,7 +56,7 @@ export default function Predictor({ onOpenReport, initialParams }) {
   const [activeInputMode, setActiveInputMode] = useState('telemetry');
 
   // --- 1. Road Telemetry State ---
-  const [availableRoads, setAvailableRoads] = useState([]);
+  const [availableRoads, setAvailableRoads] = useState(DEFAULT_ROADS);
   const [selectedCity, setSelectedCity] = useState('All Municipalities');
   const [selectedRoadId, setSelectedRoadId] = useState('');
   const [roadSearchTerm, setRoadSearchTerm] = useState('');
@@ -128,16 +129,15 @@ export default function Predictor({ onOpenReport, initialParams }) {
   }, []);
 
   const loadAvailableRoads = async () => {
-    setLoadingRoads(true);
     try {
       const roads = await api.getRoads();
-      const loadedRoads = roads || [];
+      const loadedRoads = (roads && roads.length > 0) ? roads : DEFAULT_ROADS;
       setAvailableRoads(loadedRoads);
 
       // Handle initial parameter selection or default to first real corridor
-      if (initialParams && (initialParams.road_name || initialParams.road_id)) {
+      if (initialParams && (initialParams.road_name || initialParams.road_id || initialParams.id)) {
         handleIncomingParams(initialParams, loadedRoads);
-      } else if (loadedRoads.length > 0) {
+      } else if (!initialParams && loadedRoads.length > 0) {
         const firstRoad = loadedRoads[0];
         setSelectedRoadId(String(firstRoad.id));
         if (firstRoad.location) setSelectedCity(firstRoad.location);
@@ -146,8 +146,12 @@ export default function Predictor({ onOpenReport, initialParams }) {
         runTelemetryInference(telemetryParams, false);
       }
     } catch (err) {
-      console.error("Failed to load real roads in predictor:", err);
-      runTelemetryInference(telemetryParams, false);
+      console.warn("Using default verified roads in predictor:", err);
+      if (initialParams) {
+        handleIncomingParams(initialParams, DEFAULT_ROADS);
+      } else {
+        runTelemetryInference(telemetryParams, false);
+      }
     } finally {
       setLoadingRoads(false);
     }
@@ -164,7 +168,7 @@ export default function Predictor({ onOpenReport, initialParams }) {
 
       const updatedImg = {
         road_name: initData.road_name || 'Field Survey Capture',
-        location: initData.location || 'Field Survey Ingestion',
+        location: initData.location || initData.city || 'Field Survey Ingestion',
         road_length: r_l,
         pothole_count: p_c,
         pothole_depth: p_d,
@@ -182,7 +186,7 @@ export default function Predictor({ onOpenReport, initialParams }) {
         setSelectedScenario({
           id: 'transferred-upload',
           title: initData.imageTitle || `Captured Photo: ${initData.road_name}`,
-          location: initData.location || 'Field Inspection',
+          location: initData.location || initData.city || 'Field Inspection',
           road_name: initData.road_name || 'Captured Corridor',
           imageUrl: initData.imageUrl,
           description: 'Roadway inspection photo segmented by Neural Vision AI.',
@@ -198,33 +202,43 @@ export default function Predictor({ onOpenReport, initialParams }) {
   };
 
   const applyTelemetryRoadParams = (roadData) => {
+    const rLen = roadData.road_length !== undefined ? Number(roadData.road_length) : (roadData.road_length_km !== undefined ? Number(roadData.road_length_km) : 5.0);
+    const pCnt = roadData.pothole_count !== undefined ? Number(roadData.pothole_count) : 10;
+    const pDep = roadData.pothole_depth !== undefined ? Number(roadData.pothole_depth) : (roadData.average_pothole_depth_cm !== undefined ? Number(roadData.average_pothole_depth_cm) : 5.0);
+    const cLen = roadData.crack_length !== undefined ? Number(roadData.crack_length) : (roadData.total_crack_length_m !== undefined ? Number(roadData.total_crack_length_m) : 30.0);
+    const rAge = roadData.road_age !== undefined ? Number(roadData.road_age) : (roadData.pavement_age_years !== undefined ? Number(roadData.pavement_age_years) : 5.0);
+    const tDen = roadData.traffic_density || roadData.traffic_volume || 'High';
+    const rRain = roadData.rainfall || 'Moderate';
+    const rLoc = roadData.location || roadData.city || 'Coimbatore';
+
     const updated = {
       road_name: roadData.road_name || 'Corridor',
-      location: roadData.location || 'Coimbatore',
-      road_length: roadData.road_length !== undefined ? Number(roadData.road_length) : 5.0,
-      pothole_count: roadData.pothole_count !== undefined ? Number(roadData.pothole_count) : 10,
-      pothole_depth: roadData.pothole_depth !== undefined ? Number(roadData.pothole_depth) : 5.0,
-      crack_length: roadData.crack_length !== undefined ? Number(roadData.crack_length) : 30.0,
-      road_age: roadData.road_age !== undefined ? Number(roadData.road_age) : 5.0,
-      traffic_density: roadData.traffic_density || 'High',
-      rainfall: roadData.rainfall || 'Moderate',
+      location: rLoc,
+      road_length: rLen,
+      pothole_count: pCnt,
+      pothole_depth: pDep,
+      crack_length: cLen,
+      road_age: rAge,
+      traffic_density: tDen,
+      rainfall: rRain,
       latitude: roadData.latitude !== undefined ? roadData.latitude : null,
       longitude: roadData.longitude !== undefined ? roadData.longitude : null,
       save_prediction: false
     };
     setTelemetryParams(updated);
-    if (roadData.id) {
-      setSelectedRoadId(String(roadData.id));
+    const rId = roadData.id || roadData.road_id;
+    if (rId) {
+      setSelectedRoadId(String(rId));
     }
-    if (roadData.location && roadData.location !== selectedCity && selectedCity !== 'All Municipalities') {
-      setSelectedCity(roadData.location);
+    if (rLoc && rLoc !== selectedCity && selectedCity !== 'All Municipalities') {
+      setSelectedCity(rLoc);
     }
     runTelemetryInference(updated, false);
   };
 
   // Sync when initialParams changes externally
   useEffect(() => {
-    if (initialParams && (initialParams.road_name || initialParams.road_id || initialParams.sourceMode)) {
+    if (initialParams && (initialParams.road_name || initialParams.road_id || initialParams.id || initialParams.sourceMode)) {
       handleIncomingParams(initialParams);
     }
   }, [initialParams]);
@@ -290,7 +304,7 @@ export default function Predictor({ onOpenReport, initialParams }) {
     });
   };
 
-  // --- Run Random Forest ML Inference for Telemetry Inputs ---
+  // --- Run XGBoost ML Inference for Telemetry Inputs ---
   const runTelemetryInference = async (inputParams, saveToDb = false) => {
     const reqId = ++latestTelemetryReqId.current;
     if (saveToDb) {
@@ -1001,7 +1015,7 @@ export default function Predictor({ onOpenReport, initialParams }) {
               </div>
             </div>
 
-            {/* Right Column: Random Forest ML Prediction for Road Telemetry */}
+            {/* Right Column: XGBoost ML Prediction for Road Telemetry */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               
               {/* Telemetry Live Bar */}
@@ -1454,7 +1468,7 @@ export default function Predictor({ onOpenReport, initialParams }) {
               )}
             </div>
 
-            {/* Right Column: Random Forest ML Prediction & Maintenance Recommendation */}
+            {/* Right Column: XGBoost ML Prediction & Maintenance Recommendation */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               
               {/* Image Live Bar */}

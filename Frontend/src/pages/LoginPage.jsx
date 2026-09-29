@@ -143,12 +143,50 @@ export default function LoginPage({ onLoginSuccess }) {
 
     setLoading(true);
     try {
-      await configurePersistence(rememberMe);
-      const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
-      await completeFirebaseLogin(userCredential.user);
-    } catch (err) {
-      console.error("[Firebase Sign In Error]", err);
-      setError(formatFirebaseError(err));
+      // Try Firebase auth first
+      try {
+        await configurePersistence(rememberMe);
+        const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
+        await completeFirebaseLogin(userCredential.user);
+      } catch (firebaseErr) {
+        console.warn("[Firebase Auth] Falling back to backend API:", firebaseErr.code);
+        // Fallback: try backend JWT auth
+        try {
+          const res = await fetch('http://127.0.0.1:8000/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email.trim(), password, remember_me: rememberMe })
+          });
+          if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.detail || 'Invalid email or password');
+          }
+          const data = await res.json();
+          const userPayload = {
+            id: data.user.id,
+            name: data.user.name,
+            email: data.user.email,
+            role: data.user.role || 'Inspector',
+            photoURL: null,
+            auth_provider: 'backend'
+          };
+          if (rememberMe) {
+            localStorage.setItem('roadsense_token', data.access_token);
+            localStorage.setItem('roadsense_user', JSON.stringify(userPayload));
+            sessionStorage.removeItem('roadsense_token');
+            sessionStorage.removeItem('roadsense_user');
+          } else {
+            sessionStorage.setItem('roadsense_token', data.access_token);
+            sessionStorage.setItem('roadsense_user', JSON.stringify(userPayload));
+            localStorage.removeItem('roadsense_token');
+            localStorage.removeItem('roadsense_user');
+          }
+          onLoginSuccess(userPayload, rememberMe);
+        } catch (backendErr) {
+          console.error("[Backend Auth Error]", backendErr);
+          setError(backendErr.message || formatFirebaseError(firebaseErr));
+        }
+      }
     } finally {
       setLoading(false);
     }

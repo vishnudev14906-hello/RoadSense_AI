@@ -14,15 +14,20 @@ import {
 } from 'lucide-react';
 import { api } from '../api';
 import RiskBadge from '../components/RiskBadge';
+import { DEFAULT_ROADS } from '../data/roadsData';
+
+const firstRoad = DEFAULT_ROADS[0] || {};
+const firstPred = firstRoad.latest_prediction || (firstRoad.predictions && firstRoad.predictions[0]);
+const firstRisk = firstPred ? (firstPred.risk_score || 50) : 50;
 
 export default function LifecycleForecast({ onNavigate, onLaunchPredictor }) {
-  const [roads, setRoads] = useState([]);
-  const [selectedRoadId, setSelectedRoadId] = useState('');
-  const [initialPci, setInitialPci] = useState(72);
-  const [pavementAge, setPavementAge] = useState(6.5);
-  const [trafficDensity, setTrafficDensity] = useState('High');
-  const [rainfallLevel, setRainfallLevel] = useState('Heavy');
-  const [roadLength, setRoadLength] = useState(5.0);
+  const [roads, setRoads] = useState(DEFAULT_ROADS);
+  const [selectedRoadId, setSelectedRoadId] = useState(firstRoad.id || 1);
+  const [initialPci, setInitialPci] = useState(Math.max(20, Math.min(95, Math.round(100 - firstRisk * 0.8))));
+  const [pavementAge, setPavementAge] = useState(firstRoad.pavement_age_years || firstRoad.road_age || 14.2);
+  const [trafficDensity, setTrafficDensity] = useState(firstRoad.traffic_density || firstRoad.traffic_volume || 'Very High');
+  const [rainfallLevel, setRainfallLevel] = useState(firstRoad.rainfall || 'Heavy');
+  const [roadLength, setRoadLength] = useState(firstRoad.road_length_km || firstRoad.road_length || 14.5);
 
   useEffect(() => {
     loadRoads();
@@ -31,13 +36,11 @@ export default function LifecycleForecast({ onNavigate, onLaunchPredictor }) {
   const loadRoads = async () => {
     try {
       const data = await api.getRoads();
-      setRoads(data);
-      if (data.length > 0) {
-        setSelectedRoadId(data[0].id);
-        applyRoadPreset(data[0]);
+      if (data && data.length > 0) {
+        setRoads(data);
       }
     } catch (err) {
-      console.error("Failed to load roads for lifecycle forecast:", err);
+      console.warn("Using local verified roads for lifecycle forecast:", err);
     }
   };
 
