@@ -50,6 +50,14 @@ export default function App() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(() => {
     try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const isResetFlow = urlParams.has('oobCode') || 
+                          urlParams.get('mode') === 'resetPassword' || 
+                          urlParams.get('mode') === 'reset' ||
+                          window.location.pathname.includes('reset-password') ||
+                          window.location.hash.includes('reset-password');
+      if (isResetFlow) return null;
+
       const persistent = localStorage.getItem('roadsense_user');
       if (persistent) return JSON.parse(persistent);
       const session = sessionStorage.getItem('roadsense_user');
@@ -69,6 +77,14 @@ export default function App() {
   // Synchronize Firebase Authentication State on Mount and Lifecycle
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const isResetFlow = urlParams.has('oobCode') || 
+                          urlParams.get('mode') === 'resetPassword' || 
+                          urlParams.get('mode') === 'reset' ||
+                          window.location.pathname.includes('reset-password') ||
+                          window.location.hash.includes('reset-password');
+      if (isResetFlow) return;
+
       if (firebaseUser) {
         try {
           const idToken = await firebaseUser.getIdToken();
@@ -82,8 +98,8 @@ export default function App() {
 
           const userObj = {
             id: firebaseUser.uid,
-            name: firebaseUser.displayName || firebaseUser.email.split('@')[0],
-            email: firebaseUser.email,
+            name: firebaseUser.displayName || (firebaseUser.email ? firebaseUser.email.split('@')[0] : 'Road Inspector'),
+            email: firebaseUser.email || '',
             role: role,
             photoURL: firebaseUser.photoURL || null,
             auth_provider: firebaseUser.providerData?.[0]?.providerId || 'firebase'

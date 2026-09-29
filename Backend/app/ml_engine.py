@@ -1,11 +1,9 @@
 import os
 import sys
 from typing import Dict, Any, List
-import joblib
 import pandas as pd
 import numpy as np
-from .config import MODEL_PATH
-from .train_model import train_and_save_model, RISK_LEVELS, TRAFFIC_MAP, RAINFALL_MAP
+from .ml.predict_risk import risk_predictor
 
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8')
@@ -13,6 +11,9 @@ if hasattr(sys.stderr, 'reconfigure'):
     sys.stderr.reconfigure(encoding='utf-8')
 
 class MLEngine:
+    """
+    Unified ML Engine interface delegating to the production XGBoost Road Risk Classifier.
+    """
     def __init__(self):
         self.model_artifact = None
         self.model = None
@@ -196,11 +197,18 @@ class MLEngine:
         ]
 
         return {
-            "risk_level": prediction,
-            "risk_score": risk_score,
-            "confidence": confidence,
-            "probabilities": prob_dict,
-            "feature_impacts": feature_impacts
+            "risk_level": res["risk_level"],
+            "risk_score": res["risk_score"],
+            "confidence": res["confidence_percentage"],
+            "probabilities": res["probabilities"],
+            "feature_impacts": res["feature_impacts"],
+            "recommendation": res["recommendation"],
+            "priority": res["priority"],
+            "urgency_score": res["urgency_score"],
+            "ai_reasoning": res["ai_reasoning"],
+            "safety_hazard": res["safety_hazard"],
+            "estimated_budget": res["estimated_budget"],
+            "inspection_timeline": res["inspection_timeline"]
         }
 
 ml_engine = MLEngine()

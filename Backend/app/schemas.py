@@ -322,13 +322,13 @@ class ImageDistressFeatures(BaseModel):
     avg_confidence: float = 0.0
 
 class DetectRoadImageResponse(BaseModel):
-    risk_level: str
-    confidence: float
-    damage_type: str
-    damage_severity: str
-    features: Dict[str, Any]
-    recommendation: str
-    priority: str
+    risk_level: Optional[str] = None
+    confidence: Optional[float] = 0.0
+    damage_type: Optional[str] = None
+    damage_severity: Optional[str] = None
+    features: Optional[Dict[str, Any]] = None
+    recommendation: Optional[str] = None
+    priority: Optional[str] = None
     is_valid_road: bool = True
     risk_score: Optional[float] = None
     probabilities: Optional[Dict[str, float]] = None

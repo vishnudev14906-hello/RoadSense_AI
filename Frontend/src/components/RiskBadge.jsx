@@ -1,8 +1,9 @@
 import React from 'react';
 import { AlertTriangle, CheckCircle2, AlertCircle, Flame } from 'lucide-react';
 
-export default function RiskBadge({ level = "Low Risk", showIcon = true, size = "md" }) {
-  const normLevel = level.toLowerCase();
+export default function RiskBadge({ level, riskLevel, risk, risk_level, showIcon = true, size = "md" }) {
+  const rawLevel = String(level || riskLevel || risk || risk_level || 'Low Risk');
+  const normLevel = rawLevel.toLowerCase();
   
   let badgeClass = "risk-badge ";
   let Icon = CheckCircle2;
@@ -26,7 +27,7 @@ export default function RiskBadge({ level = "Low Risk", showIcon = true, size = 
   return (
     <span className={badgeClass} style={{ fontSize: size === "sm" ? '0.7rem' : undefined }}>
       {showIcon && <Icon size={iconSize} />}
-      <span>{level}</span>
+      <span>{rawLevel}</span>
     </span>
   );
 }

@@ -25,7 +25,7 @@ export default function Sidebar({ currentTab, setCurrentTab, onReseed, isOpen = 
     { id: 'dashboard', label: 'Network Dashboard', icon: LayoutDashboard },
     { id: 'map', label: 'GIS Hazard Map', icon: Navigation, badge: 'GIS' },
     { id: 'vision', label: 'Vision Damage Scanner', icon: Scan, badge: 'CV' },
-    { id: 'predictor', label: 'AI Risk Predictor & Assessment', icon: Cpu, badge: 'ML' },
+    { id: 'predictor', label: 'The Living Road (AI Predictor)', icon: Activity, badge: 'VITAL' },
     { id: 'prioritization', label: 'Priority Matrix & Budget Optimizer', icon: ListOrdered, badge: 'PRIO' },
     { id: 'lifecycle', label: 'Pavement Lifecycle & ROI', icon: TrendingDown, badge: 'ROI' },
     { id: 'roads', label: 'Road Network Database', icon: Milestone },
@@ -111,11 +111,14 @@ export default function Sidebar({ currentTab, setCurrentTab, onReseed, isOpen = 
         })}
       </nav>
 
-      {/* Persistent Sidebar Footer */}
-      <div className="sidebar-footer">
-        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}>
-          <Database size={13} color="#60A5FA" />
-          <span>Database: <strong>SQLite (roadsense.db)</strong></span>
+          {/* Close button for mobile drawer */}
+          <button 
+            className="sidebar-close-btn"
+            onClick={onClose}
+            aria-label="Close Sidebar"
+          >
+            <X size={18} />
+          </button>
         </div>
         <button 
           className="btn btn-secondary btn-sm" 

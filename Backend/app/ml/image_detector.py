@@ -81,13 +81,18 @@ class RoadImageDetectorService:
                 "confidence": 0.0,
                 "confidence_percentage": 0.0,
                 "is_road_damage": False,
-                "message": err_msg or "Unable to reliably analyze this image as a road-condition image.",
+                "is_valid_road": False,
+                "message": "Invalid image. Please upload a valid road image.",
                 "probabilities": {},
                 "model_version": "Custom-CNN-Scratch-v1.0"
             }
 
-        # Check for blurriness using Laplacian variance
-        img_arr = np.array(img, dtype=np.float32)
+        # Check for blurriness on bounded resolution (max 640px) to maintain ultra-low RAM footprint
+        img_check = img.copy()
+        if max(img_check.size) > 640:
+            img_check.thumbnail((640, 640), Image.Resampling.LANCZOS)
+
+        img_arr = np.array(img_check, dtype=np.float32)
         gray = 0.2989 * img_arr[:, :, 0] + 0.5870 * img_arr[:, :, 1] + 0.1140 * img_arr[:, :, 2]
         blur_var = compute_laplacian_variance(gray)
 
@@ -97,7 +102,8 @@ class RoadImageDetectorService:
                 "confidence": 0.15,
                 "confidence_percentage": 15.0,
                 "is_road_damage": False,
-                "message": "Unable to reliably analyze this image as a road-condition image. The image is too blurry.",
+                "is_valid_road": False,
+                "message": "Invalid image. Please upload a valid road image.",
                 "probabilities": {cls: 25.0 for cls in IMAGE_CLASSES},
                 "model_version": "Custom-CNN-Scratch-v1.0"
             }
@@ -114,14 +120,15 @@ class RoadImageDetectorService:
         mean_sat = float(np.mean(saturation))
         std_val = float(np.std(img_arr))
 
-        # Real asphalt has low color saturation (<0.45) and basic texture variance (>4.0)
-        if mean_sat > 0.48 or std_val < 4.0:
+        # Real asphalt has low to moderate color saturation and basic variance
+        if mean_sat > 0.65 or std_val < 0.5:
             return {
                 "detected_class": "Uncertain / Non-Road",
                 "confidence": 0.20,
                 "confidence_percentage": 20.0,
                 "is_road_damage": False,
-                "message": "Unable to reliably analyze this image as a road-condition image.",
+                "is_valid_road": False,
+                "message": "Invalid image. Please upload a valid road image.",
                 "probabilities": {cls: 25.0 for cls in IMAGE_CLASSES},
                 "model_version": "Custom-CNN-Scratch-v1.0"
             }

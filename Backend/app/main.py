@@ -1,3 +1,4 @@
+import os
 import sys
 import secrets
 import urllib.request
@@ -149,10 +150,27 @@ app = FastAPI(
     version="2.1.0"
 )
 
-# CORS
+# Safe CORS Configuration for Localhost & Production Deployments (Vercel & Render)
+allowed_origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
+
+frontend_env = os.getenv("FRONTEND_URL")
+if frontend_env:
+    for url_item in frontend_env.split(","):
+        clean_url = url_item.strip().rstrip("/")
+        if clean_url and clean_url not in allowed_origins:
+            allowed_origins.append(clean_url)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -975,11 +993,11 @@ def health_check():
 @app.post("/api/predict-risk")
 @app.post("/api/predict", response_model=PredictionOut)
 def predict_road_condition(req: PredictRequest, db: Session = Depends(get_db)):
-    p_cnt = max(0, req.pothole_count if req.pothole_count is not None else 0)
-    p_dep = max(0.0, req.pothole_depth if (req.pothole_depth is not None and req.pothole_depth > 0) else (req.average_pothole_depth_cm if req.average_pothole_depth_cm is not None else 0.0))
-    c_len = max(0.0, req.crack_length if (req.crack_length is not None and req.crack_length > 0) else (req.total_crack_length_m if req.total_crack_length_m is not None else 0.0))
-    r_age = max(0.0, req.road_age if (req.road_age is not None and req.road_age > 0) else (req.pavement_age_years if req.pavement_age_years is not None else 1.0))
-    r_len = max(0.1, req.road_length if (req.road_length is not None and req.road_length > 0) else (req.road_length_km if req.road_length_km is not None else 1.0))
+    p_cnt = max(0, int(req.pothole_count if req.pothole_count is not None else 0))
+    p_dep = max(0.0, float(req.pothole_depth if req.pothole_depth is not None else (req.average_pothole_depth_cm if req.average_pothole_depth_cm is not None else 0.0)))
+    c_len = max(0.0, float(req.crack_length if req.crack_length is not None else (req.total_crack_length_m if req.total_crack_length_m is not None else 0.0)))
+    r_age = max(0.0, float(req.road_age if req.road_age is not None else (req.pavement_age_years if req.pavement_age_years is not None else 1.0)))
+    r_len = max(0.1, float(req.road_length if req.road_length is not None else (req.road_length_km if req.road_length_km is not None else 1.0)))
     t_vol = req.traffic_density or req.traffic_volume or "Medium"
     rain = req.rainfall or "Moderate"
 
@@ -1358,6 +1376,12 @@ def scan_and_predict_road_image(req: ImageScanRequest, db: Session = Depends(get
         road_name=req.road_name or "Uploaded Road Photo",
         location=req.location or "Field Survey Ingestion"
     )
+
+    if pipe_res.get("is_valid_road") is False or not pipe_res.get("risk_level"):
+        raise HTTPException(
+            status_code=400,
+            detail=pipe_res.get("message") or "Invalid image. Please upload a valid road image."
+        )
 
     meas = pipe_res.get("measurable_features", {})
     potholes = int(meas.get("pothole_count", 0))

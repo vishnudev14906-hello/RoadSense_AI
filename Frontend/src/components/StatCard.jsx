@@ -3,6 +3,7 @@ import React from 'react';
 export default function StatCard({ title, value, icon: Icon, subtitle, accentColor = "#3B82F6", trend }) {
   return (
     <div className="stat-card" style={{ "--stat-accent": accentColor }}>
+      <div className="stat-accent-glow" style={{ background: accentColor }} />
       <div className="stat-header">
         <span className="stat-title">{title}</span>
         {Icon && (

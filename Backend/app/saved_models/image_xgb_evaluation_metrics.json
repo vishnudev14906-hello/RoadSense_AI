@@ -17,39 +17,39 @@
     "High Risk",
     "Critical Risk"
   ],
-  "training_samples": 800,
-  "test_samples": 200,
+  "training_samples": 1120,
+  "test_samples": 280,
   "cv_folds": 5,
-  "cv_mean_accuracy": 99.88,
-  "cv_std_accuracy": 0.25,
-  "test_accuracy": 100.0,
-  "weighted_precision": 100.0,
-  "weighted_recall": 100.0,
-  "weighted_f1": 100.0,
+  "cv_mean_accuracy": 100.0,
+  "cv_std_accuracy": 0.0,
+  "test_accuracy": 99.64,
+  "weighted_precision": 99.65,
+  "weighted_recall": 99.64,
+  "weighted_f1": 99.64,
   "confusion_matrix": [
     [
-      50,
+      70,
       0,
       0,
       0
     ],
     [
       0,
-      50,
+      70,
       0,
       0
     ],
     [
       0,
       0,
-      50,
+      70,
       0
     ],
     [
       0,
       0,
-      0,
-      50
+      1,
+      69
     ]
   ],
   "classification_report": {
@@ -57,48 +57,48 @@
       "precision": 1.0,
       "recall": 1.0,
       "f1-score": 1.0,
-      "support": 50.0
+      "support": 70.0
     },
     "Medium Risk": {
       "precision": 1.0,
       "recall": 1.0,
       "f1-score": 1.0,
-      "support": 50.0
+      "support": 70.0
     },
     "High Risk": {
-      "precision": 1.0,
+      "precision": 0.9859154929577465,
       "recall": 1.0,
-      "f1-score": 1.0,
-      "support": 50.0
+      "f1-score": 0.9929078014184397,
+      "support": 70.0
     },
     "Critical Risk": {
       "precision": 1.0,
-      "recall": 1.0,
-      "f1-score": 1.0,
-      "support": 50.0
+      "recall": 0.9857142857142858,
+      "f1-score": 0.9928057553956835,
+      "support": 70.0
     },
-    "accuracy": 1.0,
+    "accuracy": 0.9964285714285714,
     "macro avg": {
-      "precision": 1.0,
-      "recall": 1.0,
-      "f1-score": 1.0,
-      "support": 200.0
+      "precision": 0.9964788732394366,
+      "recall": 0.9964285714285714,
+      "f1-score": 0.9964283892035308,
+      "support": 280.0
     },
     "weighted avg": {
-      "precision": 1.0,
-      "recall": 1.0,
-      "f1-score": 1.0,
-      "support": 200.0
+      "precision": 0.9964788732394366,
+      "recall": 0.9964285714285714,
+      "f1-score": 0.9964283892035307,
+      "support": 280.0
     }
   },
   "feature_importances": {
-    "pothole_count": 17.45,
-    "pothole_area_ratio": 11.72,
-    "crack_area_ratio": 17.63,
-    "damage_area_ratio": 16.1,
-    "damage_severity": 12.11,
+    "pothole_count": 6.68,
+    "pothole_area_ratio": 11.42,
+    "crack_area_ratio": 12.56,
+    "damage_area_ratio": 35.92,
+    "damage_severity": 31.64,
     "pothole_detected": 0.0,
-    "crack_detected": 24.96,
-    "avg_confidence": 0.03
+    "crack_detected": 0.0,
+    "avg_confidence": 1.79
   }
 }
