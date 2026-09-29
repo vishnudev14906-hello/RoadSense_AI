@@ -82,7 +82,7 @@ class RoadImageDetectorService:
                 "confidence_percentage": 0.0,
                 "is_road_damage": False,
                 "is_valid_road": False,
-                "message": "Invalid image. Please upload a valid road image.",
+                "message": "Please upload a valid image",
                 "probabilities": {},
                 "model_version": "Custom-CNN-Scratch-v1.0"
             }
@@ -103,7 +103,7 @@ class RoadImageDetectorService:
                 "confidence_percentage": 15.0,
                 "is_road_damage": False,
                 "is_valid_road": False,
-                "message": "Invalid image. Please upload a valid road image.",
+                "message": "Please upload a valid image",
                 "probabilities": {cls: 25.0 for cls in IMAGE_CLASSES},
                 "model_version": "Custom-CNN-Scratch-v1.0"
             }
@@ -128,7 +128,7 @@ class RoadImageDetectorService:
                 "confidence_percentage": 20.0,
                 "is_road_damage": False,
                 "is_valid_road": False,
-                "message": "Invalid image. Please upload a valid road image.",
+                "message": "Please upload a valid image",
                 "probabilities": {cls: 25.0 for cls in IMAGE_CLASSES},
                 "model_version": "Custom-CNN-Scratch-v1.0"
             }

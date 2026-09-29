@@ -246,7 +246,7 @@ export const api = {
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || "Failed to analyze road image");
+      throw new Error(err.detail || (res.status === 400 ? "Please upload a valid image" : "Failed to analyze road image"));
     }
     return res.json();
   },
@@ -258,7 +258,7 @@ export const api = {
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || "Failed to analyze road image file");
+      throw new Error(err.detail || (res.status === 400 ? "Please upload a valid image" : "Failed to analyze road image file"));
     }
     return res.json();
   },
@@ -271,7 +271,7 @@ export const api = {
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || "Failed to analyze road image");
+      throw new Error(err.detail || (res.status === 400 ? "Please upload a valid image" : "Failed to analyze road image"));
     }
     return res.json();
   },

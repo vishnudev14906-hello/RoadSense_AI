@@ -790,7 +790,7 @@ export default function MapView({ onInspectRoad, onNavigate, onRunAiTest }) {
       </div>
 
       {/* Main Real-Time GIS Map Workspace Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.8fr) minmax(0, 1.1fr)', gap: '1.25rem', alignItems: 'start' }}>
+      <div className="map-workspace-grid">
         
         {/* Real-Time Leaflet Map Container */}
         <div style={{ position: 'relative', borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '1px solid var(--border-subtle)', boxShadow: 'var(--shadow-card)' }}>

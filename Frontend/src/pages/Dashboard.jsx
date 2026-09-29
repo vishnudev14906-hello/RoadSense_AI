@@ -370,7 +370,7 @@ export default function Dashboard({ onNavigate, onInspectRoad }) {
       </div>
 
       {/* 4. ANALYTICS COMMAND CONSOLES */}
-      <div className="dashboard-analytics-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
+      <div className="dashboard-analytics-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: '1.5rem' }}>
         {/* Console 1: Pavement Risk Distribution */}
         <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '1.35rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
@@ -459,7 +459,7 @@ export default function Dashboard({ onNavigate, onInspectRoad }) {
       </div>
 
       {/* 5. ACTIONABLE OPERATIONS HUB */}
-      <div className="dashboard-operations-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
+      <div className="dashboard-operations-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: '1.5rem' }}>
         {/* Left Hub: Top Maintenance Priorities */}
         <div className="glass-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.15rem' }}>

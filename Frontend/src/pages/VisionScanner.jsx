@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import RiskBadge from '../components/RiskBadge';
 import { SAMPLE_INSPECTION_SCENARIOS } from '../utils/sampleScenarios';
-import { compressImageForUpload } from '../utils/imageUtils';
+import { compressImageForUpload, validateRoadImageClient } from '../utils/imageUtils';
 import { api } from '../api';
 
 export default function VisionScanner({ onTransferToPredictor }) {
@@ -36,6 +36,7 @@ export default function VisionScanner({ onTransferToPredictor }) {
   };
 
   const triggerScanAnimation = () => {
+    if (validationError) return;
     setIsScanning(true);
     setTimeout(() => {
       setIsScanning(false);
@@ -49,10 +50,22 @@ export default function VisionScanner({ onTransferToPredictor }) {
         setValidationError(null);
         setIsScanning(true);
         const dataUrl = await compressImageForUpload(file, 1280, 0.88);
-        if (!dataUrl) return;
+        if (!dataUrl) {
+          setIsScanning(false);
+          return;
+        }
 
-        setCustomImage(dataUrl);
-        const cleanName = file.name.replace(/\.[^/.]+$/, "");
+        // Instant deterministic client-side road image validation
+        const valCheck = await validateRoadImageClient(dataUrl);
+        if (!valCheck.isValid) {
+          setIsScanning(false);
+          setCustomImage(null);
+          setValidationError("Please upload a valid image");
+          if (fileInputRef.current) fileInputRef.current.value = "";
+          return;
+        }
+
+        const cleanName = file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, ' ') || 'Surveyed Photo Corridor';
         
         let scanRes;
         try {
@@ -62,16 +75,24 @@ export default function VisionScanner({ onTransferToPredictor }) {
             location: 'Field Survey Ingestion'
           });
         } catch (apiErr) {
-          setValidationError("Invalid image. Please upload a valid road image.");
+          const detail = apiErr?.response?.data?.detail || apiErr?.message || "";
+          setIsScanning(false);
+          setCustomImage(null);
+          setValidationError("Please upload a valid image");
+          if (fileInputRef.current) fileInputRef.current.value = "";
           return;
         }
 
         if (!scanRes || scanRes.is_valid_road === false || !scanRes.risk_level) {
-          setValidationError("Invalid image. Please upload a valid road image.");
+          setIsScanning(false);
+          setCustomImage(null);
+          setValidationError("Please upload a valid image");
+          if (fileInputRef.current) fileInputRef.current.value = "";
           return;
         }
 
         setValidationError(null);
+        setCustomImage(dataUrl);
         setSelectedScenario({
           id: 'custom-upload',
           title: `Field Survey: ${file.name}`,
@@ -92,9 +113,11 @@ export default function VisionScanner({ onTransferToPredictor }) {
         });
       } catch (err) {
         console.error("Scan error:", err);
-        setValidationError("Invalid image. Please upload a valid road image.");
+        setCustomImage(null);
+        setValidationError("Please upload a valid image");
       } finally {
         setIsScanning(false);
+        if (fileInputRef.current) fileInputRef.current.value = "";
       }
     }
   };
@@ -148,29 +171,46 @@ export default function VisionScanner({ onTransferToPredictor }) {
       {/* Validation Error Alert Banner */}
       {validationError && (
         <div style={{
-          background: 'rgba(239, 68, 68, 0.15)',
-          border: '1px solid rgba(239, 68, 68, 0.4)',
+          background: 'rgba(239, 68, 68, 0.16)',
+          border: '1px solid rgba(239, 68, 68, 0.45)',
           color: '#FCA5A5',
-          padding: '1rem 1.25rem',
+          padding: '1.1rem 1.4rem',
           borderRadius: 'var(--radius-md)',
           display: 'flex',
           alignItems: 'center',
-          gap: '0.75rem'
+          gap: '1rem',
+          boxShadow: '0 4px 24px rgba(239, 68, 68, 0.25)',
+          animation: 'fadeIn 0.3s ease-in-out'
         }}>
-          <AlertTriangle size={22} color="#EF4444" style={{ flexShrink: 0 }} />
-          <div>
-            <div style={{ fontWeight: 800, color: '#EF4444', fontSize: '1rem' }}>
-              Invalid image. Please upload a valid road image.
+          <AlertTriangle size={26} color="#EF4444" style={{ flexShrink: 0 }} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 800, color: '#EF4444', fontSize: '1.05rem', letterSpacing: '0.01em' }}>
+              Please upload a valid image
             </div>
-            <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-              The uploaded file does not contain a recognizable roadway or asphalt pavement scene. The AI model will not process non-road images.
+            <div style={{ fontSize: '0.85rem', color: '#FECACA', marginTop: '0.2rem' }}>
+              The uploaded file does not contain a recognizable roadway or asphalt pavement scene. The AI Computer Vision model will only analyze authentic road images.
             </div>
           </div>
+          <button
+            onClick={() => setValidationError(null)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#FCA5A5',
+              cursor: 'pointer',
+              fontSize: '1.25rem',
+              padding: '0.25rem 0.5rem',
+              lineHeight: 1
+            }}
+            title="Dismiss notification"
+          >
+            ✕
+          </button>
         </div>
       )}
 
       {/* Main Scanner Viewport & Detection Readout */}
-      <div className="vision-scanner-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)', gap: '1.25rem', alignItems: 'start' }}>
+      <div className="vision-scanner-grid">
         {/* Left: Interactive Image Canvas with Bounding Boxes */}
         <div className="glass-card" style={{ padding: '0', overflow: 'hidden', position: 'relative' }}>
           {/* Top Canvas Bar */}

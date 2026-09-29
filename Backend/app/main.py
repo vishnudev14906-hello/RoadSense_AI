@@ -1380,7 +1380,7 @@ def scan_and_predict_road_image(req: ImageScanRequest, db: Session = Depends(get
     if pipe_res.get("is_valid_road") is False or not pipe_res.get("risk_level"):
         raise HTTPException(
             status_code=400,
-            detail=pipe_res.get("message") or "Invalid image. Please upload a valid road image."
+            detail=pipe_res.get("message") or "Please upload a valid image"
         )
 
     meas = pipe_res.get("measurable_features", {})

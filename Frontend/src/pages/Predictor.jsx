@@ -27,7 +27,8 @@ import {
   Scan,
   Eye,
   ArrowRight,
-  ImageIcon
+  ImageIcon,
+  X
 } from 'lucide-react';
 import { RiskGauge } from '../components/Charts';
 import RiskBadge from '../components/RiskBadge';
@@ -35,6 +36,7 @@ import { api } from '../api';
 import { formatDateTime, formatTime } from '../utils/dateUtils';
 import { SAMPLE_INSPECTION_SCENARIOS } from '../utils/sampleScenarios';
 import { DEFAULT_ROADS } from '../data/roadsData';
+import { compressImageForUpload, validateRoadImageClient } from '../utils/imageUtils';
 
 const CITIES = [
   'All Municipalities',
@@ -365,11 +367,28 @@ export default function Predictor({ onOpenReport, initialParams }) {
     if (!file) return;
 
     try {
+      setImageValidationError(null);
       setIsScanningImage(true);
       const base64Data = await compressImageForUpload(file, 1280, 0.88);
-      if (!base64Data) return;
+      if (!base64Data) {
+        setIsScanningImage(false);
+        return;
+      }
 
+      // 1. Immediate client-side deterministic computer vision road check
+      const valCheck = await validateRoadImageClient(base64Data);
+      if (!valCheck.isValid) {
+        setIsScanningImage(false);
+        setCustomImage(null);
+        setImagePrediction(null);
+        setImageValidationError("Please upload a valid image");
+        if (e.target) e.target.value = "";
+        return;
+      }
+
+      // Valid road image verified
       setCustomImage(base64Data);
+      setImageValidationError(null);
 
       const cleanedName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ') || 'Uploaded Inspection Corridor';
       const updatedImgParams = {
@@ -386,6 +405,11 @@ export default function Predictor({ onOpenReport, initialParams }) {
     } catch (err) {
       console.error("Image processing error:", err);
       setIsScanningImage(false);
+      setCustomImage(null);
+      setImagePrediction(null);
+      setImageValidationError("Please upload a valid image");
+    } finally {
+      if (e.target) e.target.value = "";
     }
   };
 
@@ -402,6 +426,15 @@ export default function Predictor({ onOpenReport, initialParams }) {
       let pipelineRes = null;
 
       if (imgB64) {
+        // Validate image before sending to pipeline
+        const valCheck = await validateRoadImageClient(imgB64);
+        if (!valCheck.isValid) {
+          setImagePrediction(null);
+          setImageValidationError("Please upload a valid image");
+          if (saveToDb) setLoadingImage(false);
+          return;
+        }
+
         try {
           pipelineRes = await api.detectRoadImage({
             image_base64: imgB64,
@@ -409,9 +442,9 @@ export default function Predictor({ onOpenReport, initialParams }) {
           });
         } catch (pipeErr) {
           const detail = pipeErr?.response?.data?.detail || pipeErr?.message || "";
-          if (detail.includes("Invalid image") || pipeErr?.response?.status === 400) {
+          if (detail.includes("Invalid image") || detail.includes("valid image") || pipeErr?.response?.status === 400) {
             setImagePrediction(null);
-            setImageValidationError("Invalid image. Please upload a valid road image.");
+            setImageValidationError("Please upload a valid image");
             return;
           }
           try {
@@ -422,9 +455,9 @@ export default function Predictor({ onOpenReport, initialParams }) {
             });
           } catch (e2) {
             const e2Detail = e2?.response?.data?.detail || e2?.message || "";
-            if (e2Detail.includes("Invalid image") || e2?.response?.status === 400) {
+            if (e2Detail.includes("Invalid image") || e2Detail.includes("valid image") || e2?.response?.status === 400) {
               setImagePrediction(null);
-              setImageValidationError("Invalid image. Please upload a valid road image.");
+              setImageValidationError("Please upload a valid image");
               return;
             }
           }
@@ -433,7 +466,7 @@ export default function Predictor({ onOpenReport, initialParams }) {
 
       if (!pipelineRes || pipelineRes.is_valid_road === false || !pipelineRes.risk_level) {
         setImagePrediction(null);
-        setImageValidationError("Invalid image. Please upload a valid road image.");
+        setImageValidationError("Please upload a valid image");
         return;
       }
 
@@ -461,7 +494,7 @@ export default function Predictor({ onOpenReport, initialParams }) {
     } catch (err) {
       console.error("Image AI Prediction Error:", err);
       setImagePrediction(null);
-      setImageValidationError("Invalid image. Please upload a valid road image.");
+      setImageValidationError("Please upload a valid image");
     } finally {
       if (saveToDb) {
         setLoadingImage(false);
@@ -631,7 +664,7 @@ export default function Predictor({ onOpenReport, initialParams }) {
           </div>
 
           {/* 2-Column Layout for Telemetry Mode */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(360px, 1fr) minmax(420px, 1.25fr)', gap: '1.75rem' }}>
+          <div className="predictor-two-column-grid">
             
             {/* Left Column: Corridor Selection & Telemetry Sliders */}
             <div className="glass-card">
@@ -1178,7 +1211,7 @@ export default function Predictor({ onOpenReport, initialParams }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
           {/* 2-Column Layout for Image Mode */}
-          <div className="predictor-two-column-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(380px, 1.15fr) minmax(420px, 1.25fr)', gap: '1.75rem' }}>
+          <div className="predictor-two-column-grid">
             
             {/* Left Column: Image Canvas & Measurable Features Extractor */}
             <div className="glass-card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -1232,26 +1265,43 @@ export default function Predictor({ onOpenReport, initialParams }) {
               </div>
 
               {/* Invalid Image Error Notice */}
-              {(imageValidationError || !imagePrediction || imagePrediction.is_valid_road === false || !imagePrediction.risk_level) && (
+              {(imageValidationError || (imagePrediction && (imagePrediction.is_valid_road === false || !imagePrediction.risk_level))) && (
                 <div style={{
-                  background: 'rgba(239, 68, 68, 0.15)',
-                  border: '1px solid rgba(239, 68, 68, 0.4)',
+                  background: 'rgba(239, 68, 68, 0.16)',
+                  border: '1px solid rgba(239, 68, 68, 0.45)',
                   color: '#FCA5A5',
-                  padding: '1rem 1.25rem',
+                  padding: '1.1rem 1.4rem',
                   borderRadius: 'var(--radius-md)',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.75rem'
+                  gap: '1rem',
+                  boxShadow: '0 4px 24px rgba(239, 68, 68, 0.25)',
+                  animation: 'fadeIn 0.3s ease-in-out'
                 }}>
-                  <AlertOctagon size={24} color="#EF4444" style={{ flexShrink: 0 }} />
-                  <div>
-                    <div style={{ fontWeight: 800, color: '#EF4444', fontSize: '1rem' }}>
-                      Invalid image. Please upload a valid road image.
+                  <AlertOctagon size={26} color="#EF4444" style={{ flexShrink: 0 }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 800, color: '#EF4444', fontSize: '1.05rem', letterSpacing: '0.01em' }}>
+                      Please upload a valid image
                     </div>
-                    <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                    <div style={{ fontSize: '0.85rem', color: '#FECACA', marginTop: '0.2rem' }}>
                       The uploaded file does not contain a recognizable roadway or asphalt pavement scene. The AI Risk Prediction model will not classify non-road photos.
                     </div>
                   </div>
+                  <button
+                    onClick={() => setImageValidationError(null)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#FCA5A5',
+                      cursor: 'pointer',
+                      fontSize: '1.25rem',
+                      padding: '0.25rem 0.5rem',
+                      lineHeight: 1
+                    }}
+                    title="Dismiss notification"
+                  >
+                    ✕
+                  </button>
                 </div>
               )}
 
@@ -1400,16 +1450,17 @@ export default function Predictor({ onOpenReport, initialParams }) {
 
             {/* Right Column: XGBoost ML Prediction & Maintenance Recommendation */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              {(imageValidationError || !imagePrediction || imagePrediction.is_valid_road === false || !imagePrediction.risk_level) ? (
+              {(imageValidationError || (imagePrediction && (imagePrediction.is_valid_road === false || !imagePrediction.risk_level))) ? (
                 <div className="glass-card" style={{
-                  borderColor: 'rgba(239, 68, 68, 0.4)',
-                  background: 'rgba(239, 68, 68, 0.05)',
+                  borderColor: 'rgba(239, 68, 68, 0.45)',
+                  background: 'rgba(239, 68, 68, 0.06)',
                   padding: '2.5rem 1.5rem',
                   textAlign: 'center',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  gap: '1rem'
+                  gap: '1rem',
+                  boxShadow: '0 4px 24px rgba(239, 68, 68, 0.15)'
                 }}>
                   <div style={{
                     width: '56px',
@@ -1425,14 +1476,34 @@ export default function Predictor({ onOpenReport, initialParams }) {
                   </div>
                   <div>
                     <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#EF4444', marginBottom: '0.4rem' }}>
-                      Invalid image. Please upload a valid road image.
+                      Please upload a valid image
                     </h3>
                     <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)', maxWidth: '420px', margin: '0 auto' }}>
-                      The uploaded file does not contain a supported roadway or asphalt pavement scene. Prediction is stopped and no risk classification is generated.
+                      The uploaded file does not contain a supported roadway or asphalt pavement scene. Prediction is halted and no risk classification is generated.
                     </p>
                   </div>
                 </div>
-              ) : (
+              ) : (loadingImage || isScanningImage) ? (
+                <div className="glass-card" style={{
+                  padding: '3rem 1.5rem',
+                  textAlign: 'center',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '1rem'
+                }}>
+                  <div className="animate-spin" style={{
+                    width: 36,
+                    height: 36,
+                    border: '3px solid rgba(59, 130, 246, 0.2)',
+                    borderTopColor: '#3B82F6',
+                    borderRadius: '50%'
+                  }} />
+                  <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.95rem' }}>
+                    Segmenting Surface Defects & Running XGBoost...
+                  </div>
+                </div>
+              ) : imagePrediction ? (
                 <>
                   {/* Image Live Bar */}
                   <div style={{
@@ -1620,7 +1691,7 @@ export default function Predictor({ onOpenReport, initialParams }) {
                     </div>
                   </div>
                 </>
-              )}
+              ) : null}
             </div>
           </div>
         </div>

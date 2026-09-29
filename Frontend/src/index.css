@@ -1997,6 +1997,28 @@ code, .mono {
   min-width: 600px;
 }
 
+/* Responsive Workspaces: Desktop Multi-Column Defaults */
+.predictor-two-column-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.25fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.map-workspace-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) minmax(0, 1.1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.vision-scanner-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
 @media (max-width: 1200px) {
   .content-wrapper {
     padding: 1.5rem;
@@ -2022,8 +2044,9 @@ code, .mono {
     box-shadow: 0 0 50px rgba(0, 0, 0, 0.9);
     transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
-  .sidebar.sidebar-mobile-open {
-    transform: translateX(0);
+  .sidebar.sidebar-mobile-open,
+  .sidebar.mobile-open {
+    transform: translateX(0) !important;
   }
   .sidebar-close-btn {
     display: flex;
@@ -2035,12 +2058,11 @@ code, .mono {
   .content-wrapper {
     padding: 1.25rem 1rem;
   }
-  .predictor-two-column-grid {
-    grid-template-columns: 1fr !important;
-    gap: 1.25rem !important;
-  }
+  .predictor-two-column-grid,
+  .map-workspace-grid,
   .vision-scanner-grid {
     grid-template-columns: 1fr !important;
+    gap: 1.25rem !important;
   }
 }
 

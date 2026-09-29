@@ -17,6 +17,7 @@ import {
   CloudRain
 } from 'lucide-react';
 import { api } from '../api';
+import { compressImageForUpload, validateRoadImageClient } from '../utils/imageUtils';
 
 export default function DataCollectionModule({ onInspectRoad, onTransferToPredictor }) {
   const [activeTab, setActiveTab] = useState('manual');
@@ -120,21 +121,42 @@ export default function DataCollectionModule({ onInspectRoad, onTransferToPredic
     }
   };
 
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-        setImageBase64(reader.result);
-      };
-      reader.readAsDataURL(file);
+      try {
+        const dataUrl = await compressImageForUpload(file, 1280, 0.88);
+        if (!dataUrl) return;
+
+        const valResult = await validateRoadImageClient(dataUrl);
+        if (!valResult.isValid) {
+          setStatusMessage({ 
+            type: 'error', 
+            text: '⚠️ Please upload a valid image. No roadway or pavement surface detected.' 
+          });
+          setImagePreview(null);
+          setImageBase64(null);
+          if (e.target) e.target.value = '';
+          return;
+        }
+
+        setImagePreview(dataUrl);
+        setImageBase64(dataUrl);
+        setStatusMessage(null);
+      } catch (err) {
+        setStatusMessage({ type: 'error', text: '⚠️ Please upload a valid image' });
+      }
     }
   };
 
   const handleRunVision = async () => {
     if (!imageBase64) {
-      alert("Please select or upload a road surface image first.");
+      setStatusMessage({ type: 'error', text: '⚠️ Please upload a valid image first.' });
+      return;
+    }
+    const valResult = await validateRoadImageClient(imageBase64);
+    if (!valResult.isValid) {
+      setStatusMessage({ type: 'error', text: '⚠️ Please upload a valid image. Authentic road pavement not detected.' });
       return;
     }
     setLoading(true);
@@ -150,7 +172,7 @@ export default function DataCollectionModule({ onInspectRoad, onTransferToPredic
       setStatusMessage({ type: 'success', text: `✨ Neural Vision detected ${res.pothole_count} potholes & ${res.crack_length}m cracks. Saved to SQLite database.` });
       fetchSummary();
     } catch (err) {
-      setStatusMessage({ type: 'error', text: `❌ Vision scan failed: ${err.message}` });
+      setStatusMessage({ type: 'error', text: `❌ Please upload a valid image. ${err.message}` });
     } finally {
       setLoading(false);
     }

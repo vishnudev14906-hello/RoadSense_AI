@@ -36,18 +36,18 @@ def validate_road_image(img: Image.Image) -> Tuple[bool, str]:
              cartoons/art, pure sky/water, blank/solid images, and non-road scenes.
     """
     if img is None:
-        return False, "Invalid image. Please upload a valid road image."
+        return False, "Please upload a valid image"
 
     width, height = img.size
     if width < 64 or height < 64:
-        return False, "Invalid image. Please upload a valid road image."
+        return False, "Please upload a valid image"
 
     img_norm = img.copy()
     img_norm.thumbnail((320, 240))
     w, h = img_norm.size
     total_pixels = w * h
     if total_pixels == 0:
-        return False, "Invalid image. Please upload a valid road image."
+        return False, "Please upload a valid image"
 
     rgb = np.array(img_norm, dtype=np.float32)
     r = rgb[:, :, 0]
@@ -76,13 +76,13 @@ def validate_road_image(img: Image.Image) -> Tuple[bool, str]:
 
     # 1. Blank / Solid Color Check
     if float(np.std(gray)) < 2.5:
-        return False, "Invalid image. Please upload a valid road image."
+        return False, "Please upload a valid image"
 
     # 2. Screenshot / Document Flat Background Check (Pure white or dark UI blocks)
     pure_white = (r > 242) & (g > 242) & (b > 242)
     pure_black = (r < 12) & (g < 12) & (b < 12)
     if (np.sum(pure_white | pure_black) / total_pixels) > 0.45:
-        return False, "Invalid image. Please upload a valid road image."
+        return False, "Please upload a valid image"
 
     # 3. Human Face / Selfie / Skin Detection
     skin_mask = (
@@ -92,22 +92,22 @@ def validate_road_image(img: Image.Image) -> Tuple[bool, str]:
         (r > g) & (g > b) & ((r - g) > 8.0)
     )
     if (np.sum(skin_mask) / total_pixels) > 0.14:
-        return False, "Invalid image. Please upload a valid road image."
+        return False, "Please upload a valid image"
 
     # 4. Tree / Forest / Dense Green Foliage
     foliage_mask = (h_arr >= 0.18) & (h_arr <= 0.48) & (s > 0.18) & (g > r + 6.0) & (g > b + 6.0)
     if (np.sum(foliage_mask) / total_pixels) > 0.50:
-        return False, "Invalid image. Please upload a valid road image."
+        return False, "Please upload a valid image"
 
     # 5. Blue Sky / Ocean / Swimming Pool Dominance
     sky_water_mask = (h_arr >= 0.50) & (h_arr <= 0.78) & (s > 0.20) & (b > r + 12.0)
     if (np.sum(sky_water_mask) / total_pixels) > 0.52:
-        return False, "Invalid image. Please upload a valid road image."
+        return False, "Please upload a valid image"
 
     # 6. Cartoon / Graphic Illustration (High mean color saturation)
     mean_sat = float(np.mean(s))
     if mean_sat > 0.42 or (np.sum(s > 0.55) / total_pixels) > 0.35:
-        return False, "Invalid image. Please upload a valid road image."
+        return False, "Please upload a valid image"
 
     # 7. Lower-Half Pavement Surface Ground-Plane Verification
     lower_start_y = int(h * 0.40)
@@ -131,7 +131,7 @@ def validate_road_image(img: Image.Image) -> Tuple[bool, str]:
     lower_foliage_pct = (np.sum(lower_foliage) / lower_pixels) * 100.0
 
     if asphalt_lower_pct < 15.0 or lower_foliage_pct > 40.0:
-        return False, "Invalid image. Please upload a valid road image."
+        return False, "Please upload a valid image"
 
     return True, "Valid road image."
 
@@ -204,7 +204,7 @@ def decode_and_validate_image(image_input: Union[Image.Image, str, bytes], valid
 
         return img, None
     except Exception as e:
-        return None, "Invalid image. Please upload a valid road image."
+        return None, "Please upload a valid image"
 
 
 def compute_laplacian_variance(gray: np.ndarray) -> float:

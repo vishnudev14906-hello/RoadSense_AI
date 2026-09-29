@@ -14,6 +14,7 @@ import {
   RefreshCw,
   CheckCircle2,
   Award,
+  Activity,
   X
 } from 'lucide-react';
 
@@ -111,36 +112,29 @@ export default function Sidebar({ currentTab, setCurrentTab, onReseed, isOpen = 
         })}
       </nav>
 
-          {/* Close button for mobile drawer */}
+        {/* Sidebar Footer with Sync Database Button */}
+        <div className="sidebar-footer">
           <button 
-            className="sidebar-close-btn"
-            onClick={onClose}
-            aria-label="Close Sidebar"
+            className="btn btn-secondary btn-sm" 
+            style={{ width: '100%', justifyContent: 'center', gap: '0.45rem', padding: '0.55rem 0.75rem' }}
+            onClick={handleSyncClick}
+            disabled={isSyncing}
+            title="Synchronize verified real-world Indian road database into SQLite"
           >
-            <X size={18} />
+            {syncedSuccess ? (
+              <>
+                <CheckCircle2 size={14} color="#34D399" />
+                <span style={{ color: '#34D399', fontWeight: 700 }}>Database Synced!</span>
+              </>
+            ) : (
+              <>
+                <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
+                <span>{isSyncing ? 'Syncing Database...' : 'Sync Real Road Data'}</span>
+              </>
+            )}
           </button>
         </div>
-        <button 
-          className="btn btn-secondary btn-sm" 
-          style={{ width: '100%', justifyContent: 'center', gap: '0.45rem', padding: '0.55rem 0.75rem' }}
-          onClick={handleSyncClick}
-          disabled={isSyncing}
-          title="Synchronize verified real-world Indian road database into SQLite"
-        >
-          {syncedSuccess ? (
-            <>
-              <CheckCircle2 size={14} color="#34D399" />
-              <span style={{ color: '#34D399', fontWeight: 700 }}>Database Synced!</span>
-            </>
-          ) : (
-            <>
-              <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
-              <span>{isSyncing ? 'Syncing Database...' : 'Sync Real Road Data'}</span>
-            </>
-          )}
-        </button>
-      </div>
-    </aside>
-  </>
+      </aside>
+    </>
   );
 }
