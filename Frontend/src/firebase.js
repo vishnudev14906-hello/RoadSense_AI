@@ -38,14 +38,22 @@ export const firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig
 // Initialize Firebase Auth service
 export const auth = getAuth(firebaseApp);
 
-// Initialize Firebase Analytics safely (supported in browser environments)
+// Initialize Firebase Analytics safely (deferred to idle time so it doesn't block initial page load)
 export let analytics = null;
 if (typeof window !== "undefined") {
-  isSupported().then((supported) => {
-    if (supported) {
-      analytics = getAnalytics(firebaseApp);
-    }
-  }).catch(() => {});
+  const initAnalytics = () => {
+    isSupported().then((supported) => {
+      if (supported) {
+        analytics = getAnalytics(firebaseApp);
+      }
+    }).catch(() => {});
+  };
+
+  if ('requestIdleCallback' in window) {
+    window.requestIdleCallback(initAnalytics, { timeout: 3500 });
+  } else {
+    setTimeout(initAnalytics, 2500);
+  }
 }
 
 // Factory to create a fresh GoogleAuthProvider with standard OAuth prompt and scopes

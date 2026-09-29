@@ -2,13 +2,16 @@ import { DEFAULT_ROADS, DEFAULT_FILTERS, DEFAULT_STATS, DEFAULT_CHARTS } from '.
 
 const API_BASE = (import.meta.env.VITE_API_BASE || "").replace(/\/$/, "") || (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") ? "http://127.0.0.1:8000/api" : "/api");
 
-async function safeFetch(url, options = {}, timeoutMs = 2500) {
+async function safeFetch(url, options = {}, timeoutMs = 1200) {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(url, { ...options, signal: controller.signal });
     clearTimeout(id);
     if (!res.ok) return null;
+    const contentType = res.headers.get("content-type") || "";
+    // If Vercel rewrites /api/... to /index.html (text/html), reject immediately without JSON parsing error
+    if (!contentType.includes("application/json")) return null;
     return await res.json();
   } catch (err) {
     clearTimeout(id);

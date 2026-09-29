@@ -1,9 +1,11 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
-import AuthModal from './components/AuthModal';
-import ReportModal from './components/ReportModal';
 import MobileBottomNav from './components/MobileBottomNav';
+
+// Dynamically code-split modals so Firebase auth & heavy report trees don't block critical first paint
+const AuthModal = lazy(() => import('./components/AuthModal'));
+const ReportModal = lazy(() => import('./components/ReportModal'));
 
 // Eagerly loaded default view for instantaneous first-contentful-paint
 import Dashboard from './pages/Dashboard';
@@ -319,19 +321,27 @@ export default function App() {
       />
 
       {/* Authentication Modal */}
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-        onLoginSuccess={handleLoginSuccess}
-      />
+      {isAuthModalOpen && (
+        <Suspense fallback={null}>
+          <AuthModal
+            isOpen={isAuthModalOpen}
+            onClose={() => setIsAuthModalOpen(false)}
+            onLoginSuccess={handleLoginSuccess}
+          />
+        </Suspense>
+      )}
 
       {/* Inspection & Audit Report Modal */}
-      <ReportModal
-        isOpen={isReportModalOpen}
-        onClose={() => setIsReportModalOpen(false)}
-        road={reportData}
-        prediction={reportData}
-      />
+      {isReportModalOpen && (
+        <Suspense fallback={null}>
+          <ReportModal
+            isOpen={isReportModalOpen}
+            onClose={() => setIsReportModalOpen(false)}
+            road={reportData}
+            prediction={reportData}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }
