@@ -25,7 +25,7 @@ export default function RiskBadge({ level, riskLevel, risk, risk_level, showIcon
   const iconSize = size === "sm" ? 12 : 14;
 
   return (
-    <span className={badgeClass} style={{ fontSize: size === "sm" ? '0.7rem' : undefined }}>
+    <span className={badgeClass} style={{ fontSize: size === "sm" ? '0.7rem' : undefined, flexShrink: 0, whiteSpace: 'nowrap' }}>
       {showIcon && <Icon size={iconSize} />}
       <span>{rawLevel}</span>
     </span>

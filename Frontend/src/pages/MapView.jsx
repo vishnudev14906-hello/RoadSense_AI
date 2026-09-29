@@ -719,7 +719,7 @@ export default function MapView({ onInspectRoad, onNavigate, onRunAiTest }) {
 
       {/* Spatial Filter & Search Toolbar */}
       <div className="glass-card" style={{ padding: '0.85rem 1.25rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.2fr 1fr auto', gap: '0.85rem', alignItems: 'center' }}>
+        <div className="map-filter-toolbar-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.85rem', alignItems: 'center' }}>
           
           {/* Corridor Search */}
           <div style={{ position: 'relative' }}>
@@ -793,11 +793,12 @@ export default function MapView({ onInspectRoad, onNavigate, onRunAiTest }) {
       <div className="map-workspace-grid">
         
         {/* Real-Time Leaflet Map Container */}
-        <div style={{ position: 'relative', borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '1px solid var(--border-subtle)', boxShadow: 'var(--shadow-card)' }}>
+        <div style={{ position: 'relative', borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '1px solid var(--border-subtle)', boxShadow: 'var(--shadow-card)', width: '100%' }}>
           
           {/* Leaflet Map Div with explicit grab cursor and touch gestures */}
           <div
             ref={mapContainerRef}
+            className="leaflet-map-canvas"
             style={{
               width: '100%',
               height: '620px',
@@ -897,7 +898,7 @@ export default function MapView({ onInspectRoad, onNavigate, onRunAiTest }) {
           </div>
 
           {/* Floating Legend Bar */}
-          <div style={{
+          <div className="map-floating-legend" style={{
             position: 'absolute',
             bottom: '1.25rem',
             left: '1.25rem',
@@ -932,7 +933,7 @@ export default function MapView({ onInspectRoad, onNavigate, onRunAiTest }) {
         </div>
 
         {/* Right Column: Telemetry Inspector HUD & Spotted Corridors */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', minWidth: 0, width: '100%' }}>
           
           {/* Selected Corridor Telemetry HUD */}
           {selectedRoad ? (
@@ -960,36 +961,36 @@ export default function MapView({ onInspectRoad, onNavigate, onRunAiTest }) {
               </div>
 
               {/* Verified GPS Telemetry Card */}
-              <div style={{
+              <div className="map-telemetry-grid" style={{
                 background: 'rgba(59, 130, 246, 0.08)',
                 border: '1px solid rgba(59, 130, 246, 0.25)',
                 borderRadius: 'var(--radius-md)',
                 padding: '0.75rem',
                 fontSize: '0.78rem',
                 display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: '0.5rem',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+                gap: '0.6rem',
                 marginBottom: '1rem'
               }}>
-                <div>
+                <div style={{ minWidth: 0 }}>
                   <div style={{ color: 'var(--text-dim)', fontSize: '0.68rem', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
                     <Globe size={11} color="#60A5FA" />
                     <span>Latitude</span>
                   </div>
-                  <div className="mono" style={{ fontWeight: 700, color: '#93C5FD' }}>{currentCoords.lat.toFixed(4)}° N</div>
+                  <div className="mono" style={{ fontWeight: 700, color: '#93C5FD', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentCoords.lat.toFixed(4)}° N</div>
                 </div>
-                <div>
+                <div style={{ minWidth: 0 }}>
                   <div style={{ color: 'var(--text-dim)', fontSize: '0.68rem', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
                     <Globe size={11} color="#60A5FA" />
                     <span>Longitude</span>
                   </div>
-                  <div className="mono" style={{ fontWeight: 700, color: '#93C5FD' }}>{currentCoords.lng.toFixed(4)}° E</div>
+                  <div className="mono" style={{ fontWeight: 700, color: '#93C5FD', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentCoords.lng.toFixed(4)}° E</div>
                 </div>
-                <div>
+                <div style={{ minWidth: 0 }}>
                   <div style={{ color: 'var(--text-dim)', fontSize: '0.68rem', textTransform: 'uppercase' }}>Span Length</div>
                   <div className="mono" style={{ fontWeight: 700, color: 'var(--text-main)' }}>{selectedRoad.road_length_km || selectedRoad.road_length || 1.0} km</div>
                 </div>
-                <div>
+                <div style={{ minWidth: 0 }}>
                   <div style={{ color: 'var(--text-dim)', fontSize: '0.68rem', textTransform: 'uppercase' }}>Traffic Volume</div>
                   <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{selectedRoad.traffic_volume || selectedRoad.traffic_density || 'Medium'}</div>
                 </div>
@@ -997,14 +998,16 @@ export default function MapView({ onInspectRoad, onNavigate, onRunAiTest }) {
                 {/* OSRM Route Alignment Telemetry */}
                 {selectedRoad && routeGeometries[selectedRoad.id] && (
                   <div style={{
-                    gridColumn: 'span 2',
+                    gridColumn: '1 / -1',
                     background: 'rgba(16, 185, 129, 0.08)',
                     border: '1px solid rgba(16, 185, 129, 0.25)',
                     borderRadius: 'var(--radius-sm)',
-                    padding: '0.4rem 0.6rem',
+                    padding: '0.45rem 0.65rem',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '0.4rem',
                     marginTop: '0.2rem'
                   }}>
                     <div style={{ fontSize: '0.72rem', color: '#34D399', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
@@ -1019,14 +1022,14 @@ export default function MapView({ onInspectRoad, onNavigate, onRunAiTest }) {
               </div>
 
               {/* Distress Snapshot */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem', marginBottom: '1rem' }}>
-                <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', padding: '0.6rem' }}>
+              <div className="map-distress-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.6rem', marginBottom: '1rem' }}>
+                <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', padding: '0.6rem', minWidth: 0 }}>
                   <div style={{ fontSize: '0.68rem', color: 'var(--text-dim)', textTransform: 'uppercase' }}>Pothole Count</div>
                   <div style={{ fontSize: '1rem', fontWeight: 800, color: (selectedRoad.pothole_count || 0) > 10 ? '#EF4444' : '#F59E0B' }} className="mono">
                     {selectedRoad.pothole_count || 0} craters
                   </div>
                 </div>
-                <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', padding: '0.6rem' }}>
+                <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', padding: '0.6rem', minWidth: 0 }}>
                   <div style={{ fontSize: '0.68rem', color: 'var(--text-dim)', textTransform: 'uppercase' }}>Crack Fissures</div>
                   <div style={{ fontSize: '1rem', fontWeight: 800, color: (selectedRoad.crack_length || 0) > 40 ? '#EF4444' : '#F59E0B' }} className="mono">
                     {selectedRoad.crack_length || 0} m
@@ -1035,11 +1038,11 @@ export default function MapView({ onInspectRoad, onNavigate, onRunAiTest }) {
               </div>
 
               {/* Action Buttons */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem', marginBottom: '0.75rem' }}>
+              <div className="map-actions-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.6rem', marginBottom: '0.75rem' }}>
                 <button
                   className="btn btn-primary btn-sm"
                   onClick={() => onRunAiTest && onRunAiTest(selectedRoad)}
-                  style={{ gap: '0.4rem', justifyContent: 'center' }}
+                  style={{ gap: '0.4rem', justifyContent: 'center', minWidth: 0 }}
                 >
                   <Sparkles size={14} />
                   <span>Run AI Predictor</span>
@@ -1047,7 +1050,7 @@ export default function MapView({ onInspectRoad, onNavigate, onRunAiTest }) {
                 <button
                   className="btn btn-secondary btn-sm"
                   onClick={() => onInspectRoad && onInspectRoad(selectedRoad)}
-                  style={{ gap: '0.4rem', justifyContent: 'center' }}
+                  style={{ gap: '0.4rem', justifyContent: 'center', minWidth: 0 }}
                 >
                   <FileText size={14} />
                   <span>Audit Report</span>
@@ -1058,12 +1061,14 @@ export default function MapView({ onInspectRoad, onNavigate, onRunAiTest }) {
                   rel="noopener noreferrer"
                   className="btn btn-secondary btn-sm"
                   style={{
-                    gridColumn: 'span 2',
+                    gridColumn: '1 / -1',
                     gap: '0.4rem',
                     justifyContent: 'center',
                     background: 'rgba(66, 133, 244, 0.1)',
                     borderColor: 'rgba(66, 133, 244, 0.3)',
-                    color: '#60A5FA'
+                    color: '#60A5FA',
+                    fontSize: '0.78rem',
+                    textAlign: 'center'
                   }}
                   title="Open exact road corridor in Google Maps in a new tab"
                 >
@@ -1159,6 +1164,7 @@ export default function MapView({ onInspectRoad, onNavigate, onRunAiTest }) {
                   <div
                     key={`list-${r.id}`}
                     onClick={() => handleSpotRoad(r)}
+                    className="map-hazard-item"
                     style={{
                       padding: '0.55rem 0.75rem',
                       borderRadius: 'var(--radius-sm)',
@@ -1168,21 +1174,24 @@ export default function MapView({ onInspectRoad, onNavigate, onRunAiTest }) {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      gap: '0.5rem',
+                      gap: '0.75rem',
+                      minWidth: 0,
                       transition: 'all 0.15s ease'
                     }}
                   >
-                    <div style={{ minWidth: 0 }}>
+                    <div style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
                       <div style={{ fontSize: '0.82rem', fontWeight: isSelected ? 700 : 600, color: isSelected ? '#93C5FD' : 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {r.road_name}
                       </div>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', display: 'flex', gap: '0.5rem' }}>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', display: 'flex', gap: '0.5rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         <span>{r.location}</span>
                         <span>•</span>
                         <span className="mono">{rCoords.lat.toFixed(2)}°N, {rCoords.lng.toFixed(2)}°E</span>
                       </div>
                     </div>
-                    <RiskBadge level={rRisk} size="sm" />
+                    <div style={{ flexShrink: 0 }}>
+                      <RiskBadge level={rRisk} size="sm" />
+                    </div>
                   </div>
                 );
               })}
