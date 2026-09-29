@@ -13,8 +13,7 @@ if ([string]::IsNullOrWhiteSpace($status)) {
 } else {
     Write-Host "📝 Committing: $CommitMessage"
     git commit -m "$CommitMessage"
+    Write-Host "📤 Pushing to GitHub (origin main)..."
+    git push origin main
+    Write-Host "🎉 Successfully pushed to GitHub!"
 }
-
-Write-Host "📤 Pushing to GitHub (origin main)..."
-git push origin main
-Write-Host "🎉 Successfully pushed to GitHub!"
