@@ -44,6 +44,7 @@ export default function Dashboard({ onNavigate, onInspectRoad }) {
   const [charts, setCharts] = useState(DEFAULT_CHARTS);
   const [priorityQueue, setPriorityQueue] = useState(defaultPriority);
   const [recentPredictions, setRecentPredictions] = useState(defaultRecentPredictions);
+  const [allRoads, setAllRoads] = useState(DEFAULT_ROADS);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -63,6 +64,7 @@ export default function Dashboard({ onNavigate, onInspectRoad }) {
       if (chartsData) setCharts(chartsData);
       if (prioData && prioData.length > 0) setPriorityQueue(prioData.slice(0, 4));
       if (predsData && predsData.length > 0) setRecentPredictions(predsData);
+      if (roadsData && roadsData.length > 0) setAllRoads(roadsData);
     } catch (err) {
       console.warn("Using local verified dashboard telemetry:", err);
     } finally {
@@ -101,7 +103,7 @@ export default function Dashboard({ onNavigate, onInspectRoad }) {
   const healthScore = stats?.avg_network_health_score || 52.3;
 
   // Fallback corridors if allRoads is not yet populated
-  const displayCorridors = allRoads.length > 0 ? allRoads : (priorityQueue.length > 0 ? priorityQueue : [
+  const displayCorridors = (allRoads && allRoads.length > 0) ? allRoads : (priorityQueue.length > 0 ? priorityQueue : [
     { id: 1, road_name: "Avinashi Road Express Corridor", location: "Coimbatore", risk_level: "Critical Risk" },
     { id: 2, road_name: "OMR IT Highway Corridor", location: "Chennai", risk_level: "High Risk" },
     { id: 3, road_name: "NH-44 Bangalore-Salem Expressway", location: "Hosur", risk_level: "Medium Risk" },
