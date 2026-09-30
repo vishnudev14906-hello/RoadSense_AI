@@ -22,10 +22,18 @@ import {
   Zap,
   IndianRupee,
   MapPin,
-  Sliders
+  Sliders,
+  Camera,
+  Upload,
+  Scan,
+  Eye,
+  ImageIcon,
+  X
 } from 'lucide-react';
 import { api } from '../api';
 import RiskBadge from '../components/RiskBadge';
+import { SAMPLE_INSPECTION_SCENARIOS } from '../utils/sampleScenarios';
+import { compressImageForUpload, validateRoadImageClient } from '../utils/imageUtils';
 
 // Robust, leak-free helper hook for smooth number count-up
 function useCountUp(targetValue, duration = 1.0) {
@@ -119,16 +127,19 @@ export default function LivingRoadExperience({ onOpenReport, initialParams }) {
     }
   ];
 
-  // Control panel input states (Strictly preserving all 7 existing backend ML features)
+  // Mode switcher: 'telemetry' (Manual/Corridor Telemetry Inputs) vs 'image' (Inspection Photo Inputs)
+  const [activeInputMode, setActiveInputMode] = useState('telemetry');
+
+  // Control panel input states (Strictly preserving all existing backend ML features)
   const [params, setParams] = useState({
     road_name: initialParams?.road_name || PRESET_CORRIDORS[0].name,
     location: initialParams?.location || PRESET_CORRIDORS[0].location,
     pothole_count: initialParams?.pothole_count ?? PRESET_CORRIDORS[0].pothole_count,
-    pothole_depth: initialParams?.pothole_depth ?? PRESET_CORRIDORS[0].pothole_depth,
-    crack_length: initialParams?.crack_length ?? PRESET_CORRIDORS[0].crack_length,
-    road_age: initialParams?.road_age ?? PRESET_CORRIDORS[0].road_age,
-    road_length: initialParams?.road_length ?? PRESET_CORRIDORS[0].road_length,
-    traffic_density: initialParams?.traffic_density || PRESET_CORRIDORS[0].traffic_density,
+    pothole_depth: initialParams?.pothole_depth ?? initialParams?.average_pothole_depth_cm ?? PRESET_CORRIDORS[0].pothole_depth,
+    crack_length: initialParams?.crack_length ?? initialParams?.total_crack_length_m ?? PRESET_CORRIDORS[0].crack_length,
+    road_age: initialParams?.road_age ?? initialParams?.pavement_age_years ?? PRESET_CORRIDORS[0].road_age,
+    road_length: initialParams?.road_length ?? initialParams?.road_length_km ?? PRESET_CORRIDORS[0].road_length,
+    traffic_density: initialParams?.traffic_density || initialParams?.traffic_volume || PRESET_CORRIDORS[0].traffic_density,
     rainfall: initialParams?.rainfall || PRESET_CORRIDORS[0].rainfall,
     save_prediction: false
   });
@@ -137,10 +148,39 @@ export default function LivingRoadExperience({ onOpenReport, initialParams }) {
   const [prediction, setPrediction] = useState(null);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
+  // Photo mode states
+  const [selectedScenario, setSelectedScenario] = useState(SAMPLE_INSPECTION_SCENARIOS[0]);
+  const [customImage, setCustomImage] = useState(null);
+  const [showBoundingBoxes, setShowBoundingBoxes] = useState(true);
+  const [isScanningImage, setIsScanningImage] = useState(false);
+  const [imageValidationError, setImageValidationError] = useState(null);
+  const fileInputRef = useRef(null);
+
   // Auto-run initial prediction on mount
   useEffect(() => {
     executePrediction(params, false);
   }, []);
+
+  // Synchronize when initialParams are updated from external callers (e.g. MapView, Roads table)
+  useEffect(() => {
+    if (initialParams) {
+      const updated = {
+        ...params,
+        ...initialParams,
+        road_name: initialParams.road_name || params.road_name,
+        location: initialParams.location || params.location,
+        pothole_count: initialParams.pothole_count ?? params.pothole_count,
+        pothole_depth: initialParams.pothole_depth ?? initialParams.average_pothole_depth_cm ?? params.pothole_depth,
+        crack_length: initialParams.crack_length ?? initialParams.total_crack_length_m ?? params.crack_length,
+        road_age: initialParams.road_age ?? initialParams.pavement_age_years ?? params.road_age,
+        road_length: initialParams.road_length ?? initialParams.road_length_km ?? params.road_length,
+        traffic_density: initialParams.traffic_density || initialParams.traffic_volume || params.traffic_density,
+        rainfall: initialParams.rainfall || params.rainfall
+      };
+      setParams(updated);
+      executePrediction(updated, false);
+    }
+  }, [initialParams]);
 
   const executePrediction = async (currentParams = params, saveToDb = false) => {
     setIsAnalyzing(true);
@@ -186,6 +226,76 @@ export default function LivingRoadExperience({ onOpenReport, initialParams }) {
     };
     setParams(updated);
     executePrediction(updated, false);
+  };
+
+  const handleScenarioSelect = (scenario) => {
+    setSelectedScenario(scenario);
+    setCustomImage(null);
+    setImageValidationError(null);
+
+    const tele = scenario.telemetry || {};
+    const updated = {
+      ...params,
+      road_name: scenario.road_name,
+      location: scenario.location,
+      pothole_count: Number(tele.pothole_count !== undefined ? tele.pothole_count : params.pothole_count),
+      pothole_depth: Number(tele.average_pothole_depth_cm !== undefined ? tele.average_pothole_depth_cm : params.pothole_depth),
+      crack_length: Number(tele.total_crack_length_m !== undefined ? tele.total_crack_length_m : params.crack_length),
+      road_age: Number(tele.pavement_age_years !== undefined ? tele.pavement_age_years : params.road_age),
+      traffic_density: tele.traffic_volume || params.traffic_density,
+      rainfall: tele.rainfall || params.rainfall
+    };
+    setParams(updated);
+    executePrediction(updated, false);
+  };
+
+  const handleImageFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setImageValidationError(null);
+      setIsScanningImage(true);
+      const base64Data = await compressImageForUpload(file, 1280, 0.88);
+      if (!base64Data) {
+        setIsScanningImage(false);
+        return;
+      }
+
+      // 1. Strict Deterministic Client-Side Road Image Verification
+      const valCheck = await validateRoadImageClient(base64Data);
+      if (!valCheck.isValid) {
+        setIsScanningImage(false);
+        setCustomImage(null);
+        setImageValidationError("Please upload a valid image");
+        if (e.target) e.target.value = "";
+        return;
+      }
+
+      // 2. Valid Road Image Verified
+      setCustomImage(base64Data);
+      setImageValidationError(null);
+
+      const cleanedName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ') || 'Uploaded Inspection Corridor';
+      const updatedParams = {
+        ...params,
+        road_name: cleanedName,
+        location: 'Field Survey Ingestion'
+      };
+      setParams(updatedParams);
+
+      setTimeout(() => {
+        setIsScanningImage(false);
+        executePrediction(updatedParams, false);
+      }, 1000);
+    } catch (err) {
+      console.error("Image processing error:", err);
+      setIsScanningImage(false);
+      setCustomImage(null);
+      setImageValidationError("Please upload a valid image");
+    } finally {
+      if (e.target) e.target.value = "";
+    }
   };
 
   const scrollToDiagnostic = () => {
@@ -237,7 +347,7 @@ export default function LivingRoadExperience({ onOpenReport, initialParams }) {
   // Gauge rotation: -90deg to +90deg
   const needleRotation = -90 + (Math.min(100, Math.max(0, countedScore)) / 100) * 180;
 
-  // Contributing factors from backend or verified default
+  // Contributing factors from backend or verified default matching screenshot
   const contributingFactors = prediction?.feature_impacts || [
     { feature: "Pothole Density & Depth", importance: 28.8, contribution: `${params.pothole_count} surface craters (${params.pothole_depth}cm depth)` },
     { feature: "Structural Crack Extent", importance: 24.2, contribution: `${params.crack_length}m continuous fatigue fissures` },
@@ -450,6 +560,70 @@ export default function LivingRoadExperience({ onOpenReport, initialParams }) {
         </div>
       </section>
 
+      {/* =========================================================================
+          MODE SWITCHER TABS: ROAD TELEMETRY vs PHOTO INSPECTION
+          ========================================================================= */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: '0 1.5rem',
+        margin: '-1.5rem 0 -1rem'
+      }}>
+        <div style={{
+          display: 'inline-flex',
+          background: 'rgba(15, 23, 42, 0.85)',
+          border: '1px solid rgba(255, 255, 255, 0.12)',
+          borderRadius: '999px',
+          padding: '0.35rem',
+          gap: '0.4rem',
+          boxShadow: '0 10px 30px -5px rgba(0, 0, 0, 0.5)'
+        }}>
+          <button
+            onClick={() => setActiveInputMode('telemetry')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.65rem 1.4rem',
+              borderRadius: '999px',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '0.88rem',
+              fontWeight: 700,
+              transition: 'all 0.25s ease',
+              background: activeInputMode === 'telemetry' ? riskTheme.gradient : 'transparent',
+              color: activeInputMode === 'telemetry' ? '#FFFFFF' : '#94A3B8',
+              boxShadow: activeInputMode === 'telemetry' ? `0 4px 14px ${riskTheme.glow}` : 'none'
+            }}
+          >
+            <Activity size={16} />
+            <span>Road Telemetry Vital Signs</span>
+          </button>
+
+          <button
+            onClick={() => setActiveInputMode('image')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.65rem 1.4rem',
+              borderRadius: '999px',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '0.88rem',
+              fontWeight: 700,
+              transition: 'all 0.25s ease',
+              background: activeInputMode === 'image' ? 'linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%)' : 'transparent',
+              color: activeInputMode === 'image' ? '#FFFFFF' : '#94A3B8',
+              boxShadow: activeInputMode === 'image' ? '0 4px 14px rgba(6, 182, 212, 0.4)' : 'none'
+            }}
+          >
+            <Camera size={16} />
+            <span>Road Inspection Photo Assessment</span>
+          </button>
+        </div>
+      </div>
 
       {/* =========================================================================
           SECTION 2: PREDICTION INPUT PANEL (CONTROL-ROOM INSTRUMENT PANEL)
@@ -521,290 +695,587 @@ export default function LivingRoadExperience({ onOpenReport, initialParams }) {
             </div>
           )}
 
-          {/* Panel Header */}
-          <div className="living-road-panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '1.25rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <div style={{
-                width: 42,
-                height: 42,
-                borderRadius: '10px',
-                background: 'rgba(59, 130, 246, 0.15)',
-                border: '1px solid rgba(59, 130, 246, 0.35)',
+          {/* MODE 1: TELEMETRY INPUT CONTROLS */}
+          {activeInputMode === 'telemetry' && (
+            <>
+              {/* Panel Header */}
+              <div className="living-road-panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '1.25rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{
+                    width: 42,
+                    height: 42,
+                    borderRadius: '10px',
+                    background: 'rgba(59, 130, 246, 0.15)',
+                    border: '1px solid rgba(59, 130, 246, 0.35)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#60A5FA'
+                  }}>
+                    <Sliders size={22} />
+                  </div>
+                  <div>
+                    <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#F8FAFC' }}>
+                      Pavement Diagnostic Control Console
+                    </h2>
+                    <p style={{ fontSize: '0.82rem', color: '#94A3B8' }}>
+                      Precision parameter modulation calibrated for Indian IRC:82 civil engineering standards
+                    </p>
+                  </div>
+                </div>
+
+                {/* Quick Corridor Selector */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                  <MapPin size={15} color="#94A3B8" />
+                  <input
+                    type="text"
+                    className="living-road-corridor-input"
+                    value={params.road_name}
+                    onChange={(e) => setParams({ ...params, road_name: e.target.value })}
+                    placeholder="Enter Road Corridor Name..."
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid rgba(255, 255, 255, 0.12)',
+                      borderRadius: 'var(--radius-md)',
+                      color: '#F8FAFC',
+                      padding: '0.45rem 0.85rem',
+                      fontSize: '0.85rem',
+                      minWidth: '240px'
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* 7 Core Existing ML Features formatted as Precision Controls */}
+              <div className="living-road-inputs-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem' }}>
+                
+                {/* 1. Pothole Count */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#E2E8F0', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <Flame size={15} color="#EF4444" />
+                      Surface Crater / Pothole Count
+                    </span>
+                    <span className="mono" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#EF4444' }}>
+                      {params.pothole_count} <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>units</span>
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="50"
+                    step="1"
+                    value={params.pothole_count}
+                    onChange={(e) => setParams({ ...params, pothole_count: Number(e.target.value) })}
+                    className="living-road-slider"
+                  />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748B' }}>
+                    <span>0 (Pristine)</span>
+                    <span>25 (Severe Deterioration)</span>
+                    <span>50 (Critical Craters)</span>
+                  </div>
+                </div>
+
+                {/* 2. Pothole Depth */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#E2E8F0', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <ShieldAlert size={15} color="#F97316" />
+                      Cavity Impact Depth
+                    </span>
+                    <span className="mono" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#F97316' }}>
+                      {params.pothole_depth} <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>cm</span>
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="30"
+                    step="0.5"
+                    value={params.pothole_depth}
+                    onChange={(e) => setParams({ ...params, pothole_depth: Number(e.target.value) })}
+                    className="living-road-slider"
+                  />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748B' }}>
+                    <span>0 cm</span>
+                    <span>15 cm (Axle Hazard)</span>
+                    <span>30 cm (Extreme Cavity)</span>
+                  </div>
+                </div>
+
+                {/* 3. Crack Length */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#E2E8F0', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <AlertTriangle size={15} color="#F59E0B" />
+                      Structural Crack Fissures
+                    </span>
+                    <span className="mono" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#F59E0B' }}>
+                      {params.crack_length} <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>meters</span>
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="200"
+                    step="1"
+                    value={params.crack_length}
+                    onChange={(e) => setParams({ ...params, crack_length: Number(e.target.value) })}
+                    className="living-road-slider"
+                  />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748B' }}>
+                    <span>0 m</span>
+                    <span>100 m (Fatigue Rutting)</span>
+                    <span>200 m (Severe Rupture)</span>
+                  </div>
+                </div>
+
+                {/* 4. Pavement Age */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#E2E8F0', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <Clock size={15} color="#3B82F6" />
+                      Pavement Weathering Age
+                    </span>
+                    <span className="mono" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#3B82F6' }}>
+                      {params.road_age} <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>years</span>
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.5"
+                    max="25"
+                    step="0.5"
+                    value={params.road_age}
+                    onChange={(e) => setParams({ ...params, road_age: Number(e.target.value) })}
+                    className="living-road-slider"
+                  />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748B' }}>
+                    <span>0.5 yr (New Overlay)</span>
+                    <span>12 yrs</span>
+                    <span>25 yrs (Bitumen Breakdown)</span>
+                  </div>
+                </div>
+
+                {/* 5. Corridor Length */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#E2E8F0', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <Milestone size={15} color="#06B6D4" />
+                      Corridor Segment Span
+                    </span>
+                    <span className="mono" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#06B6D4' }}>
+                      {params.road_length} <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>km</span>
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.5"
+                    max="50"
+                    step="0.5"
+                    value={params.road_length}
+                    onChange={(e) => setParams({ ...params, road_length: Number(e.target.value) })}
+                    className="living-road-slider"
+                  />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748B' }}>
+                    <span>0.5 km</span>
+                    <span>25 km</span>
+                    <span>50 km (Expressway Section)</span>
+                  </div>
+                </div>
+
+                {/* 6. Traffic Density Toggle Buttons */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                  <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#E2E8F0', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <Truck size={15} color="#8B5CF6" />
+                    Commercial Vehicle Axle Load (CVPD)
+                  </span>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.4rem' }}>
+                    {['Low', 'Medium', 'High', 'Very High'].map((levelOption) => (
+                      <button
+                        key={levelOption}
+                        className={`living-toggle-btn ${params.traffic_density === levelOption ? 'active' : ''}`}
+                        onClick={() => setParams({ ...params, traffic_density: levelOption })}
+                        style={{ textAlign: 'center', padding: '0.5rem 0.2rem' }}
+                      >
+                        {levelOption}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 7. Rainfall Toggle Buttons */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                  <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#E2E8F0', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <CloudRain size={15} color="#10B981" />
+                    Monsoon Precipitation Pattern
+                  </span>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.4rem' }}>
+                    {['Light', 'Moderate', 'Heavy', 'Torrential'].map((rainOption) => (
+                      <button
+                        key={rainOption}
+                        className={`living-toggle-btn ${params.rainfall === rainOption ? 'active' : ''}`}
+                        onClick={() => setParams({ ...params, rainfall: rainOption })}
+                        style={{ textAlign: 'center', padding: '0.5rem 0.2rem' }}
+                      >
+                        {rainOption}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Diagnostic Action Bar */}
+              <div className="living-road-action-bar" style={{
+                marginTop: '2.5rem',
+                paddingTop: '1.5rem',
+                borderTop: '1px solid rgba(255, 255, 255, 0.08)',
                 display: 'flex',
+                justifyContent: 'space-between',
                 alignItems: 'center',
-                justifyContent: 'center',
-                color: '#60A5FA'
+                flexWrap: 'wrap',
+                gap: '1.25rem'
               }}>
-                <Sliders size={22} />
-              </div>
-              <div>
-                <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#F8FAFC' }}>
-                  Pavement Diagnostic Control Console
-                </h2>
-                <p style={{ fontSize: '0.82rem', color: '#94A3B8' }}>
-                  Precision parameter modulation calibrated for Indian IRC:82 civil engineering standards
-                </p>
-              </div>
-            </div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', cursor: 'pointer', fontSize: '0.85rem', color: '#94A3B8' }}>
+                  <input
+                    type="checkbox"
+                    checked={params.save_prediction}
+                    onChange={(e) => setParams({ ...params, save_prediction: e.target.checked })}
+                    style={{ width: 16, height: 16, accentColor: '#3B82F6' }}
+                  />
+                  <span>Commit assessment & synchronize with Civil Audit provenance log</span>
+                </label>
 
-            {/* Quick Corridor Selector */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-              <MapPin size={15} color="#94A3B8" />
-              <input
-                type="text"
-                className="living-road-corridor-input"
-                value={params.road_name}
-                onChange={(e) => setParams({ ...params, road_name: e.target.value })}
-                placeholder="Enter Road Corridor Name..."
-                style={{
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                  {savedSuccess && (
+                    <span style={{ fontSize: '0.82rem', color: '#34D399', display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 600 }}>
+                      <CheckCircle2 size={16} />
+                      Synchronized with SQLite!
+                    </span>
+                  )}
+
+                  <button
+                    onClick={() => executePrediction(params, params.save_prediction)}
+                    disabled={isAnalyzing}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.6rem',
+                      padding: '0.75rem 1.75rem',
+                      borderRadius: 'var(--radius-md)',
+                      background: riskTheme.gradient,
+                      color: '#FFFFFF',
+                      fontWeight: 700,
+                      fontSize: '0.92rem',
+                      border: 'none',
+                      cursor: isAnalyzing ? 'not-allowed' : 'pointer',
+                      boxShadow: `0 0 20px ${riskTheme.glow}`
+                    }}
+                  >
+                    <Zap size={16} />
+                    <span>{isAnalyzing ? 'Analyzing Vital Signs...' : 'Execute Structural Diagnostic'}</span>
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* MODE 2: PHOTO INSPECTION INPUT CONTROLS */}
+          {activeInputMode === 'image' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              {/* Validation Error Banner */}
+              {imageValidationError && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  background: 'rgba(239, 68, 68, 0.15)',
+                  border: '1px solid rgba(239, 68, 68, 0.45)',
                   borderRadius: 'var(--radius-md)',
-                  color: '#F8FAFC',
-                  padding: '0.45rem 0.85rem',
-                  fontSize: '0.85rem',
-                  minWidth: '240px'
-                }}
-              />
-            </div>
-          </div>
-
-          {/* 7 Core Existing ML Features formatted as Precision Controls */}
-          <div className="living-road-inputs-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem' }}>
-            
-            {/* 1. Pothole Count */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#E2E8F0', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <Flame size={15} color="#EF4444" />
-                  Surface Crater / Pothole Count
-                </span>
-                <span className="mono" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#EF4444' }}>
-                  {params.pothole_count} <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>units</span>
-                </span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="50"
-                step="1"
-                value={params.pothole_count}
-                onChange={(e) => setParams({ ...params, pothole_count: Number(e.target.value) })}
-                className="living-road-slider"
-              />
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748B' }}>
-                <span>0 (Pristine)</span>
-                <span>25 (Severe Deterioration)</span>
-                <span>50 (Critical Craters)</span>
-              </div>
-            </div>
-
-            {/* 2. Pothole Depth */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#E2E8F0', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <ShieldAlert size={15} color="#F97316" />
-                  Cavity Impact Depth
-                </span>
-                <span className="mono" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#F97316' }}>
-                  {params.pothole_depth} <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>cm</span>
-                </span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="30"
-                step="0.5"
-                value={params.pothole_depth}
-                onChange={(e) => setParams({ ...params, pothole_depth: Number(e.target.value) })}
-                className="living-road-slider"
-              />
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748B' }}>
-                <span>0 cm</span>
-                <span>15 cm (Axle Hazard)</span>
-                <span>30 cm (Extreme Cavity)</span>
-              </div>
-            </div>
-
-            {/* 3. Crack Length */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#E2E8F0', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <AlertTriangle size={15} color="#F59E0B" />
-                  Structural Crack Fissures
-                </span>
-                <span className="mono" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#F59E0B' }}>
-                  {params.crack_length} <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>meters</span>
-                </span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="200"
-                step="1"
-                value={params.crack_length}
-                onChange={(e) => setParams({ ...params, crack_length: Number(e.target.value) })}
-                className="living-road-slider"
-              />
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748B' }}>
-                <span>0 m</span>
-                <span>100 m (Fatigue Rutting)</span>
-                <span>200 m (Severe Rupture)</span>
-              </div>
-            </div>
-
-            {/* 4. Pavement Age */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#E2E8F0', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <Clock size={15} color="#3B82F6" />
-                  Pavement Weathering Age
-                </span>
-                <span className="mono" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#3B82F6' }}>
-                  {params.road_age} <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>years</span>
-                </span>
-              </div>
-              <input
-                type="range"
-                min="0.5"
-                max="25"
-                step="0.5"
-                value={params.road_age}
-                onChange={(e) => setParams({ ...params, road_age: Number(e.target.value) })}
-                className="living-road-slider"
-              />
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748B' }}>
-                <span>0.5 yr (New Overlay)</span>
-                <span>12 yrs</span>
-                <span>25 yrs (Bitumen Breakdown)</span>
-              </div>
-            </div>
-
-            {/* 5. Corridor Length */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#E2E8F0', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <Milestone size={15} color="#06B6D4" />
-                  Corridor Segment Span
-                </span>
-                <span className="mono" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#06B6D4' }}>
-                  {params.road_length} <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>km</span>
-                </span>
-              </div>
-              <input
-                type="range"
-                min="0.5"
-                max="50"
-                step="0.5"
-                value={params.road_length}
-                onChange={(e) => setParams({ ...params, road_length: Number(e.target.value) })}
-                className="living-road-slider"
-              />
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748B' }}>
-                <span>0.5 km</span>
-                <span>25 km</span>
-                <span>50 km (Expressway Section)</span>
-              </div>
-            </div>
-
-            {/* 6. Traffic Density Toggle Buttons */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-              <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#E2E8F0', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <Truck size={15} color="#8B5CF6" />
-                Commercial Vehicle Axle Load (CVPD)
-              </span>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.4rem' }}>
-                {['Low', 'Medium', 'High', 'Very High'].map((levelOption) => (
+                  padding: '0.9rem 1.25rem',
+                  color: '#FCA5A5',
+                  fontSize: '0.92rem',
+                  fontWeight: 600,
+                  boxShadow: '0 4px 15px rgba(239, 68, 68, 0.2)'
+                }}>
+                  <AlertTriangle size={20} color="#EF4444" style={{ flexShrink: 0 }} />
+                  <span style={{ flex: 1 }}>{imageValidationError}</span>
                   <button
-                    key={levelOption}
-                    className={`living-toggle-btn ${params.traffic_density === levelOption ? 'active' : ''}`}
-                    onClick={() => setParams({ ...params, traffic_density: levelOption })}
-                    style={{ textAlign: 'center', padding: '0.5rem 0.2rem' }}
+                    onClick={() => setImageValidationError(null)}
+                    style={{ background: 'none', border: 'none', color: '#FCA5A5', cursor: 'pointer', padding: '0.2rem' }}
+                    title="Dismiss"
                   >
-                    {levelOption}
+                    <X size={16} />
                   </button>
-                ))}
-              </div>
-            </div>
-
-            {/* 7. Rainfall Toggle Buttons */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-              <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#E2E8F0', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <CloudRain size={15} color="#10B981" />
-                Monsoon Precipitation Pattern
-              </span>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.4rem' }}>
-                {['Light', 'Moderate', 'Heavy', 'Torrential'].map((rainOption) => (
-                  <button
-                    key={rainOption}
-                    className={`living-toggle-btn ${params.rainfall === rainOption ? 'active' : ''}`}
-                    onClick={() => setParams({ ...params, rainfall: rainOption })}
-                    style={{ textAlign: 'center', padding: '0.5rem 0.2rem' }}
-                  >
-                    {rainOption}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-          </div>
-
-          {/* Diagnostic Action Bar */}
-          <div className="living-road-action-bar" style={{
-            marginTop: '2.5rem',
-            paddingTop: '1.5rem',
-            borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '1.25rem'
-          }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', cursor: 'pointer', fontSize: '0.85rem', color: '#94A3B8' }}>
-              <input
-                type="checkbox"
-                checked={params.save_prediction}
-                onChange={(e) => setParams({ ...params, save_prediction: e.target.checked })}
-                style={{ width: 16, height: 16, accentColor: '#3B82F6' }}
-              />
-              <span>Commit assessment & synchronize with Civil Audit provenance log</span>
-            </label>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-              {savedSuccess && (
-                <span style={{ fontSize: '0.82rem', color: '#34D399', display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 600 }}>
-                  <CheckCircle2 size={16} />
-                  Synchronized with SQLite!
-                </span>
+                </div>
               )}
 
-              <button
-                onClick={() => executePrediction(params, params.save_prediction)}
-                disabled={isAnalyzing}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.6rem',
-                  padding: '0.75rem 1.75rem',
-                  borderRadius: 'var(--radius-md)',
-                  background: riskTheme.gradient,
-                  color: '#FFFFFF',
-                  fontWeight: 700,
-                  fontSize: '0.92rem',
-                  border: 'none',
-                  cursor: isAnalyzing ? 'not-allowed' : 'pointer',
-                  boxShadow: `0 0 20px ${riskTheme.glow}`
-                }}
-              >
-                <Zap size={16} />
-                <span>{isAnalyzing ? 'Analyzing Vital Signs...' : 'Execute Structural Diagnostic'}</span>
-              </button>
+              {/* Panel Header */}
+              <div className="living-road-panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '1.25rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{
+                    width: 42,
+                    height: 42,
+                    borderRadius: '10px',
+                    background: 'rgba(6, 182, 212, 0.15)',
+                    border: '1px solid rgba(6, 182, 212, 0.35)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#06B6D4'
+                  }}>
+                    <Camera size={22} />
+                  </div>
+                  <div>
+                    <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#F8FAFC' }}>
+                      Road Inspection Photo Assessment
+                    </h2>
+                    <p style={{ fontSize: '0.82rem', color: '#94A3B8' }}>
+                      Optical surface defect extraction & RDD2022 benchmark computer vision inspection
+                    </p>
+                  </div>
+                </div>
+
+                {/* Upload & Box Toggle Buttons */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleImageFileUpload}
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                  />
+
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.45rem',
+                      padding: '0.55rem 1rem',
+                      borderRadius: 'var(--radius-md)',
+                      background: 'rgba(59, 130, 246, 0.15)',
+                      border: '1px solid rgba(59, 130, 246, 0.35)',
+                      color: '#60A5FA',
+                      fontSize: '0.84rem',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <Upload size={15} />
+                    <span>Upload Field Photo</span>
+                  </button>
+
+                  <button
+                    onClick={() => setShowBoundingBoxes(!showBoundingBoxes)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.45rem',
+                      padding: '0.55rem 0.9rem',
+                      borderRadius: 'var(--radius-md)',
+                      background: showBoundingBoxes ? 'rgba(6, 182, 212, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      color: showBoundingBoxes ? '#06B6D4' : '#94A3B8',
+                      fontSize: '0.84rem',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <Eye size={15} />
+                    <span>{showBoundingBoxes ? 'Hide Defect Boxes' : 'Show Defect Boxes'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Benchmark Scenarios Strip */}
+              <div>
+                <span style={{ fontSize: '0.75rem', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700, display: 'block', marginBottom: '0.5rem' }}>
+                  Standard Benchmark Scenarios:
+                </span>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  {SAMPLE_INSPECTION_SCENARIOS.map((scen) => (
+                    <button
+                      key={scen.id}
+                      onClick={() => handleScenarioSelect(scen)}
+                      style={{
+                        padding: '0.4rem 0.75rem',
+                        borderRadius: 'var(--radius-md)',
+                        fontSize: '0.78rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        background: (!customImage && selectedScenario.id === scen.id) ? 'rgba(6, 182, 212, 0.2)' : 'rgba(255, 255, 255, 0.04)',
+                        border: `1px solid ${(!customImage && selectedScenario.id === scen.id) ? '#06B6D4' : 'rgba(255, 255, 255, 0.08)'}`,
+                        color: (!customImage && selectedScenario.id === scen.id) ? '#06B6D4' : '#94A3B8',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      {scen.damage_class} ({scen.location})
+                    </button>
+                  ))}
+                  {customImage && (
+                    <button
+                      onClick={() => { setCustomImage(null); handleScenarioSelect(SAMPLE_INSPECTION_SCENARIOS[0]); }}
+                      style={{
+                        padding: '0.4rem 0.75rem',
+                        borderRadius: 'var(--radius-md)',
+                        fontSize: '0.78rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        background: 'rgba(239, 68, 68, 0.15)',
+                        border: '1px solid rgba(239, 68, 68, 0.35)',
+                        color: '#F87171'
+                      }}
+                    >
+                      Clear Uploaded Photo
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Photo Inspection Workspace Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.75rem', alignItems: 'start' }}>
+                {/* Photo Viewport */}
+                <div style={{
+                  position: 'relative',
+                  width: '100%',
+                  aspectRatio: '16/10',
+                  borderRadius: 'var(--radius-lg)',
+                  overflow: 'hidden',
+                  background: '#05070A',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  boxShadow: '0 12px 28px -8px rgba(0, 0, 0, 0.8)'
+                }}>
+                  <img
+                    src={customImage || selectedScenario.imageUrl}
+                    alt="Inspection road subject"
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      display: 'block'
+                    }}
+                  />
+
+                  {/* Laser Scan HUD Sweep */}
+                  {(isScanningImage || isAnalyzing) && (
+                    <div className="laser-scan-line" />
+                  )}
+
+                  {/* Computer Vision Bounding Boxes */}
+                  {showBoundingBoxes && !customImage && selectedScenario.detections && selectedScenario.detections.map((box) => (
+                    <div
+                      key={box.id}
+                      style={{
+                        position: 'absolute',
+                        left: `${box.x}%`,
+                        top: `${box.y}%`,
+                        width: `${box.w}%`,
+                        height: `${box.h}%`,
+                        border: `2px solid ${box.color || '#EF4444'}`,
+                        borderRadius: '3px',
+                        backgroundColor: `${box.color || '#EF4444'}20`,
+                        boxShadow: `0 0 10px ${box.color || '#EF4444'}50`,
+                        pointerEvents: 'none'
+                      }}
+                    >
+                      <span style={{
+                        position: 'absolute',
+                        top: '-20px',
+                        left: 0,
+                        background: box.color || '#EF4444',
+                        color: '#FFFFFF',
+                        fontSize: '0.65rem',
+                        fontWeight: 800,
+                        padding: '1px 6px',
+                        borderRadius: '2px',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {box.label} ({box.confidence}%)
+                      </span>
+                    </div>
+                  ))}
+
+                  {/* Corner Target Markers */}
+                  <div style={{ position: 'absolute', top: 10, left: 10, width: 14, height: 14, borderLeft: '2px solid #06B6D4', borderTop: '2px solid #06B6D4' }} />
+                  <div style={{ position: 'absolute', top: 10, right: 10, width: 14, height: 14, borderRight: '2px solid #06B6D4', borderTop: '2px solid #06B6D4' }} />
+                  <div style={{ position: 'absolute', bottom: 10, left: 10, width: 14, height: 14, borderLeft: '2px solid #06B6D4', borderBottom: '2px solid #06B6D4' }} />
+                  <div style={{ position: 'absolute', bottom: 10, right: 10, width: 14, height: 14, borderRight: '2px solid #06B6D4', borderBottom: '2px solid #06B6D4' }} />
+                </div>
+
+                {/* Extracted Optical Damage Telemetry */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#F8FAFC' }}>
+                      Extracted Surface Telemetry
+                    </span>
+                    <span className="mono" style={{ fontSize: '0.75rem', color: '#06B6D4' }}>
+                      {customImage ? 'Direct Field Capture' : selectedScenario.source_tag}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem' }}>
+                    <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: 'var(--radius-md)', padding: '0.85rem' }}>
+                      <div style={{ fontSize: '0.72rem', color: '#94A3B8' }}>Potholes Detected</div>
+                      <div className="mono" style={{ fontSize: '1.4rem', fontWeight: 800, color: '#EF4444', marginTop: '0.2rem' }}>
+                        {params.pothole_count} <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>units</span>
+                      </div>
+                    </div>
+
+                    <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: 'var(--radius-md)', padding: '0.85rem' }}>
+                      <div style={{ fontSize: '0.72rem', color: '#94A3B8' }}>Est. Cavity Depth</div>
+                      <div className="mono" style={{ fontSize: '1.4rem', fontWeight: 800, color: '#F97316', marginTop: '0.2rem' }}>
+                        {params.pothole_depth} <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>cm</span>
+                      </div>
+                    </div>
+
+                    <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: 'var(--radius-md)', padding: '0.85rem' }}>
+                      <div style={{ fontSize: '0.72rem', color: '#94A3B8' }}>Continuous Fissures</div>
+                      <div className="mono" style={{ fontSize: '1.4rem', fontWeight: 800, color: '#F59E0B', marginTop: '0.2rem' }}>
+                        {params.crack_length} <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>m</span>
+                      </div>
+                    </div>
+
+                    <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: 'var(--radius-md)', padding: '0.85rem' }}>
+                      <div style={{ fontSize: '0.72rem', color: '#94A3B8' }}>Pavement Weathering</div>
+                      <div className="mono" style={{ fontSize: '1.4rem', fontWeight: 800, color: '#3B82F6', marginTop: '0.2rem' }}>
+                        {params.road_age} <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>yrs</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Photo Execution CTA */}
+                  <button
+                    onClick={() => executePrediction(params, params.save_prediction)}
+                    disabled={isAnalyzing}
+                    style={{
+                      marginTop: '0.5rem',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.6rem',
+                      padding: '0.8rem 1.5rem',
+                      borderRadius: 'var(--radius-md)',
+                      background: 'linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%)',
+                      color: '#FFFFFF',
+                      fontWeight: 700,
+                      fontSize: '0.92rem',
+                      border: 'none',
+                      cursor: isAnalyzing ? 'not-allowed' : 'pointer',
+                      boxShadow: '0 4px 18px rgba(6, 182, 212, 0.4)'
+                    }}
+                  >
+                    <Zap size={16} />
+                    <span>{isAnalyzing ? 'Computing Structural Risk...' : 'Run Vision Structural Assessment'}</span>
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
 
         </div>
       </section>
-
 
       {/* =========================================================================
           SECTION 3: RISK RESULT — THE LIVING ROAD VITAL SIGNS GAUGE
@@ -940,7 +1411,6 @@ export default function LivingRoadExperience({ onOpenReport, initialParams }) {
         </div>
       </section>
 
-
       {/* =========================================================================
           SECTION 4: EXPLAINABILITY / CONTRIBUTING FACTORS (IMPACT BARS)
           ========================================================================= */}
@@ -1042,7 +1512,6 @@ export default function LivingRoadExperience({ onOpenReport, initialParams }) {
           </div>
         </div>
       </section>
-
 
       {/* =========================================================================
           SECTION 5: TIERED MAINTENANCE RECOMMENDATIONS

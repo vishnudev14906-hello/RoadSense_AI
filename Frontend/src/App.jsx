@@ -12,7 +12,7 @@ import Dashboard from './pages/Dashboard';
 
 // Dynamically code-split secondary views for high performance & minimal bundle size on Vercel
 const Roads = lazy(() => import('./pages/Roads'));
-const Predictor = lazy(() => import('./pages/Predictor'));
+const Predictor = lazy(() => import('./pages/LivingRoadExperience'));
 const Prioritization = lazy(() => import('./pages/Prioritization'));
 const Reports = lazy(() => import('./pages/Reports'));
 const History = lazy(() => import('./pages/History'));
