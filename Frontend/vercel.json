@@ -1,6 +1,7 @@
 {
   "framework": "vite",
   "rewrites": [
+    { "source": "/api/(.*)", "destination": "https://roadsense-ai.onrender.com/api/$1" },
     { "source": "/(.*)", "destination": "/" }
   ],
   "headers": [

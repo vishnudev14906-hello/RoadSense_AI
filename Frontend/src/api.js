@@ -221,6 +221,10 @@ export const api = {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.detail || "Failed to run AI prediction");
     }
+    const contentType = res.headers.get("content-type") || "";
+    if (!contentType.includes("application/json")) {
+      throw new Error("Server returned non-JSON response");
+    }
     return res.json();
   },
 
