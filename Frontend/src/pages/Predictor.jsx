@@ -401,7 +401,7 @@ export default function Predictor({ onOpenReport, initialParams }) {
       setTimeout(() => {
         setIsScanningImage(false);
         runImageInference(updatedImgParams, false, base64Data);
-      }, 400);
+      }, 1200);
     } catch (err) {
       console.error("Image processing error:", err);
       setIsScanningImage(false);
@@ -583,7 +583,7 @@ export default function Predictor({ onOpenReport, initialParams }) {
     setTimeout(() => {
       setIsScanningImage(false);
       runImageInference(updated, false);
-    }, 400);
+    }, 1200);
   };
 
 
@@ -604,16 +604,152 @@ export default function Predictor({ onOpenReport, initialParams }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       
-      {/* Page Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <Cpu size={26} color="#3B82F6" />
-            <span>AI Road Risk Predictor</span>
+      {/* 1. THE LIVING ROAD FULL-BLEED ANIMATED ECG ROAD PERSPECTIVE HERO */}
+      <div className="living-road-hero" style={{
+        position: 'relative',
+        borderRadius: 'var(--radius-lg)',
+        background: 'radial-gradient(ellipse at 50% 30%, rgba(30, 58, 138, 0.45) 0%, rgba(10, 14, 20, 0.95) 75%)',
+        border: '1px solid rgba(59, 130, 246, 0.35)',
+        boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        textAlign: 'center',
+        padding: '2.5rem 1.5rem 2rem',
+        overflow: 'hidden'
+      }}>
+        {/* Full-Bleed Animated Road Perspective & Pulsing ECG Monitor */}
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          pointerEvents: 'none',
+          opacity: 0.85,
+          zIndex: 0
+        }}>
+          <svg width="100%" height="100%" viewBox="0 0 1200 480" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="roadPerspective" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#0B132B" stopOpacity="0.1" />
+                <stop offset="100%" stopColor="#0A0E14" stopOpacity="0.95" />
+              </linearGradient>
+
+              <linearGradient id="ecgGlowGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.1" />
+                <stop offset="40%" stopColor="#3B82F6" stopOpacity="1" />
+                <stop offset="70%" stopColor="#06B6D4" stopOpacity="0.9" />
+                <stop offset="100%" stopColor="#3B82F6" stopOpacity="0.2" />
+              </linearGradient>
+            </defs>
+
+            {/* Receding Asphalt Road Perspective Lines */}
+            <path d="M 450 0 L 100 480 M 750 0 L 1100 480" stroke="rgba(255, 255, 255, 0.05)" strokeWidth="2" fill="none" />
+            <path d="M 520 0 L 350 480 M 680 0 L 850 480" stroke="rgba(59, 130, 246, 0.08)" strokeWidth="1.5" strokeDasharray="8 8" fill="none" />
+
+            {/* Center Road Pulse Spine */}
+            <line x1="600" y1="0" x2="600" y2="480" stroke="rgba(255, 255, 255, 0.06)" strokeWidth="2" strokeDasharray="16 16" />
+
+            {/* Pulsing ECG Heartbeat Waveform Line */}
+            <path
+              d="M 0 240 
+                 L 220 240 
+                 L 250 240 
+                 L 270 215 
+                 L 290 265 
+                 L 310 170 
+                 L 335 310 
+                 L 355 240 
+                 L 500 240 
+                 L 530 210 
+                 L 560 270 
+                 L 585 150 
+                 L 615 330 
+                 L 640 240 
+                 L 780 240 
+                 L 810 215 
+                 L 835 265 
+                 L 860 180 
+                 L 885 300 
+                 L 910 240 
+                 L 1200 240"
+              fill="none"
+              stroke="url(#ecgGlowGradient)"
+              strokeWidth="3.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="ecg-line-pulse"
+              style={{ filter: 'drop-shadow(0 0 10px rgba(59, 130, 246, 0.6))' }}
+            />
+          </svg>
+        </div>
+
+        {/* Hero Content Overlay */}
+        <div style={{ 
+          position: 'relative', 
+          zIndex: 1, 
+          maxWidth: '820px', 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center', 
+          gap: '0.85rem' 
+        }}>
+          {/* Mission Control Status Pill */}
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.6rem',
+            padding: '0.35rem 0.9rem',
+            borderRadius: '999px',
+            background: 'rgba(10, 14, 20, 0.8)',
+            border: '1px solid rgba(59, 130, 246, 0.5)',
+            boxShadow: '0 0 20px rgba(59, 130, 246, 0.2)'
+          }}>
+            <span style={{
+              width: 8,
+              height: 8,
+              borderRadius: '50%',
+              backgroundColor: '#3B82F6',
+              boxShadow: '0 0 10px #3B82F6'
+            }} className="pulse-animation" />
+            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#60A5FA', letterSpacing: '0.08em', textTransform: 'uppercase' }} className="mono">
+              THE LIVING ROAD • VITAL SIGNS ACTIVE
+            </span>
+          </div>
+
+          <h1 style={{
+            fontSize: '2.3rem',
+            fontWeight: 900,
+            lineHeight: 1.15,
+            letterSpacing: '-0.03em',
+            color: '#FFFFFF',
+            margin: 0
+          }}>
+            The Living Road <span style={{
+              background: 'linear-gradient(135deg, #60A5FA 0%, #3B82F6 50%, #06B6D4 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent'
+            }}>AI Diagnostic Engine</span>
           </h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '0.2rem' }}>
-            Accurate, evaluated ML inference: <strong>XGBoost Classifier</strong> for Road Telemetry and <strong>Custom Deep CNN (Trained from Scratch) + Multi-Modal Decision Layer</strong> for Road Images.
+
+          <p style={{
+            fontSize: '0.92rem',
+            color: '#94A3B8',
+            lineHeight: 1.5,
+            maxWidth: '640px',
+            margin: 0
+          }}>
+            Treating the highway network as a living organism. Risk scores pulse as real-time vital signs powered by XGBoost & IRC:82 civil engineering intelligence.
           </p>
+        </div>
+      </div>
+
+      {/* Mode Selector Control Bar */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          <Cpu size={22} color="#3B82F6" />
+          <span style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)' }}>
+            Inference Control Console
+          </span>
         </div>
 
         {/* Mode Selector Tabs (Separating Road Inputs vs Road Image Inputs) */}
@@ -1252,14 +1388,17 @@ export default function Predictor({ onOpenReport, initialParams }) {
                   />
 
                   {isScanningImage && (
-                    <div style={{
-                      position: 'absolute',
-                      inset: 0,
-                      background: 'linear-gradient(180deg, rgba(59, 130, 246, 0.35) 0%, rgba(6, 182, 212, 0.15) 50%, transparent 100%)',
-                      borderBottom: '3px solid #06B6D4',
-                      boxShadow: '0 0 20px #06B6D4',
-                      animation: 'slideUp 0.8s ease-in-out infinite'
-                    }} />
+                    <>
+                      <div className="laser-scan-line" />
+                      <div style={{
+                        position: 'absolute',
+                        inset: 0,
+                        background: 'linear-gradient(180deg, rgba(59, 130, 246, 0.25) 0%, rgba(6, 182, 212, 0.1) 50%, transparent 100%)',
+                        borderBottom: '3px solid #06B6D4',
+                        boxShadow: '0 0 20px #06B6D4',
+                        pointerEvents: 'none'
+                      }} />
+                    </>
                   )}
                 </div>
               </div>

@@ -106,9 +106,36 @@ export function RiskDonutChart({ data = [] }) {
   );
 }
 
-// 2. Radial Risk Speedometer Gauge
+// 2. Radial Risk Speedometer Gauge with Smooth Live Animation
 export function RiskGauge({ score = 50, level = "Medium Risk" }) {
-  const normScore = Math.min(100, Math.max(0, score));
+  const [displayScore, setDisplayScore] = React.useState(score);
+
+  React.useEffect(() => {
+    let startTimestamp = null;
+    let animationFrameId;
+    const finalVal = typeof score === 'number' ? score : parseFloat(score) || 0;
+    const startVal = displayScore;
+
+    const step = (timestamp) => {
+      if (!startTimestamp) startTimestamp = timestamp;
+      const progress = Math.min((timestamp - startTimestamp) / 700, 1);
+      const easedProgress = 1 - (1 - progress) * (1 - progress);
+      const current = startVal + (finalVal - startVal) * easedProgress;
+      setDisplayScore(parseFloat(current.toFixed(1)));
+      if (progress < 1) {
+        animationFrameId = window.requestAnimationFrame(step);
+      }
+    };
+
+    animationFrameId = window.requestAnimationFrame(step);
+    return () => {
+      if (animationFrameId && typeof window !== 'undefined') {
+        window.cancelAnimationFrame(animationFrameId);
+      }
+    };
+  }, [score]);
+
+  const normScore = Math.min(100, Math.max(0, displayScore));
   const rotation = -90 + (normScore / 100) * 180;
 
   const getColor = (s) => {
@@ -154,7 +181,7 @@ export function RiskGauge({ score = 50, level = "Medium Risk" }) {
         <circle cx="130" cy="135" r="8" fill="#1F2937" stroke={currentColor} strokeWidth="3" />
 
         {/* Needle */}
-        <g transform={`rotate(${rotation} 130 135)`} style={{ transition: 'transform 0.2s ease-out' }}>
+        <g transform={`rotate(${rotation} 130 135)`} style={{ transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)' }}>
           <line x1="130" y1="135" x2="130" y2="48" stroke={currentColor} strokeWidth="4" strokeLinecap="round" />
           <polygon points="126,56 134,56 130,42" fill={currentColor} />
         </g>
@@ -162,7 +189,7 @@ export function RiskGauge({ score = 50, level = "Medium Risk" }) {
 
       <div style={{ marginTop: '-10px', textAlign: 'center' }}>
         <div style={{ fontSize: '2.2rem', fontWeight: 800, color: currentColor }} className="mono">
-          {score}
+          {displayScore}
           <span style={{ fontSize: '1.1rem', color: 'var(--text-dim)' }}>/100</span>
         </div>
         <div style={{ fontSize: '0.88rem', fontWeight: 700, color: currentColor, textTransform: 'uppercase', letterSpacing: '0.04em' }}>

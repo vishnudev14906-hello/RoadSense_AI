@@ -39,6 +39,7 @@ import { api } from '../api';
 import RiskBadge from '../components/RiskBadge';
 import { formatDate, formatTime, formatRelativeTime } from '../utils/dateUtils';
 import { DEFAULT_ROADS } from '../data/roadsData';
+import { batchLoadRoadRoutes } from '../utils/routingService';
 
 // OSRM Route Display Helpers
 function formatDuration(seconds) {
@@ -326,6 +327,33 @@ export default function MapView({ onInspectRoad, onNavigate, onRunAiTest }) {
     return () => { cancelled = true; };
   }, [selectedRoad]);
 
+  // Batch-load authentic OSRM road geometry progressively for visible corridors (never crosses buildings)
+  useEffect(() => {
+    if (!filteredRoads || filteredRoads.length === 0) return;
+    const unrouted = filteredRoads.slice(0, 10).filter(r => !roadRoutes[r.id]);
+    if (unrouted.length === 0) return;
+
+    batchLoadRoadRoutes(unrouted, (roadId, routeResult) => {
+      if (routeResult && routeResult.coordinates && routeResult.coordinates.length > 1) {
+        setRoadRoutes(prev => ({
+          ...prev,
+          [roadId]: [{
+            coordinates: routeResult.coordinates.map(c => [c[1], c[0]]),
+            distance: routeResult.routeDistanceMeters,
+            duration: routeResult.durationSeconds
+          }]
+        }));
+        setRouteGeometries(prev => ({
+          ...prev,
+          [roadId]: {
+            pointCount: routeResult.pointCount,
+            routeDistanceKm: routeResult.routeDistanceKm
+          }
+        }));
+      }
+    }, 2, 80);
+  }, [filteredRoads]);
+
   // Initialize Leaflet Map with full 360-degree panning / dragging support
   useEffect(() => {
     if (!mapContainerRef.current) return;
@@ -413,60 +441,57 @@ export default function MapView({ onInspectRoad, onNavigate, onRunAiTest }) {
       const pinColor = getRiskColor(riskLevel);
       const isSelected = selectedRoad?.id === road.id;
 
-      // Use OSRM route coordinates if available, otherwise fall back to straight line
+      // Use authentic OSRM road geometry coordinates; never draw fake diagonal lines across buildings
       const osrmRoutes = roadRoutes[road.id];
-      let corridorCoords;
+      let corridorCoords = null;
       if (osrmRoutes && osrmRoutes.length > 0) {
         const routeIdx = isSelected ? selectedRouteIdx : 0;
         const route = osrmRoutes[Math.min(routeIdx, osrmRoutes.length - 1)];
         // OSRM returns [ [lng, lat], ... ], convert to Leaflet [lat, lng]
-        corridorCoords = route.coordinates.map(c => [c[1], c[0]]);
-      } else {
-        // Fallback: straight-line corridor from computed endpoints
-        const { start, end } = computeCorridorEndpoints(road);
-        corridorCoords = [
-          [start[1], start[0]],
-          [lat, lng],
-          [end[1], end[0]]
-        ];
+        if (route.coordinates && route.coordinates.length > 1) {
+          corridorCoords = route.coordinates.map(c => [c[1], c[0]]);
+        }
       }
 
-      // Draw road-following polyline corridor
-      const polyline = L.polyline(corridorCoords, {
-        color: pinColor,
-        weight: isSelected ? 7 : 4,
-        opacity: isSelected ? 0.95 : 0.65,
-        lineCap: 'round',
-        lineJoin: 'round',
-        dashArray: isSelected ? null : '8, 5'
-      });
-
-      polyline.on('click', () => {
-        setSelectedRoad(road);
-      });
-      polyline.addTo(roadGroup);
-
-      // Draw endpoint markers for selected road corridors
-      if (isSelected && corridorCoords.length > 2) {
-        const startMarker = L.circleMarker(corridorCoords[0], {
-          radius: 5,
-          fillColor: '#22C55E',
-          fillOpacity: 1,
-          color: '#FFFFFF',
-          weight: 2
+      // ONLY draw corridor polyline if we have authentic road-following coordinates from OSRM
+      // This strictly prevents drawing lines cutting through buildings or rooftops!
+      if (corridorCoords && corridorCoords.length > 1) {
+        const polyline = L.polyline(corridorCoords, {
+          color: pinColor,
+          weight: isSelected ? 5.5 : 3.5,
+          opacity: isSelected ? 0.95 : 0.7,
+          lineCap: 'round',
+          lineJoin: 'round',
+          dashArray: isSelected ? null : '6, 6'
         });
-        startMarker.bindTooltip('Route Start', { permanent: false, className: 'roadsense-tooltip' });
-        startMarker.addTo(roadGroup);
 
-        const endMarker = L.circleMarker(corridorCoords[corridorCoords.length - 1], {
-          radius: 5,
-          fillColor: '#EF4444',
-          fillOpacity: 1,
-          color: '#FFFFFF',
-          weight: 2
+        polyline.on('click', () => {
+          setSelectedRoad(road);
         });
-        endMarker.bindTooltip('Route End', { permanent: false, className: 'roadsense-tooltip' });
-        endMarker.addTo(roadGroup);
+        polyline.addTo(roadGroup);
+
+        // Draw endpoint markers only for the actively selected corridor
+        if (isSelected && corridorCoords.length > 2) {
+          const startMarker = L.circleMarker(corridorCoords[0], {
+            radius: 5,
+            fillColor: '#22C55E',
+            fillOpacity: 1,
+            color: '#FFFFFF',
+            weight: 2
+          });
+          startMarker.bindTooltip('Corridor Start', { permanent: false, className: 'roadsense-tooltip' });
+          startMarker.addTo(roadGroup);
+
+          const endMarker = L.circleMarker(corridorCoords[corridorCoords.length - 1], {
+            radius: 5,
+            fillColor: '#EF4444',
+            fillOpacity: 1,
+            color: '#FFFFFF',
+            weight: 2
+          });
+          endMarker.bindTooltip('Corridor End', { permanent: false, className: 'roadsense-tooltip' });
+          endMarker.addTo(roadGroup);
+        }
       }
 
       // Custom HTML Beacon Marker for Hazard Spotting
