@@ -29,6 +29,7 @@ export default function Roads({ onOpenReport, onNavigate, onLaunchPredictor }) {
   const [roads, setRoads] = useState(DEFAULT_ROADS);
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const [loading, setLoading] = useState(false);
+  const [fetchError, setFetchError] = useState(null);
   const [search, setSearch] = useState('');
   const [stateFilter, setStateFilter] = useState('All');
   const [districtFilter, setDistrictFilter] = useState('All');
@@ -64,6 +65,7 @@ export default function Roads({ onOpenReport, onNavigate, onLaunchPredictor }) {
     if (!roads || roads.length === 0) {
       setLoading(true);
     }
+    setFetchError(null);
     try {
       const data = await api.getRoads({
         search: search || undefined,
@@ -79,6 +81,9 @@ export default function Roads({ onOpenReport, onNavigate, onLaunchPredictor }) {
       }
     } catch (err) {
       console.warn("Using local verified road dataset:", err);
+      if (!roads || roads.length === 0) {
+        setFetchError("Unable to connect to live road telemetry. Showing verified local records.");
+      }
     } finally {
       setLoading(false);
     }

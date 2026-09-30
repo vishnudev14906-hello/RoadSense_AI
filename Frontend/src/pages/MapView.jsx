@@ -308,6 +308,15 @@ export default function MapView({ onInspectRoad, onNavigate, onRunAiTest }) {
         const routes = await fetchOSRMRoute(start, end);
         if (!cancelled && routes) {
           setRoadRoutes(prev => ({ ...prev, [selectedRoad.id]: routes }));
+          if (routes.length > 0 && routes[0].coordinates) {
+            setRouteGeometries(prev => ({
+              ...prev,
+              [selectedRoad.id]: {
+                pointCount: routes[0].coordinates.length,
+                routeDistanceKm: ((routes[0].distance || 0) / 1000).toFixed(1)
+              }
+            }));
+          }
         }
       } catch (err) {
         // Fall back cleanly to corridor polyline without blocking UI
@@ -478,6 +487,11 @@ export default function MapView({ onInspectRoad, onNavigate, onRunAiTest }) {
       const marker = L.marker([lat, lng], { icon: customIcon });
 
       // Interactive Popup
+      const routeData = (routeGeometries && routeGeometries[road.id]) || (osrmRoutes && osrmRoutes.length > 0 ? {
+        pointCount: osrmRoutes[0].coordinates?.length || 0,
+        routeDistanceKm: ((osrmRoutes[0].distance || 0) / 1000).toFixed(1)
+      } : null);
+
       const popupContent = document.createElement('div');
       popupContent.style.padding = '0.85rem';
       popupContent.style.minWidth = '240px';
@@ -519,7 +533,7 @@ export default function MapView({ onInspectRoad, onNavigate, onRunAiTest }) {
 
       marker.addTo(roadGroup);
     });
-  }, [filteredRoads, selectedRoad, roadRoutes, selectedRouteIdx]);
+  }, [filteredRoads, selectedRoad, roadRoutes, selectedRouteIdx, routeGeometries]);
 
   // Center camera when selected city changes
   useEffect(() => {

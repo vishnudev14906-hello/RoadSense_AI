@@ -273,7 +273,7 @@ export const validateRoadImageClient = (imageSource) => {
       };
       reader.onerror = () => resolve({ isValid: false, error: "Please upload a valid image" });
       reader.readAsDataURL(imageSource);
-    } else if (imageSource instanceof HTMLImageElement) {
+    } else if (typeof window !== 'undefined' && window.HTMLImageElement && imageSource instanceof window.HTMLImageElement) {
       if (imageSource.complete) {
         processImageElement(imageSource);
       } else {
