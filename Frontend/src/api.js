@@ -323,6 +323,14 @@ export const api = {
   },
 
   async getPredictions(params = {}) {
+    let localAudits = [];
+    try {
+      const stored = localStorage.getItem('roadsense_assessment_audit_log');
+      if (stored) {
+        localAudits = JSON.parse(stored);
+      }
+    } catch (e) {}
+
     try {
       const query = new URLSearchParams();
       if (params.limit) query.append("limit", params.limit);
@@ -330,17 +338,28 @@ export const api = {
 
       const qs = query.toString();
       const live = await safeFetch(`${API_BASE}/predictions${qs ? `?${qs}` : ''}`);
-      if (live && Array.isArray(live) && live.length > 0) return live;
+      if (live && Array.isArray(live) && live.length > 0) {
+        const liveIds = new Set(live.map(l => String(l.id || l.road_id)));
+        const unSyncedLocal = localAudits.filter(a => !liveIds.has(String(a.id || a.road_id)));
+        return [...unSyncedLocal, ...live];
+      }
     } catch (e) {}
 
-    const limit = params.limit ? parseInt(params.limit) : 5;
-    return DEFAULT_ROADS.slice(0, limit).map(r => ({
+    const limit = params.limit ? parseInt(params.limit) : 50;
+    const fallbackList = DEFAULT_ROADS.slice(0, limit).map(r => ({
       ...r.latest_prediction,
       id: r.id,
       road_name: r.road_name,
       location: r.location,
       prediction_date: r.latest_prediction?.prediction_date || new Date().toISOString()
     }));
+
+    if (localAudits.length > 0) {
+      const localIds = new Set(localAudits.map(a => String(a.id || a.road_id)));
+      const filteredFallback = fallbackList.filter(f => !localIds.has(String(f.id || f.road_id)));
+      return [...localAudits, ...filteredFallback];
+    }
+    return fallbackList;
   },
 
   async getPrioritization(params = {}) {

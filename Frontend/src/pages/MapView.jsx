@@ -275,12 +275,12 @@ export default function MapView({ onInspectRoad, onNavigate, onRunAiTest }) {
   };
 
   const getRiskColor = (riskLevel) => {
-    if (!riskLevel) return '#F59E0B';
+    if (!riskLevel) return '#EAB308';
     const r = String(riskLevel).toLowerCase();
     if (r.includes('critical')) return '#EF4444';
     if (r.includes('high')) return '#F97316';
-    if (r.includes('medium')) return '#F59E0B';
-    return '#10B981';
+    if (r.includes('medium') || r.includes('moderate')) return '#EAB308';
+    return '#22C55E';
   };
 
   // Filtered Roads

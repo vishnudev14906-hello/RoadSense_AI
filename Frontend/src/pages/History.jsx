@@ -30,19 +30,35 @@ export default function History({ onOpenReport }) {
   }, [riskFilter]);
 
   const loadPredictions = async () => {
-    if (!predictions || predictions.length === 0) {
-      setLoading(true);
-    }
+    setLoading(true);
+    let localAudits = [];
+    try {
+      const stored = localStorage.getItem('roadsense_assessment_audit_log');
+      if (stored) {
+        localAudits = JSON.parse(stored);
+      }
+    } catch (e) {}
+
     try {
       const data = await api.getPredictions({
         limit: 100,
         risk_level: riskFilter
       });
-      if (data && data.length > 0) {
-        setPredictions(data);
+      const combined = [...localAudits];
+      const seenIds = new Set(localAudits.map(a => String(a.id || a.road_id)));
+      if (data && Array.isArray(data)) {
+        data.forEach(item => {
+          if (!seenIds.has(String(item.id || item.road_id))) {
+            combined.push(item);
+          }
+        });
       }
+      setPredictions(combined.length > 0 ? combined : defaultHistory);
     } catch (err) {
       console.warn("Using local verified prediction history:", err);
+      if (localAudits.length > 0) {
+        setPredictions([...localAudits, ...defaultHistory]);
+      }
     } finally {
       setLoading(false);
     }

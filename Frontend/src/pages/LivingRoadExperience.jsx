@@ -280,7 +280,50 @@ export default function LivingRoadExperience({ onOpenReport, initialParams }) {
     const liveDiagnosis = calculateLiveRoadRisk(currentParams);
     setPrediction(liveDiagnosis);
 
-    // 2. Background sync with backend API & SQLite database
+    // 2. If user checked Commit assessment, immediately persist to local audit log & sync
+    if (saveToDb) {
+      const auditEntry = {
+        id: `audit-${Date.now()}`,
+        road_id: Date.now(),
+        road_name: currentParams.road_name || 'Monitored Indian Corridor',
+        location: currentParams.location || 'Coimbatore',
+        city: currentParams.location || 'Coimbatore',
+        prediction_date: new Date().toISOString(),
+        risk_level: liveDiagnosis.risk_level,
+        risk_score: liveDiagnosis.risk_score,
+        confidence: liveDiagnosis.confidence_percentage,
+        confidence_percentage: liveDiagnosis.confidence_percentage,
+        priority: liveDiagnosis.risk_level === 'Critical Risk' ? 'Immediate' : (liveDiagnosis.risk_level === 'High Risk' ? 'High' : (liveDiagnosis.risk_level === 'Medium Risk' ? 'Moderate' : 'Normal')),
+        recommendation: liveDiagnosis.recommendation,
+        urgency_score: liveDiagnosis.urgency_score,
+        ai_reasoning: liveDiagnosis.ai_reasoning,
+        estimated_budget: liveDiagnosis.estimated_budget,
+        inspection_timeline: liveDiagnosis.inspection_timeline,
+        pothole_count: currentParams.pothole_count,
+        average_pothole_depth_cm: currentParams.pothole_depth,
+        pothole_depth: currentParams.pothole_depth,
+        total_crack_length_m: currentParams.crack_length,
+        crack_length: currentParams.crack_length,
+        pavement_age_years: currentParams.road_age,
+        road_age: currentParams.road_age,
+        road_length_km: currentParams.road_length,
+        road_length: currentParams.road_length,
+        traffic_volume: currentParams.traffic_density,
+        traffic_density: currentParams.traffic_density,
+        rainfall: currentParams.rainfall
+      };
+
+      try {
+        const existing = JSON.parse(localStorage.getItem('roadsense_assessment_audit_log') || '[]');
+        const updatedLogs = [auditEntry, ...existing.filter(e => e.id !== auditEntry.id).slice(0, 49)];
+        localStorage.setItem('roadsense_assessment_audit_log', JSON.stringify(updatedLogs));
+      } catch (err) {
+        console.warn("Could not save to localStorage audit log:", err);
+      }
+      setSavedSuccess(true);
+    }
+
+    // 3. Background sync with backend API & SQLite database
     try {
       const payload = {
         road_name: currentParams.road_name?.trim() || 'Monitored Indian Corridor',
@@ -309,9 +352,6 @@ export default function LivingRoadExperience({ onOpenReport, initialParams }) {
           risk_level: res.risk_level ?? res.level ?? liveDiagnosis.risk_level,
           feature_impacts: (res.feature_impacts && res.feature_impacts.length > 0) ? res.feature_impacts : liveDiagnosis.feature_impacts
         });
-      }
-      if (saveToDb) {
-        setSavedSuccess(true);
       }
     } catch (err) {
       console.warn("Backend sync offline, client-side ML assessment active:", err);
@@ -344,12 +384,12 @@ export default function LivingRoadExperience({ onOpenReport, initialParams }) {
   const level = prediction?.risk_level || "High Risk";
   const countedScore = useCountUp(score);
 
-  // Gradient & accent selector
+  // Gradient & accent selector: Green (Low), Yellow (Medium), Orange (High), Red (Critical)
   const getRiskTheme = (s) => {
     if (s >= 80) {
       return {
         accent: "#EF4444",
-        glow: "rgba(239, 68, 68, 0.45)",
+        glow: "rgba(239, 68, 68, 0.50)",
         bgTint: "rgba(239, 68, 68, 0.08)",
         gradient: "linear-gradient(135deg, #EF4444 0%, #DC2626 100%)",
         ecgColor: "#EF4444",
@@ -358,21 +398,21 @@ export default function LivingRoadExperience({ onOpenReport, initialParams }) {
     }
     if (s >= 58) {
       return {
-        accent: "#F59E0B",
-        glow: "rgba(245, 158, 11, 0.45)",
-        bgTint: "rgba(245, 158, 11, 0.05)",
-        gradient: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
-        ecgColor: "#F59E0B",
+        accent: "#F97316",
+        glow: "rgba(249, 115, 22, 0.45)",
+        bgTint: "rgba(249, 115, 22, 0.06)",
+        gradient: "linear-gradient(135deg, #F97316 0%, #EA580C 100%)",
+        ecgColor: "#F97316",
         status: "Elevated Vital Sign - Developing Asphalt Fatigue"
       };
     }
     if (s >= 35) {
       return {
-        accent: "#3B82F6",
-        glow: "rgba(59, 130, 246, 0.45)",
-        bgTint: "rgba(59, 130, 246, 0.05)",
-        gradient: "linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)",
-        ecgColor: "#3B82F6",
+        accent: "#EAB308",
+        glow: "rgba(234, 179, 8, 0.45)",
+        bgTint: "rgba(234, 179, 8, 0.06)",
+        gradient: "linear-gradient(135deg, #EAB308 0%, #CA8A04 100%)",
+        ecgColor: "#EAB308",
         status: "Moderate Vital Sign - Incipient Surface Wear"
       };
     }
@@ -925,9 +965,9 @@ export default function LivingRoadExperience({ onOpenReport, initialParams }) {
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
               {savedSuccess && (
-                <span style={{ fontSize: '0.82rem', color: '#34D399', display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 600 }}>
+                <span style={{ fontSize: '0.84rem', color: '#34D399', display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700 }}>
                   <CheckCircle2 size={16} />
-                  Synchronized with SQLite!
+                  Committed & Stored in Assessment Audit Log!
                 </span>
               )}
 
@@ -980,9 +1020,17 @@ export default function LivingRoadExperience({ onOpenReport, initialParams }) {
               <svg width="280" height="160" viewBox="0 0 280 160">
                 <defs>
                   <linearGradient id="livingGaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                    {/* Low Risk Zone (0 - 35%) -> Green */}
                     <stop offset="0%" stopColor="#22C55E" />
-                    <stop offset="45%" stopColor="#F59E0B" />
-                    <stop offset="75%" stopColor="#F97316" />
+                    <stop offset="30%" stopColor="#22C55E" />
+                    {/* Medium Risk Zone (35 - 58%) -> Yellow */}
+                    <stop offset="38%" stopColor="#EAB308" />
+                    <stop offset="54%" stopColor="#EAB308" />
+                    {/* High Risk Zone (58 - 80%) -> Orange */}
+                    <stop offset="62%" stopColor="#F97316" />
+                    <stop offset="76%" stopColor="#F97316" />
+                    {/* Critical Risk Zone (80 - 100%) -> Red */}
+                    <stop offset="84%" stopColor="#EF4444" />
                     <stop offset="100%" stopColor="#EF4444" />
                   </linearGradient>
                 </defs>
@@ -1047,6 +1095,84 @@ export default function LivingRoadExperience({ onOpenReport, initialParams }) {
                   letterSpacing: '0.06em'
                 }}>
                   {level}
+                </span>
+              </div>
+
+              {/* 4 Risk Categories Visual Variation Strip */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.4rem',
+                marginTop: '0.85rem',
+                flexWrap: 'wrap'
+              }}>
+                <span style={{
+                  fontSize: '0.68rem',
+                  fontWeight: 800,
+                  color: level === 'Low Risk' ? '#22C55E' : '#64748B',
+                  background: level === 'Low Risk' ? 'rgba(34, 197, 94, 0.18)' : 'rgba(255,255,255,0.03)',
+                  border: level === 'Low Risk' ? '1px solid rgba(34, 197, 94, 0.45)' : '1px solid rgba(255,255,255,0.06)',
+                  padding: '0.2rem 0.5rem',
+                  borderRadius: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.25rem',
+                  boxShadow: level === 'Low Risk' ? '0 0 10px rgba(34, 197, 94, 0.3)' : 'none'
+                }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22C55E' }} />
+                  LOW (0-35)
+                </span>
+
+                <span style={{
+                  fontSize: '0.68rem',
+                  fontWeight: 800,
+                  color: (level === 'Medium Risk' || level === 'Moderate Risk') ? '#EAB308' : '#64748B',
+                  background: (level === 'Medium Risk' || level === 'Moderate Risk') ? 'rgba(234, 179, 8, 0.18)' : 'rgba(255,255,255,0.03)',
+                  border: (level === 'Medium Risk' || level === 'Moderate Risk') ? '1px solid rgba(234, 179, 8, 0.45)' : '1px solid rgba(255,255,255,0.06)',
+                  padding: '0.2rem 0.5rem',
+                  borderRadius: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.25rem',
+                  boxShadow: (level === 'Medium Risk' || level === 'Moderate Risk') ? '0 0 10px rgba(234, 179, 8, 0.3)' : 'none'
+                }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#EAB308' }} />
+                  MEDIUM (35-58)
+                </span>
+
+                <span style={{
+                  fontSize: '0.68rem',
+                  fontWeight: 800,
+                  color: level === 'High Risk' ? '#F97316' : '#64748B',
+                  background: level === 'High Risk' ? 'rgba(249, 115, 22, 0.18)' : 'rgba(255,255,255,0.03)',
+                  border: level === 'High Risk' ? '1px solid rgba(249, 115, 22, 0.45)' : '1px solid rgba(255,255,255,0.06)',
+                  padding: '0.2rem 0.5rem',
+                  borderRadius: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.25rem',
+                  boxShadow: level === 'High Risk' ? '0 0 10px rgba(249, 115, 22, 0.3)' : 'none'
+                }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#F97316' }} />
+                  HIGH (58-80)
+                </span>
+
+                <span style={{
+                  fontSize: '0.68rem',
+                  fontWeight: 800,
+                  color: level === 'Critical Risk' ? '#EF4444' : '#64748B',
+                  background: level === 'Critical Risk' ? 'rgba(239, 68, 68, 0.18)' : 'rgba(255,255,255,0.03)',
+                  border: level === 'Critical Risk' ? '1px solid rgba(239, 68, 68, 0.45)' : '1px solid rgba(255,255,255,0.06)',
+                  padding: '0.2rem 0.5rem',
+                  borderRadius: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.25rem',
+                  boxShadow: level === 'Critical Risk' ? '0 0 10px rgba(239, 68, 68, 0.3)' : 'none'
+                }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#EF4444' }} />
+                  CRITICAL (80-100)
                 </span>
               </div>
             </div>
