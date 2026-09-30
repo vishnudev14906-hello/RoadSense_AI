@@ -24,6 +24,7 @@ import DataToolsModal from '../components/DataToolsModal';
 import { api } from '../api';
 import { formatDate, formatTime, formatRelativeTime } from '../utils/dateUtils';
 import { DEFAULT_ROADS, DEFAULT_FILTERS } from '../data/roadsData';
+import { calculateLiveRoadRisk } from '../utils/civilRiskEngine';
 
 export default function Roads({ onOpenReport, onNavigate, onLaunchPredictor }) {
   const [roads, setRoads] = useState(DEFAULT_ROADS);
@@ -140,6 +141,24 @@ export default function Roads({ onOpenReport, onNavigate, onLaunchPredictor }) {
   };
 
   const handleAnalyzeClick = (road) => {
+    const pCnt = road.pothole_count ?? 0;
+    const pDep = road.average_pothole_depth_cm ?? road.pothole_depth ?? 0.0;
+    const cLen = road.total_crack_length_m ?? road.crack_length ?? 0.0;
+    const rAge = road.pavement_age_years ?? road.road_age ?? 4.0;
+    const rLen = road.road_length_km ?? road.road_length ?? 5.0;
+    const tVol = road.traffic_volume || road.traffic_density || 'High';
+    const rain = road.rainfall || 'Moderate';
+
+    const liveAssessment = calculateLiveRoadRisk({
+      pothole_count: pCnt,
+      pothole_depth: pDep,
+      crack_length: cLen,
+      road_age: rAge,
+      road_length: rLen,
+      traffic_density: tVol,
+      rainfall: rain
+    });
+
     const roadParams = {
       id: road.id,
       road_id: road.id,
@@ -148,22 +167,24 @@ export default function Roads({ onOpenReport, onNavigate, onLaunchPredictor }) {
       city: road.city || road.location,
       district: road.district,
       state: road.state,
-      road_length: road.road_length_km ?? road.road_length ?? 5.0,
-      road_length_km: road.road_length_km ?? road.road_length ?? 5.0,
-      pothole_count: road.pothole_count ?? 0,
-      pothole_depth: road.average_pothole_depth_cm ?? road.pothole_depth ?? 0.0,
-      average_pothole_depth_cm: road.average_pothole_depth_cm ?? road.pothole_depth ?? 0.0,
-      crack_length: road.total_crack_length_m ?? road.crack_length ?? 0.0,
-      total_crack_length_m: road.total_crack_length_m ?? road.crack_length ?? 0.0,
-      road_age: road.pavement_age_years ?? road.road_age ?? 4.0,
-      pavement_age_years: road.pavement_age_years ?? road.road_age ?? 4.0,
-      traffic_density: road.traffic_volume || road.traffic_density || 'High',
-      traffic_volume: road.traffic_volume || road.traffic_density || 'High',
-      rainfall: road.rainfall || 'Moderate',
+      road_length: rLen,
+      road_length_km: rLen,
+      pothole_count: pCnt,
+      pothole_depth: pDep,
+      average_pothole_depth_cm: pDep,
+      crack_length: cLen,
+      total_crack_length_m: cLen,
+      road_age: rAge,
+      pavement_age_years: rAge,
+      traffic_density: tVol,
+      traffic_volume: tVol,
+      rainfall: rain,
       surface_type: road.surface_type || 'Bituminous Concrete (BC)',
       damage_type: road.damage_type || 'Surface Cracking & Fatigue',
       latitude: road.latitude,
       longitude: road.longitude,
+      risk_score: liveAssessment.risk_score,
+      risk_level: liveAssessment.risk_level,
       autoRun: true
     };
 
@@ -420,12 +441,20 @@ export default function Roads({ onOpenReport, onNavigate, onLaunchPredictor }) {
             ) : (
               roads.map((road) => {
                 const isAssessing = assessingId === road.id;
-                const pred = road.latest_prediction;
                 const rLen = road.road_length_km ?? road.road_length;
                 const rAge = road.pavement_age_years ?? road.road_age;
                 const pCnt = road.pothole_count;
                 const pDep = road.average_pothole_depth_cm ?? road.pothole_depth;
                 const cLen = road.total_crack_length_m ?? road.crack_length;
+                const pred = road.latest_prediction || calculateLiveRoadRisk({
+                  pothole_count: pCnt,
+                  pothole_depth: pDep,
+                  crack_length: cLen,
+                  road_age: rAge,
+                  road_length: rLen,
+                  traffic_density: road.traffic_volume || road.traffic_density,
+                  rainfall: road.rainfall
+                });
 
                 return (
                   <tr key={road.id}>

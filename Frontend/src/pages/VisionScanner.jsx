@@ -20,7 +20,7 @@ import { compressImageForUpload, validateRoadImageClient } from '../utils/imageU
 import { api } from '../api';
 
 export default function VisionScanner({ onTransferToPredictor }) {
-  const [selectedScenario, setSelectedScenario] = useState(SAMPLE_INSPECTION_SCENARIOS[0]);
+  const [selectedScenario, setSelectedScenario] = useState(null);
   const [customImage, setCustomImage] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
   const [showBoxes, setShowBoxes] = useState(true);
@@ -36,7 +36,7 @@ export default function VisionScanner({ onTransferToPredictor }) {
   };
 
   const triggerScanAnimation = () => {
-    if (validationError) return;
+    if (validationError || !selectedScenario) return;
     setIsScanning(true);
     setTimeout(() => {
       setIsScanning(false);
@@ -123,7 +123,7 @@ export default function VisionScanner({ onTransferToPredictor }) {
   };
 
   const activeScenario = selectedScenario;
-  const filteredDetections = activeScenario.detections.filter(d => d.confidence >= confidenceThreshold);
+  const filteredDetections = activeScenario?.detections ? activeScenario.detections.filter(d => d.confidence >= confidenceThreshold) : [];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -155,12 +155,12 @@ export default function VisionScanner({ onTransferToPredictor }) {
             onClick={() => fileInputRef.current?.click()}
           >
             <Upload size={16} />
-            <span>Upload Road Photo</span>
+            <span>Upload Road Image</span>
           </button>
           <button
             className="btn btn-primary"
             onClick={triggerScanAnimation}
-            disabled={isScanning}
+            disabled={isScanning || !activeScenario}
           >
             <RefreshCw size={16} className={isScanning ? 'spin-animation' : ''} />
             <span>{isScanning ? 'Scanning Pixels...' : 'Re-scan Image'}</span>
@@ -224,17 +224,92 @@ export default function VisionScanner({ onTransferToPredictor }) {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', fontWeight: 600, color: '#93C5FD' }}>
               <Camera size={15} />
-              <span>{activeScenario.title}</span>
+              <span>{activeScenario ? activeScenario.title : 'Road Inspection Photo Assessment'}</span>
             </div>
+            {activeScenario && (
+              <span style={{ fontSize: '0.72rem', color: '#34D399', fontWeight: 600 }}>
+                ● Active Road Photo Loaded
+              </span>
+            )}
           </div>
 
           {/* Image & Bounding Box Viewport */}
-          <div style={{ position: 'relative', width: '100%', minHeight: '380px', maxHeight: '480px', backgroundColor: '#000', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <img
-              src={activeScenario.imageUrl}
-              alt={activeScenario.title}
-              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-            />
+          <div 
+            style={{ 
+              position: 'relative', 
+              width: '100%', 
+              minHeight: '380px', 
+              maxHeight: '480px', 
+              backgroundColor: '#050811', 
+              overflow: 'hidden', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              cursor: activeScenario?.imageUrl ? 'default' : 'pointer'
+            }}
+            onClick={() => {
+              if (!activeScenario?.imageUrl) {
+                fileInputRef.current?.click();
+              }
+            }}
+          >
+            {activeScenario?.imageUrl ? (
+              <img
+                src={activeScenario.imageUrl}
+                alt={activeScenario.title || 'Uploaded Road Inspection Photo'}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              />
+            ) : (
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '3rem 1.5rem',
+                textAlign: 'center',
+                gap: '1rem',
+                border: '2px dashed rgba(59, 130, 246, 0.4)',
+                borderRadius: 'var(--radius-lg)',
+                margin: '1.5rem',
+                width: 'calc(100% - 3rem)',
+                background: 'rgba(59, 130, 246, 0.03)',
+                transition: 'border-color 0.2s, background 0.2s'
+              }}>
+                <div style={{
+                  width: 60,
+                  height: 60,
+                  borderRadius: '50%',
+                  backgroundColor: 'rgba(59, 130, 246, 0.12)',
+                  border: '1px solid rgba(59, 130, 246, 0.35)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#60A5FA'
+                }}>
+                  <Upload size={28} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#F8FAFC', marginBottom: '0.35rem' }}>
+                    Please upload the image in the box
+                  </div>
+                  <p style={{ fontSize: '0.85rem', color: '#94A3B8', maxWidth: '360px', margin: '0 auto', lineHeight: 1.5 }}>
+                    Click inside this box or click &ldquo;Upload Road Image&rdquo; above to select an authentic roadway photo.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    fileInputRef.current?.click();
+                  }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.25rem', color: '#60A5FA', borderColor: 'rgba(96, 165, 250, 0.4)' }}
+                >
+                  <Upload size={14} />
+                  <span>Choose Image File</span>
+                </button>
+              </div>
+            )}
 
             {/* Neural Network Scanner Beam Overlay */}
             {isScanning && (
@@ -260,31 +335,33 @@ export default function VisionScanner({ onTransferToPredictor }) {
               </h3>
             </div>
             <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
-              {activeScenario.description}
+              {activeScenario ? activeScenario.description : 'Please upload a road image in the box to extract AI damage telemetry and detect structural pavement distress.'}
             </p>
 
             {/* Extracted Metrics Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.25rem' }}>
               <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '0.75rem' }}>
                 <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', textTransform: 'uppercase' }}>Pothole Count</div>
-                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: (activeScenario.telemetry.pothole_count || 0) > 15 ? '#EF4444' : (activeScenario.telemetry.pothole_count || 0) > 5 ? '#F59E0B' : '#10B981' }} className="mono">
-                  {activeScenario.telemetry.pothole_count !== undefined ? activeScenario.telemetry.pothole_count : 0} units
+                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: activeScenario ? ((activeScenario.telemetry.pothole_count || 0) > 15 ? '#EF4444' : (activeScenario.telemetry.pothole_count || 0) > 5 ? '#F59E0B' : '#10B981') : 'var(--text-dim)' }} className="mono">
+                  {activeScenario ? `${activeScenario.telemetry.pothole_count ?? 0} units` : '--'}
                 </div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Avg Depth: {activeScenario.telemetry.pothole_depth !== undefined ? activeScenario.telemetry.pothole_depth : (activeScenario.telemetry.average_pothole_depth_cm || 0)} cm</div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>
+                  Avg Depth: {activeScenario ? `${activeScenario.telemetry.pothole_depth !== undefined ? activeScenario.telemetry.pothole_depth : (activeScenario.telemetry.average_pothole_depth_cm || 0)} cm` : '--'}
+                </div>
               </div>
 
               <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '0.75rem' }}>
                 <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', textTransform: 'uppercase' }}>Crack Fissures</div>
-                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: (activeScenario.telemetry.crack_length || activeScenario.telemetry.total_crack_length_m || 0) >= 50 ? '#EF4444' : (activeScenario.telemetry.crack_length || activeScenario.telemetry.total_crack_length_m || 0) >= 15 ? '#F59E0B' : '#10B981' }} className="mono">
-                  {activeScenario.telemetry.crack_length !== undefined ? activeScenario.telemetry.crack_length : (activeScenario.telemetry.total_crack_length_m || 0)} m
+                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: activeScenario ? ((activeScenario.telemetry.crack_length || activeScenario.telemetry.total_crack_length_m || 0) >= 50 ? '#EF4444' : (activeScenario.telemetry.crack_length || activeScenario.telemetry.total_crack_length_m || 0) >= 15 ? '#F59E0B' : '#10B981') : 'var(--text-dim)' }} className="mono">
+                  {activeScenario ? `${activeScenario.telemetry.crack_length !== undefined ? activeScenario.telemetry.crack_length : (activeScenario.telemetry.total_crack_length_m || 0)} m` : '--'}
                 </div>
                 <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Fatigue & Longitudinal</div>
               </div>
 
               <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '0.75rem' }}>
                 <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', textTransform: 'uppercase' }}>Pavement Age</div>
-                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)' }} className="mono">
-                  {activeScenario.telemetry.road_age !== undefined ? activeScenario.telemetry.road_age : (activeScenario.telemetry.pavement_age_years || 1.0)} yrs
+                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: activeScenario ? 'var(--text-main)' : 'var(--text-dim)' }} className="mono">
+                  {activeScenario ? `${activeScenario.telemetry.road_age !== undefined ? activeScenario.telemetry.road_age : (activeScenario.telemetry.pavement_age_years || 1.0)} yrs` : '--'}
                 </div>
                 <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Surface Lifecycle Stage</div>
               </div>
@@ -292,7 +369,11 @@ export default function VisionScanner({ onTransferToPredictor }) {
               <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '0.75rem' }}>
                 <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', textTransform: 'uppercase' }}>Hazard Classification</div>
                 <div style={{ marginTop: '0.2rem' }}>
-                  <RiskBadge level={activeScenario.telemetry.estimated_risk || activeScenario.telemetry.risk_level || 'Low Risk'} size="sm" />
+                  {activeScenario ? (
+                    <RiskBadge level={activeScenario.telemetry.estimated_risk || activeScenario.telemetry.risk_level || 'Low Risk'} size="sm" />
+                  ) : (
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>Pending Upload</span>
+                  )}
                 </div>
               </div>
             </div>
@@ -300,12 +381,24 @@ export default function VisionScanner({ onTransferToPredictor }) {
             {/* Seamless 1-Click Pipeline Transfer Button */}
             <button
               className="btn btn-primary"
-              style={{ width: '100%', gap: '0.6rem', padding: '0.85rem', fontSize: '0.95rem' }}
-              onClick={() => onTransferToPredictor(activeScenario.telemetry, activeScenario.road_name, activeScenario.location, {
-                imageUrl: activeScenario.imageUrl,
-                detections: activeScenario.detections,
-                title: activeScenario.title
-              })}
+              style={{
+                width: '100%',
+                gap: '0.6rem',
+                padding: '0.85rem',
+                fontSize: '0.95rem',
+                opacity: activeScenario ? 1 : 0.6,
+                cursor: activeScenario ? 'pointer' : 'not-allowed'
+              }}
+              disabled={!activeScenario}
+              onClick={() => {
+                if (activeScenario) {
+                  onTransferToPredictor(activeScenario.telemetry, activeScenario.road_name, activeScenario.location, {
+                    imageUrl: activeScenario.imageUrl,
+                    detections: activeScenario.detections,
+                    title: activeScenario.title
+                  });
+                }
+              }}
             >
               <Sparkles size={18} />
               <span>Run Full Multi-Modal AI Assessment & Decision Synthesis</span>
