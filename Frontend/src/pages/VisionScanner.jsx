@@ -16,7 +16,8 @@ import {
 } from 'lucide-react';
 import RiskBadge from '../components/RiskBadge';
 import { SAMPLE_INSPECTION_SCENARIOS } from '../utils/sampleScenarios';
-import { compressImageForUpload, validateRoadImageClient } from '../utils/imageUtils';
+import { compressImageForUpload, validateRoadImageClient, analyzeRoadDamageFromImage } from '../utils/imageUtils';
+import { calculateLiveRoadRisk } from '../utils/civilRiskEngine';
 import { api } from '../api';
 
 export default function VisionScanner({ onTransferToPredictor }) {
@@ -60,10 +61,14 @@ export default function VisionScanner({ onTransferToPredictor }) {
         if (!valCheck.isValid) {
           setIsScanning(false);
           setCustomImage(null);
+          setSelectedScenario(null);
           setValidationError("Please upload a valid image");
           if (fileInputRef.current) fileInputRef.current.value = "";
           return;
         }
+
+        // Analyze pavement distress dynamically from pixels
+        const clientAnalysis = await analyzeRoadDamageFromImage(dataUrl);
 
         const cleanName = file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, ' ') || 'Surveyed Photo Corridor';
         
@@ -78,10 +83,11 @@ export default function VisionScanner({ onTransferToPredictor }) {
           console.warn("Backend scanImage service offline or notice, using neural visual telemetry:", apiErr);
         }
 
-        // If backend explicitly rejected due to blank/corrupt file
-        if (scanRes && scanRes.is_valid_road === false && scanRes.error) {
+        // If backend explicitly rejected due to non-road or corrupt file
+        if (scanRes && scanRes.is_valid_road === false) {
           setIsScanning(false);
           setCustomImage(null);
+          setSelectedScenario(null);
           setValidationError("Please upload a valid image");
           if (fileInputRef.current) fileInputRef.current.value = "";
           return;
@@ -90,20 +96,47 @@ export default function VisionScanner({ onTransferToPredictor }) {
         setValidationError(null);
         setCustomImage(dataUrl);
 
+        // Derive physical metrics from actual computer vision distress analysis
+        const potholeCnt = scanRes?.pothole_count !== undefined
+          ? scanRes.pothole_count
+          : (clientAnalysis?.telemetry?.pothole_count ?? 0);
+
+        const potholeDep = scanRes?.pothole_depth !== undefined
+          ? scanRes.pothole_depth
+          : (clientAnalysis?.telemetry?.pothole_depth ?? (potholeCnt > 0 ? 4.5 : 0.0));
+
+        const crackLen = scanRes?.crack_length !== undefined
+          ? scanRes.crack_length
+          : (clientAnalysis?.telemetry?.crack_length ?? 0.0);
+
+        const roadAge = scanRes?.road_age !== undefined
+          ? scanRes.road_age
+          : (clientAnalysis?.telemetry?.road_age ?? 1.5);
+
+        const trafficVol = scanRes?.traffic_density || clientAnalysis?.telemetry?.traffic_density || (potholeCnt > 15 ? 'Very High' : (potholeCnt > 7 ? 'High' : 'Moderate'));
+        const rain = scanRes?.rainfall || clientAnalysis?.telemetry?.rainfall || (potholeCnt > 15 ? 'Heavy' : 'Moderate');
+
+        // Evaluate risk with the exact same shared MoRTH / IRC:82 civil engineering engine
+        const riskCalc = calculateLiveRoadRisk({
+          pothole_count: potholeCnt,
+          pothole_depth: potholeDep,
+          crack_length: crackLen,
+          road_age: roadAge,
+          road_length: 5.0,
+          traffic_density: trafficVol,
+          rainfall: rain
+        });
+
+        const estRisk = riskCalc.risk_level;
+        const estScore = riskCalc.risk_score;
+
         const detections = (scanRes && scanRes.detections && scanRes.detections.length > 0)
           ? scanRes.detections
-          : [
-              { class: 'Pothole Distress (D40)', confidence: 91.2, bbox: [0.38, 0.52, 0.24, 0.19] },
-              { class: 'Fatigue & Alligator Cracking (D10)', confidence: 87.4, bbox: [0.18, 0.35, 0.42, 0.22] }
-            ];
-
-        const potholeCnt = scanRes?.pothole_count ?? 6;
-        const potholeDep = scanRes?.pothole_depth ?? 5.5;
-        const crackLen = scanRes?.crack_length ?? 24.0;
-        const roadAge = scanRes?.road_age ?? 4.5;
-        const trafficVol = scanRes?.traffic_density ?? 'High';
-        const rain = scanRes?.rainfall ?? 'Moderate';
-        const estRisk = scanRes?.risk_level ?? (potholeCnt > 15 || crackLen > 45 ? 'Critical Risk' : (potholeCnt > 5 || crackLen > 20 ? 'High Risk' : 'Medium Risk'));
+          : (clientAnalysis?.detections && clientAnalysis.detections.length > 0
+              ? clientAnalysis.detections
+              : [
+                  { class: 'Road Surface Assessment', confidence: 95.0, bbox: [0.2, 0.3, 0.6, 0.4] }
+                ]);
 
         setSelectedScenario({
           id: 'custom-upload',
@@ -111,21 +144,30 @@ export default function VisionScanner({ onTransferToPredictor }) {
           location: 'Field Survey Ingestion',
           road_name: cleanName,
           imageUrl: dataUrl,
-          description: scanRes?.surface_condition_summary || 'Uploaded roadway photo successfully scanned & analyzed by neural computer vision damage pipeline.',
+          description: scanRes?.surface_condition_summary || clientAnalysis?.description || `Pavement analyzed: ${potholeCnt} potholes, ${crackLen}m cracking. Evaluated as ${estRisk}.`,
           detections: detections,
           telemetry: {
             pothole_count: potholeCnt,
             pothole_depth: potholeDep,
+            average_pothole_depth_cm: potholeDep,
             crack_length: crackLen,
+            total_crack_length_m: crackLen,
             road_age: roadAge,
+            pavement_age_years: roadAge,
+            road_length: 5.0,
+            road_length_km: 5.0,
             traffic_density: trafficVol,
+            traffic_volume: trafficVol,
             rainfall: rain,
-            estimated_risk: estRisk
+            estimated_risk: estRisk,
+            risk_level: estRisk,
+            risk_score: estScore
           }
         });
       } catch (err) {
         console.error("Scan error:", err);
         setCustomImage(null);
+        setSelectedScenario(null);
         setValidationError("Please upload a valid image");
       } finally {
         setIsScanning(false);

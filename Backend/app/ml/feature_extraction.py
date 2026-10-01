@@ -74,14 +74,49 @@ def validate_road_image(img: Image.Image) -> Tuple[bool, str]:
 
     gray = 0.2989 * r + 0.5870 * g + 0.1140 * b
 
-    # 1. Blank / Solid Color Check
-    if float(np.std(gray)) < 1.0:
+    # 1. Blank / Solid Color Canvas Check
+    std_gray = float(np.std(gray))
+    pure_white = (r > 245) & (g > 245) & (b > 245)
+    pure_black = (r < 10) & (g < 10) & (b < 10)
+    pure_wb_ratio = float(np.sum(pure_white | pure_black) / total_pixels)
+    if std_gray < 3.0 or pure_wb_ratio > 0.50:
         return False, "Please upload a valid image"
 
-    # 2. Pure Empty Document Check (> 95% pure white or black)
-    pure_white = (r > 250) & (g > 250) & (b > 250)
-    pure_black = (r < 5) & (g < 5) & (b < 5)
-    if (np.sum(pure_white | pure_black) / total_pixels) > 0.95:
+    # 2. Human Skin Tone / Portrait / Selfie Check (> 16% skin pixels)
+    skin_mask = (
+        ((h_arr <= 0.10) | (h_arr >= 0.90)) &
+        (s >= 0.16) & (s <= 0.70) &
+        (v >= 0.22) & (v <= 0.96) &
+        (r > g) & (g > b) & ((r - g) > 8)
+    )
+    if float(np.sum(skin_mask) / total_pixels) > 0.16:
+        return False, "Please upload a valid image"
+
+    # 3. High-Saturation Cartoon / Meme / Artwork / Food Check
+    mean_sat = float(np.mean(s))
+    high_sat_ratio = float(np.sum(s > 0.55) / total_pixels)
+    if mean_sat > 0.44 or high_sat_ratio > 0.38:
+        return False, "Please upload a valid image"
+
+    # 4. Pure Dense Foliage / Forest Canopy / Lawn Check (> 70% foliage)
+    foliage_mask = (h_arr >= 0.18) & (h_arr <= 0.48) & (s > 0.18) & (g > r + 6) & (g > b + 6)
+    if float(np.sum(foliage_mask) / total_pixels) > 0.70:
+        return False, "Please upload a valid image"
+
+    # 5. Ground Plane (Lower 60%) Road Pavement Presence (>= 14.0% neutral chroma pavement)
+    lower_start_y = int(h * 0.40)
+    lower_r = r[lower_start_y:, :]
+    lower_g = g[lower_start_y:, :]
+    lower_b = b[lower_start_y:, :]
+    lower_s = s[lower_start_y:, :]
+    lower_v = v[lower_start_y:, :]
+    lower_total = lower_r.size
+
+    lower_neutral_chroma = (np.abs(lower_r - lower_g) < 45) & (np.abs(lower_g - lower_b) < 45)
+    lower_pavement_mask = lower_neutral_chroma & (lower_s < 0.44) & (lower_v >= 0.05) & (lower_v <= 0.92)
+    lower_pavement_ratio = float(np.sum(lower_pavement_mask) / lower_total) if lower_total > 0 else 0.0
+
+    if lower_pavement_ratio < 0.14:
         return False, "Please upload a valid image"
 
     return True, "Valid road image."
@@ -254,11 +289,11 @@ class RoadFeatureExtractor:
         asphalt_pixel_count = int(np.sum(asphalt_mask))
         asphalt_coverage_pct = float((asphalt_pixel_count / total_pixels) * 100) if total_pixels > 0 else 0.0
 
-        mean_saturation = float(np.mean(s_arr))
-        is_non_road = (total_pixels == 0) or (float(np.std(gray)) < 1.0)
+        is_valid_road, val_msg = validate_road_image(img_norm)
+        is_non_road = (not is_valid_road) or (total_pixels == 0) or (float(np.std(gray)) < 3.0) or (asphalt_coverage_pct < 10.0)
 
         if is_blurry or is_non_road:
-            rejection_reason = "The image is too blurry to extract pavement features." if is_blurry else "Image does not appear to contain a supported asphalt roadway pavement surface."
+            rejection_reason = "The image is too blurry to extract pavement features." if is_blurry else (val_msg if not is_valid_road else "Image does not appear to contain a supported asphalt roadway pavement surface.")
             return {
                 "is_valid_road": False,
                 "rejection_reason": rejection_reason,
