@@ -97,24 +97,24 @@ export default function VisionScanner({ onTransferToPredictor }) {
         setCustomImage(dataUrl);
 
         // Derive physical metrics from actual computer vision distress analysis
-        const potholeCnt = scanRes?.pothole_count !== undefined
-          ? scanRes.pothole_count
-          : (clientAnalysis?.telemetry?.pothole_count ?? 0);
+        const potholeCnt = clientAnalysis?.telemetry?.pothole_count !== undefined
+          ? clientAnalysis.telemetry.pothole_count
+          : (scanRes?.pothole_count ?? 0);
 
-        const potholeDep = scanRes?.pothole_depth !== undefined
-          ? scanRes.pothole_depth
-          : (clientAnalysis?.telemetry?.pothole_depth ?? (potholeCnt > 0 ? 4.5 : 0.0));
+        const potholeDep = clientAnalysis?.telemetry?.pothole_depth !== undefined
+          ? clientAnalysis.telemetry.pothole_depth
+          : (scanRes?.pothole_depth ?? (potholeCnt > 0 ? 4.5 : 0.0));
 
-        const crackLen = scanRes?.crack_length !== undefined
-          ? scanRes.crack_length
-          : (clientAnalysis?.telemetry?.crack_length ?? 0.0);
+        const crackLen = clientAnalysis?.telemetry?.crack_length !== undefined
+          ? clientAnalysis.telemetry.crack_length
+          : (scanRes?.crack_length ?? 0.0);
 
-        const roadAge = scanRes?.road_age !== undefined
-          ? scanRes.road_age
-          : (clientAnalysis?.telemetry?.road_age ?? 1.5);
+        const roadAge = clientAnalysis?.telemetry?.road_age !== undefined
+          ? clientAnalysis.telemetry.road_age
+          : (scanRes?.road_age ?? 1.2);
 
-        const trafficVol = scanRes?.traffic_density || clientAnalysis?.telemetry?.traffic_density || (potholeCnt > 15 ? 'Very High' : (potholeCnt > 7 ? 'High' : 'Moderate'));
-        const rain = scanRes?.rainfall || clientAnalysis?.telemetry?.rainfall || (potholeCnt > 15 ? 'Heavy' : 'Moderate');
+        const trafficVol = clientAnalysis?.telemetry?.traffic_density || scanRes?.traffic_density || (potholeCnt > 15 ? 'Very High' : (potholeCnt > 7 ? 'High' : 'Moderate'));
+        const rain = clientAnalysis?.telemetry?.rainfall || scanRes?.rainfall || (potholeCnt > 15 ? 'Heavy' : 'Moderate');
 
         // Evaluate risk with the exact same shared MoRTH / IRC:82 civil engineering engine
         const riskCalc = calculateLiveRoadRisk({

@@ -284,8 +284,10 @@ class RoadFeatureExtractor:
         cone_barrel_mask = (s_arr > 0.55) & ((h_arr < 0.12) | (h_arr > 0.88)) & (v_arr > 0.50)
         non_road_objects = sky_mask | veg_mask | cone_barrel_mask
 
-        # 3. Asphalt Pavement Surface Isolation
-        asphalt_mask = (gray >= 15) & (gray <= 240) & (~non_road_objects)
+        # 3. Asphalt Pavement Surface Isolation (exclude letterbox borders < 25 and bright lane markings > 175)
+        lane_markings_mask = (gray > 175) & (s_arr < 0.25)
+        letterbox_mask = (gray < 25)
+        asphalt_mask = (gray >= 25) & (gray <= 180) & (s_arr < 0.30) & (~non_road_objects) & (~lane_markings_mask) & (~letterbox_mask)
         asphalt_pixel_count = int(np.sum(asphalt_mask))
         asphalt_coverage_pct = float((asphalt_pixel_count / total_pixels) * 100) if total_pixels > 0 else 0.0
 
@@ -323,13 +325,17 @@ class RoadFeatureExtractor:
         grad_x = np.abs(np.diff(gray, axis=1, append=gray[:, -1:]))
         grad_mag = np.sqrt(grad_x**2 + grad_y**2)
 
-        # Cavity (Pothole) Detection:
-        cavity_threshold = max(15.0, road_mean - 1.95 * max(6.0, road_std))
-        cavity_dark_mask = asphalt_mask & (gray < cavity_threshold) & (grad_mag > 10.0)
+        # Cavity (Pothole) and Crack Detection:
+        # Smooth roads (road_std < 14.0) exhibit uniform texture with zero cavitation defects
+        if road_std < 14.0:
+            cavity_dark_mask = np.zeros_like(asphalt_mask, dtype=bool)
+            crack_candidate_mask = np.zeros_like(asphalt_mask, dtype=bool)
+        else:
+            cavity_threshold = max(20.0, road_mean - 2.1 * road_std)
+            cavity_dark_mask = asphalt_mask & (gray < cavity_threshold) & (gray < 52.0) & (grad_mag > 14.0)
 
-        # Cracks Detection:
-        crack_grad_thresh = max(14.0, road_mean * 0.15 + road_std * 1.2)
-        crack_candidate_mask = asphalt_mask & (grad_mag > crack_grad_thresh) & (gray < road_mean - 0.3 * road_std) & (~cavity_dark_mask)
+            crack_grad_thresh = max(16.0, road_std * 1.5)
+            crack_candidate_mask = asphalt_mask & (grad_mag > crack_grad_thresh) & (gray < road_mean - 1.15 * road_std) & (~cavity_dark_mask)
 
         # Spatial Grid Localization for Feature Aggregation
         grid_rows = 6
