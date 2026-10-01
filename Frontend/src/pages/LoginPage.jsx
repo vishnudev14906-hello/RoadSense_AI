@@ -60,7 +60,7 @@ const GoogleIcon = () => (
   </svg>
 );
 
-export default function LoginPage({ onLoginSuccess }) {
+export default function LoginPage({ onLoginSuccess, onCancel }) {
   // Modes: 'signin' | 'register' | 'forgot' | 'resetPassword'
   const [authMode, setAuthMode] = useState('signin');
   
@@ -478,6 +478,35 @@ export default function LoginPage({ onLoginSuccess }) {
         position: 'relative',
         zIndex: 1
       }}>
+        {/* Return to Dashboard Option */}
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            style={{
+              position: 'absolute',
+              top: '1rem',
+              left: '1rem',
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid var(--border-subtle)',
+              color: 'var(--text-muted)',
+              borderRadius: 'var(--radius-full)',
+              padding: '0.3rem 0.65rem',
+              fontSize: '0.74rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              zIndex: 10
+            }}
+            title="Return to Public Dashboard"
+          >
+            <ArrowLeft size={13} />
+            <span>Dashboard</span>
+          </button>
+        )}
+
         {/* Brand Header */}
         <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
           <div style={{

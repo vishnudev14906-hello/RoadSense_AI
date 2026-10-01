@@ -75,62 +75,13 @@ def validate_road_image(img: Image.Image) -> Tuple[bool, str]:
     gray = 0.2989 * r + 0.5870 * g + 0.1140 * b
 
     # 1. Blank / Solid Color Check
-    if float(np.std(gray)) < 2.5:
+    if float(np.std(gray)) < 1.0:
         return False, "Please upload a valid image"
 
-    # 2. Screenshot / Document Flat Background Check (Pure white or dark UI blocks)
-    pure_white = (r > 242) & (g > 242) & (b > 242)
-    pure_black = (r < 12) & (g < 12) & (b < 12)
-    if (np.sum(pure_white | pure_black) / total_pixels) > 0.45:
-        return False, "Please upload a valid image"
-
-    # 3. Human Face / Selfie / Skin Detection
-    skin_mask = (
-        ((h_arr <= 0.10) | (h_arr >= 0.90)) &
-        (s >= 0.14) & (s <= 0.70) &
-        (v >= 0.22) & (v <= 0.96) &
-        (r > g) & (g > b) & ((r - g) > 8.0)
-    )
-    if (np.sum(skin_mask) / total_pixels) > 0.14:
-        return False, "Please upload a valid image"
-
-    # 4. Tree / Forest / Dense Green Foliage
-    foliage_mask = (h_arr >= 0.18) & (h_arr <= 0.48) & (s > 0.18) & (g > r + 6.0) & (g > b + 6.0)
-    if (np.sum(foliage_mask) / total_pixels) > 0.50:
-        return False, "Please upload a valid image"
-
-    # 5. Blue Sky / Ocean / Swimming Pool Dominance
-    sky_water_mask = (h_arr >= 0.50) & (h_arr <= 0.78) & (s > 0.20) & (b > r + 12.0)
-    if (np.sum(sky_water_mask) / total_pixels) > 0.52:
-        return False, "Please upload a valid image"
-
-    # 6. Cartoon / Graphic Illustration (High mean color saturation)
-    mean_sat = float(np.mean(s))
-    if mean_sat > 0.42 or (np.sum(s > 0.55) / total_pixels) > 0.35:
-        return False, "Please upload a valid image"
-
-    # 7. Lower-Half Pavement Surface Ground-Plane Verification
-    lower_start_y = int(h * 0.40)
-    lower_rgb = rgb[lower_start_y:, :, :]
-    lower_s = s[lower_start_y:, :]
-    lower_v = v[lower_start_y:, :]
-    lower_pixels = lower_s.size
-
-    lower_r = lower_rgb[:, :, 0]
-    lower_g = lower_rgb[:, :, 1]
-    lower_b = lower_rgb[:, :, 2]
-    neutral_chroma = (np.abs(lower_r - lower_g) < 35.0) & (np.abs(lower_g - lower_b) < 35.0)
-    asphalt_ground_mask = (
-        neutral_chroma &
-        (lower_s < 0.38) &
-        (lower_v >= 0.06) & (lower_v <= 0.90)
-    )
-    asphalt_lower_pct = (np.sum(asphalt_ground_mask) / lower_pixels) * 100.0
-
-    lower_foliage = foliage_mask[lower_start_y:, :]
-    lower_foliage_pct = (np.sum(lower_foliage) / lower_pixels) * 100.0
-
-    if asphalt_lower_pct < 15.0 or lower_foliage_pct > 40.0:
+    # 2. Pure Empty Document Check (> 95% pure white or black)
+    pure_white = (r > 250) & (g > 250) & (b > 250)
+    pure_black = (r < 5) & (g < 5) & (b < 5)
+    if (np.sum(pure_white | pure_black) / total_pixels) > 0.95:
         return False, "Please upload a valid image"
 
     return True, "Valid road image."
@@ -283,7 +234,7 @@ class RoadFeatureExtractor:
 
         # 1. Blurriness Check (Only reject extreme blur when there is almost zero texture)
         blur_var = compute_laplacian_variance(gray)
-        is_blurry = blur_var < BLUR_VARIANCE_THRESHOLD and float(np.std(gray)) < 3.0
+        is_blurry = blur_var < 1.0 and float(np.std(gray)) < 1.0
 
         # 2. Non-Road Elements Segmentation
         y_coords = np.arange(height)[:, None]
@@ -304,7 +255,7 @@ class RoadFeatureExtractor:
         asphalt_coverage_pct = float((asphalt_pixel_count / total_pixels) * 100) if total_pixels > 0 else 0.0
 
         mean_saturation = float(np.mean(s_arr))
-        is_non_road = asphalt_coverage_pct < MIN_ASPHALT_COVERAGE_PCT or (mean_saturation > 0.65 and float(np.std(gray)) < 5.0)
+        is_non_road = (total_pixels == 0) or (float(np.std(gray)) < 1.0)
 
         if is_blurry or is_non_road:
             rejection_reason = "The image is too blurry to extract pavement features." if is_blurry else "Image does not appear to contain a supported asphalt roadway pavement surface."

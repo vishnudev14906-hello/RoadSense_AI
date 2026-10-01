@@ -96,7 +96,7 @@ class RoadImageDetectorService:
         gray = 0.2989 * img_arr[:, :, 0] + 0.5870 * img_arr[:, :, 1] + 0.1140 * img_arr[:, :, 2]
         blur_var = compute_laplacian_variance(gray)
 
-        if blur_var < BLUR_VARIANCE_THRESHOLD:
+        if blur_var < 1.0 and float(np.std(gray)) < 1.0:
             return {
                 "detected_class": "Uncertain / Blurry Image",
                 "confidence": 0.15,
@@ -108,7 +108,7 @@ class RoadImageDetectorService:
                 "model_version": "Custom-CNN-Scratch-v1.0"
             }
 
-        # Check for non-road out-of-distribution features (high color saturation, vivid chroma, flat colors)
+        # Check for non-road out-of-distribution features
         r = img_arr[:, :, 0]
         g = img_arr[:, :, 1]
         b = img_arr[:, :, 2]
@@ -120,8 +120,8 @@ class RoadImageDetectorService:
         mean_sat = float(np.mean(saturation))
         std_val = float(np.std(img_arr))
 
-        # Real asphalt has low to moderate color saturation and basic variance
-        if mean_sat > 0.65 or std_val < 0.5:
+        # Reject only completely blank uniform canvases
+        if std_val < 0.5:
             return {
                 "detected_class": "Uncertain / Non-Road",
                 "confidence": 0.20,

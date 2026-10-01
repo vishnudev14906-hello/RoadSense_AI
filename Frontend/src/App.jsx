@@ -181,6 +181,8 @@ export default function App() {
     sessionStorage.removeItem('roadsense_token');
     sessionStorage.removeItem('roadsense_user');
     setCurrentUser(null);
+    setIsAuthModalOpen(false);
+    setCurrentTab('login');
     setToastMessage("Successfully signed out.");
     setTimeout(() => setToastMessage(''), 3000);
   };
@@ -188,6 +190,7 @@ export default function App() {
   const handleLoginSuccess = (user) => {
     setCurrentUser(user);
     setIsAuthModalOpen(false);
+    setCurrentTab('dashboard');
     setToastMessage(`Welcome back, ${user.name}!`);
     setTimeout(() => setToastMessage(''), 3500);
   };
@@ -209,6 +212,22 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Dedicated full-screen Login / Registration Page View
+  if (currentTab === 'login') {
+    return (
+      <Suspense fallback={<PageFallback />}>
+        <LoginPage
+          onLoginSuccess={(user) => {
+            handleLoginSuccess(user);
+          }}
+          onCancel={() => {
+            handleTabChange('dashboard');
+          }}
+        />
+      </Suspense>
+    );
+  }
+
   return (
     <div className="app-container">
       {/* Sidebar Navigation */}
@@ -225,7 +244,7 @@ export default function App() {
         {/* Top Navbar */}
         <Navbar
           currentUser={currentUser}
-          onOpenAuth={() => setIsAuthModalOpen(true)}
+          onOpenAuth={() => setCurrentTab('login')}
           onLogout={handleLogout}
           onToggleMobileMenu={() => setIsMobileMenuOpen(prev => !prev)}
         />

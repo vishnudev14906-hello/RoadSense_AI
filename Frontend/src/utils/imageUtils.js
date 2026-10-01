@@ -203,53 +203,19 @@ export const validateRoadImageClient = (imageSource) => {
         const variance = Math.max(0, (sumSqGray / totalPixels) - (meanGray * meanGray));
         const stdDev = Math.sqrt(variance);
 
-        // 1. Blank or single solid color
-        if (stdDev < 2.5) {
+        // 1. Blank or single solid color canvas check
+        if (stdDev < 1.0) {
           resolve({ isValid: false, error: "Please upload a valid image" });
           return;
         }
 
-        // 2. Screenshot / Flat document / UI diagram
-        if ((pureWhiteBlackCount / totalPixels) > 0.45) {
+        // 2. Reject only pure blank white or pure pitch black documents (> 95% single limit)
+        if ((pureWhiteBlackCount / totalPixels) > 0.95) {
           resolve({ isValid: false, error: "Please upload a valid image" });
           return;
         }
 
-        // 3. Human face / selfie / portrait
-        if ((skinCount / totalPixels) > 0.14) {
-          resolve({ isValid: false, error: "Please upload a valid image" });
-          return;
-        }
-
-        // 4. Dense vegetation / trees / forest / lawn
-        if ((foliageCount / totalPixels) > 0.50) {
-          resolve({ isValid: false, error: "Please upload a valid image" });
-          return;
-        }
-
-        // 5. Sky / ocean / swimming pool
-        if ((skyWaterCount / totalPixels) > 0.52) {
-          resolve({ isValid: false, error: "Please upload a valid image" });
-          return;
-        }
-
-        // 6. High-saturation cartoon, meme, or graphic
-        const meanSat = sumSat / totalPixels;
-        if (meanSat > 0.42 || (highSatCount / totalPixels) > 0.35) {
-          resolve({ isValid: false, error: "Please upload a valid image" });
-          return;
-        }
-
-        // 7. Lower Ground-Plane Verification (must have pavement in lower 60%)
-        const lowerAsphaltPct = lowerTotal > 0 ? (lowerPavementCount / lowerTotal) * 100 : 0;
-        const lowerFoliagePct = lowerTotal > 0 ? (lowerFoliageCount / lowerTotal) * 100 : 0;
-
-        if (lowerAsphaltPct < 15.0 || lowerFoliagePct > 40.0) {
-          resolve({ isValid: false, error: "Please upload a valid image" });
-          return;
-        }
-
-        // All checks passed! Genuine road image verified
+        // All authentic roadway photos and camera captures pass validation!
         resolve({ isValid: true, error: null });
       } catch (err) {
         console.warn("Client road image verification error, falling back:", err);
