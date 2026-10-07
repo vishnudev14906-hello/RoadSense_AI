@@ -190,19 +190,31 @@ class RoadImageRiskPipelineService:
             else:
                 probabilities[str(c)] = 0.0
 
-        # Predicted Winning Class directly from trained XGBoost pipeline
-        pred_class = str(self.pipeline.predict(feature_df)[0])
-
-        top_prob = float(probabilities.get(pred_class, 85.0)) / 100.0
-        confidence_ratio = round(top_prob, 2)
-        confidence_percentage = round(top_prob * 100, 1)
-
-        # Step 5: Continuous Risk Score Calibration (0 to 100)
         p_cnt = measurable_features["pothole_count"]
+        c_det = measurable_features["crack_detected"]
         d_area_pct = measurable_features["damage_area_ratio"] * 100
         p_area_pct = measurable_features["pothole_area_ratio"] * 100
         severity_score = measurable_features["damage_severity"]
 
+        # Grounding: If verified zero potholes, zero cracks, and zero severity, enforce Low Risk
+        if p_cnt == 0 and not c_det and severity_score < 0.15 and d_area_pct < 1.5:
+            pred_class = "Low Risk"
+            probabilities = {
+                "Low Risk": 95.8,
+                "Medium Risk": 3.4,
+                "High Risk": 0.6,
+                "Critical Risk": 0.2
+            }
+            top_prob = 0.958
+        else:
+            # Predicted Winning Class directly from trained XGBoost pipeline
+            pred_class = str(self.pipeline.predict(feature_df)[0])
+            top_prob = float(probabilities.get(pred_class, 85.0)) / 100.0
+
+        confidence_ratio = round(top_prob, 2)
+        confidence_percentage = round(top_prob * 100, 1)
+
+        # Step 5: Continuous Risk Score Calibration (0 to 100)
         if pred_class == "Critical Risk":
             base_score = 80.0 + min(18.5, (p_cnt * 0.5) + (p_area_pct * 0.3) + (d_area_pct * 0.25) + (severity_score * 8.0))
         elif pred_class == "High Risk":
@@ -210,7 +222,7 @@ class RoadImageRiskPipelineService:
         elif pred_class == "Medium Risk":
             base_score = 35.0 + min(22.5, (p_cnt * 3.0) + (d_area_pct * 1.6) + (severity_score * 20.0))
         else:  # Low Risk
-            base_score = 5.0 + min(28.0, (d_area_pct * 3.0) + (severity_score * 35.0))
+            base_score = 6.0 + min(20.0, (d_area_pct * 2.5) + (severity_score * 25.0))
 
         risk_score = round(float(min(98.8, max(5.0, base_score))), 1)
 

@@ -171,8 +171,8 @@ export const validateRoadImageClient = (imageSource) => {
               h = ((h / 6) % 1 + 1) % 1;
             }
 
-            // Human Skin Tone Detection
-            const isSkin = ((h <= 0.10 || h >= 0.90) && s >= 0.16 && s <= 0.70 && v >= 0.22 && v <= 0.96 && r > g && g > b && (r - g) > 8);
+            // Human Skin Tone Detection (Only check authentic skin lightness, ignoring dark gravel)
+            const isSkin = ((h <= 0.10 || h >= 0.90) && s >= 0.16 && s <= 0.70 && v >= 0.22 && v <= 0.96 && r > 95 && g > 40 && b > 20 && r > g && g > b && (r - g) > 8);
             if (isSkin) skinCount++;
 
             // Foliage / Vegetation
@@ -202,7 +202,7 @@ export const validateRoadImageClient = (imageSource) => {
         }
 
         // 2. Reject human face / selfie / portrait (> 16% skin pixels)
-        if ((skinCount / totalPixels) > 0.16) {
+        if ((skinCount / totalPixels) > 0.16 && lowerPavementPct < 25.0) {
           resolve({ isValid: false, error: "Please upload a valid image" });
           return;
         }
@@ -368,8 +368,8 @@ export const analyzeRoadDamageFromImage = (imageSource) => {
             if (isWhiteLane || isYellowLane) continue;
 
             // Genuine neutral-chroma asphalt wearing course
-            const isNeutralChroma = Math.abs(r - g) < 32 && Math.abs(g - b) < 32;
-            const isAsphalt = isNeutralChroma && s < 0.28 && gray >= 28 && gray <= 175;
+            const isNeutralChroma = Math.abs(r - g) < 22 && Math.abs(g - b) < 22 && Math.abs(r - b) < 22;
+            const isAsphalt = isNeutralChroma && s < 0.28 && gray >= 28 && gray <= 180;
 
             if (isAsphalt) {
               asphaltPixels.push({ x, y, gray });
@@ -424,14 +424,14 @@ export const analyzeRoadDamageFromImage = (imageSource) => {
         const stdDev = Math.sqrt(variance);
 
         // 4. Measure Cavitation Voids (Potholes) and Crack Fissures
-        // On a clean, smooth road, stdDev is < 14.0 (homogeneous, smooth).
+        // On a clean, smooth road, stdDev is < 15.0 (homogeneous, smooth).
         // Real cavities and cracks only occur when there is significant localized texture roughness.
         let cavityPixels = 0;
         let crackPixels = 0;
 
-        if (stdDev >= 14.0) {
-          const cavityThreshold = Math.max(20.0, meanGray - 2.1 * stdDev);
-          const crackThreshold = Math.max(25.0, meanGray - 1.15 * stdDev);
+        if (stdDev >= 15.5) {
+          const cavityThreshold = Math.max(20.0, meanGray - 2.3 * stdDev);
+          const crackThreshold = Math.max(25.0, meanGray - 1.35 * stdDev);
 
           for (let i = 0; i < totalAsphalt; i++) {
             const p = asphaltPixels[i];
@@ -447,11 +447,11 @@ export const analyzeRoadDamageFromImage = (imageSource) => {
             }
 
             // Cavity void (pothole crater): significantly darker than surrounding road + dark pit
-            if (p.gray < cavityThreshold && p.gray < 52.0 && localGrad > 14.0) {
+            if (p.gray < cavityThreshold && p.gray < 48.0 && localGrad > 18.0) {
               cavityPixels++;
             }
             // Crack fissure: narrow dark line with sharp edge
-            else if (p.gray < crackThreshold && localGrad > Math.max(16.0, stdDev * 1.4)) {
+            else if (p.gray < crackThreshold && localGrad > Math.max(18.0, stdDev * 1.5)) {
               crackPixels++;
             }
           }
@@ -459,7 +459,7 @@ export const analyzeRoadDamageFromImage = (imageSource) => {
 
         const cavityRatio = cavityPixels / totalAsphalt;
         const crackRatio = crackPixels / totalAsphalt;
-        const roughnessPenalty = Math.max(0, (stdDev - 13.0) / 24.0);
+        const roughnessPenalty = Math.max(0, (stdDev - 14.5) / 24.0);
 
         // Composite Distress Index: 0.0 (smooth) to 1.0 (severe degradation)
         const defectIndex = Math.min(1.0, Math.max(0.0,
@@ -472,12 +472,12 @@ export const analyzeRoadDamageFromImage = (imageSource) => {
           // Low Risk Tier (Smooth, Intact, or Newly Paved Road)
           pCnt = 0;
           pDep = 0.0;
-          cLen = Number((defectIndex * 15).toFixed(1)); // 0 - 2.4 m
-          rAge = Number((1.2 + defectIndex * 2).toFixed(1)); // 1.2 - 1.5 yrs
+          cLen = 0.0;
+          rAge = 1.2;
           traffic = 'Moderate';
           rain = 'Moderate';
           detections = [
-            { id: 1, label: 'Surface Integrity: Optimal Road Pavement', confidence: 98.6, x: 22, y: 38, w: 56, h: 48, color: '#10B981' }
+            { id: 1, label: 'Surface Integrity: Optimal Road Pavement', confidence: 98.6, x: 20, y: 35, w: 60, h: 50, color: '#10B981' }
           ];
           description = 'High-grade smooth asphalt wearing course with optimal surface friction, crisp lane markings, and zero hazardous structural cavitation.';
         } else if (defectIndex < 0.45) {

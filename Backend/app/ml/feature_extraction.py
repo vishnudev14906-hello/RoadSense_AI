@@ -28,6 +28,38 @@ FEATURE_COLUMNS = [
 ]
 
 
+def trim_letterbox_image(img: Image.Image, threshold: int = 22) -> Image.Image:
+    """
+    Trims solid black or white letterboxing borders from mobile screenshots or camera captures.
+    Preserves original image if no significant letterbox is found.
+    """
+    if img is None:
+        return img
+    try:
+        arr = np.array(img)
+        if len(arr.shape) != 3 or arr.shape[0] < 40 or arr.shape[1] < 40:
+            return img
+        row_means = np.mean(arr, axis=(1, 2))
+        col_means = np.mean(arr, axis=(0, 2))
+        top = 0
+        while top < len(row_means) and (row_means[top] < threshold or row_means[top] > 250):
+            top += 1
+        bottom = len(row_means) - 1
+        while bottom > top and (row_means[bottom] < threshold or row_means[bottom] > 250):
+            bottom -= 1
+        left = 0
+        while left < len(col_means) and (col_means[left] < threshold or col_means[left] > 250):
+            left += 1
+        right = len(col_means) - 1
+        while right > left and (col_means[right] < threshold or col_means[right] > 250):
+            right -= 1
+        if bottom > top + 30 and right > left + 30 and (top > 0 or bottom < len(row_means) - 1 or left > 0 or right < len(col_means) - 1):
+            return img.crop((left, top, right + 1, bottom + 1))
+    except Exception:
+        pass
+    return img
+
+
 def validate_road_image(img: Image.Image) -> Tuple[bool, str]:
     """
     Lightweight, deterministic computer vision validator to ensure an image
@@ -38,11 +70,12 @@ def validate_road_image(img: Image.Image) -> Tuple[bool, str]:
     if img is None:
         return False, "Please upload a valid image"
 
-    width, height = img.size
-    if width < 64 or height < 64:
+    img_clean = trim_letterbox_image(img)
+    width, height = img_clean.size
+    if width < 40 or height < 40:
         return False, "Please upload a valid image"
 
-    img_norm = img.copy()
+    img_norm = img_clean.copy()
     img_norm.thumbnail((320, 240))
     w, h = img_norm.size
     total_pixels = w * h
@@ -82,28 +115,7 @@ def validate_road_image(img: Image.Image) -> Tuple[bool, str]:
     if std_gray < 3.0 or pure_wb_ratio > 0.50:
         return False, "Please upload a valid image"
 
-    # 2. Human Skin Tone / Portrait / Selfie Check (> 16% skin pixels)
-    skin_mask = (
-        ((h_arr <= 0.10) | (h_arr >= 0.90)) &
-        (s >= 0.16) & (s <= 0.70) &
-        (v >= 0.22) & (v <= 0.96) &
-        (r > g) & (g > b) & ((r - g) > 8)
-    )
-    if float(np.sum(skin_mask) / total_pixels) > 0.16:
-        return False, "Please upload a valid image"
-
-    # 3. High-Saturation Cartoon / Meme / Artwork / Food Check
-    mean_sat = float(np.mean(s))
-    high_sat_ratio = float(np.sum(s > 0.55) / total_pixels)
-    if mean_sat > 0.44 or high_sat_ratio > 0.38:
-        return False, "Please upload a valid image"
-
-    # 4. Pure Dense Foliage / Forest Canopy / Lawn Check (> 70% foliage)
-    foliage_mask = (h_arr >= 0.18) & (h_arr <= 0.48) & (s > 0.18) & (g > r + 6) & (g > b + 6)
-    if float(np.sum(foliage_mask) / total_pixels) > 0.70:
-        return False, "Please upload a valid image"
-
-    # 5. Ground Plane (Lower 60%) Road Pavement Presence (>= 14.0% neutral chroma pavement)
+    # 2. Ground Plane (Lower 60%) Road Pavement Presence (>= 14.0% neutral chroma pavement)
     lower_start_y = int(h * 0.40)
     lower_r = r[lower_start_y:, :]
     lower_g = g[lower_start_y:, :]
@@ -115,6 +127,29 @@ def validate_road_image(img: Image.Image) -> Tuple[bool, str]:
     lower_neutral_chroma = (np.abs(lower_r - lower_g) < 45) & (np.abs(lower_g - lower_b) < 45)
     lower_pavement_mask = lower_neutral_chroma & (lower_s < 0.44) & (lower_v >= 0.05) & (lower_v <= 0.92)
     lower_pavement_ratio = float(np.sum(lower_pavement_mask) / lower_total) if lower_total > 0 else 0.0
+
+    # 3. Human Skin Tone / Portrait / Selfie Check (> 16% skin pixels)
+    # Authentic human portraits contain upper/central skin pixels with human skin lightness (r > 95, g > 40, b > 20)
+    skin_mask = (
+        ((h_arr <= 0.10) | (h_arr >= 0.90)) &
+        (s >= 0.16) & (s <= 0.70) &
+        (v >= 0.22) & (v <= 0.96) &
+        (r > 95) & (g > 40) & (b > 20) &
+        (r > g) & (g > b) & ((r - g) > 8)
+    )
+    if float(np.sum(skin_mask) / total_pixels) > 0.16 and lower_pavement_ratio < 0.25:
+        return False, "Please upload a valid image"
+
+    # 4. High-Saturation Cartoon / Meme / Artwork / Food Check
+    mean_sat = float(np.mean(s))
+    high_sat_ratio = float(np.sum(s > 0.55) / total_pixels)
+    if mean_sat > 0.44 or high_sat_ratio > 0.38:
+        return False, "Please upload a valid image"
+
+    # 5. Pure Dense Foliage / Forest Canopy / Lawn Check (> 70% foliage)
+    foliage_mask = (h_arr >= 0.18) & (h_arr <= 0.48) & (s > 0.18) & (g > r + 6) & (g > b + 6)
+    if float(np.sum(foliage_mask) / total_pixels) > 0.70:
+        return False, "Please upload a valid image"
 
     if lower_pavement_ratio < 0.14:
         return False, "Please upload a valid image"
@@ -137,6 +172,7 @@ def decode_and_validate_image(image_input: Union[Image.Image, str, bytes], valid
                 img = image_input
             if img.mode != 'RGB':
                 img = img.convert('RGB')
+            img = trim_letterbox_image(img)
             if max(img.size) > MAX_INGEST_DIMENSION:
                 img.thumbnail((MAX_INGEST_DIMENSION, MAX_INGEST_DIMENSION), Image.Resampling.LANCZOS)
             
@@ -178,11 +214,14 @@ def decode_and_validate_image(image_input: Union[Image.Image, str, bytes], valid
         if img.mode != 'RGB':
             img = img.convert('RGB')
 
-        # 2. Limit maximum dimension to 1024px to prevent large mobile images from causing RAM spikes/OOM
+        # 2. Trim black letterbox bars (e.g. mobile screenshots)
+        img = trim_letterbox_image(img)
+
+        # 3. Limit maximum dimension to 1024px to prevent large mobile images from causing RAM spikes/OOM
         if max(img.size) > MAX_INGEST_DIMENSION:
             img.thumbnail((MAX_INGEST_DIMENSION, MAX_INGEST_DIMENSION), Image.Resampling.LANCZOS)
 
-        # 3. Verify image depicts a supported road pavement scene
+        # 4. Verify image depicts a supported road pavement scene
         if validate_road:
             is_valid_road, val_msg = validate_road_image(img)
             if not is_valid_road:
@@ -253,8 +292,11 @@ class RoadFeatureExtractor:
         cnn_damage_class: Optional[str] = None,
         cnn_confidence: Optional[float] = None
     ) -> Dict[str, Any]:
+        # Trim letterboxing borders first (e.g. phone screenshot black bars)
+        img_trimmed = trim_letterbox_image(img)
+
         # Normalize processing resolution (640x480 max) for uniform physical feature estimation
-        img_norm = img.copy()
+        img_norm = img_trimmed.copy()
         img_norm.thumbnail((640, 480))
         width, height = img_norm.size
         total_pixels = width * height
@@ -271,28 +313,39 @@ class RoadFeatureExtractor:
         blur_var = compute_laplacian_variance(gray)
         is_blurry = blur_var < 1.0 and float(np.std(gray)) < 1.0
 
-        # 2. Non-Road Elements Segmentation
+        # 2. Ground Plane & Non-Road Elements Segmentation
+        # Pavement surface is physically grounded in the lower perspective plane (y >= 0.35 * height)
         y_coords = np.arange(height)[:, None]
-        upper_third = y_coords < (height * 0.35)
-        sky_mask = upper_third & (((h_arr >= 0.50) & (h_arr <= 0.75) & (s_arr > 0.15)) | (v_arr > 0.92))
+        ground_plane = y_coords >= (height * 0.35)
+        upper_sky_mask = (~ground_plane) & (((h_arr >= 0.50) & (h_arr <= 0.75) & (s_arr > 0.15)) | (v_arr > 0.90))
 
-        # Roadside vegetation
-        veg_mask = ((h_arr >= 0.20) & (h_arr <= 0.45) & (s_arr > 0.25)) | \
-                   ((g_chan > r_chan + 15.0) & (g_chan > b_chan + 15.0) & (g_chan > 40.0))
+        # Roadside vegetation / foliage (trees, grass, bushes)
+        veg_mask = ((h_arr >= 0.18) & (h_arr <= 0.48) & (s_arr > 0.20)) | \
+                   ((g_chan > r_chan + 6.0) & (g_chan > b_chan + 6.0)) | \
+                   ((g_chan > r_chan + 12.0) & (g_chan > 35.0))
 
         # Traffic Cones & Safety Barricades
         cone_barrel_mask = (s_arr > 0.55) & ((h_arr < 0.12) | (h_arr > 0.88)) & (v_arr > 0.50)
-        non_road_objects = sky_mask | veg_mask | cone_barrel_mask
+        non_road_objects = upper_sky_mask | veg_mask | cone_barrel_mask
 
-        # 3. Asphalt Pavement Surface Isolation (exclude letterbox borders < 25 and bright lane markings > 175)
-        lane_markings_mask = (gray > 175) & (s_arr < 0.25)
-        letterbox_mask = (gray < 25)
-        asphalt_mask = (gray >= 25) & (gray <= 180) & (s_arr < 0.30) & (~non_road_objects) & (~lane_markings_mask) & (~letterbox_mask)
+        # Painted thermoplastic lane markings (white/yellow dashes)
+        lane_markings_mask = ((gray > 165) & (s_arr < 0.22)) | \
+                             ((h_arr >= 0.08) & (h_arr <= 0.20) & (s_arr > 0.32) & (gray > 115))
+
+        # Letterbox borders & extreme dark shadows outside roadway
+        dark_edge_mask = (gray < 28)
+
+        # 3. Asphalt Pavement Surface Isolation
+        # Neutral chroma constraint: real asphalt does not have strong color tint
+        neutral_chroma = (np.abs(r_chan - g_chan) <= 22) & (np.abs(g_chan - b_chan) <= 22) & (np.abs(r_chan - b_chan) <= 22)
+        asphalt_mask = ground_plane & neutral_chroma & (s_arr < 0.28) & (gray >= 28) & (gray <= 180) & \
+                       (~non_road_objects) & (~lane_markings_mask) & (~dark_edge_mask)
+
         asphalt_pixel_count = int(np.sum(asphalt_mask))
         asphalt_coverage_pct = float((asphalt_pixel_count / total_pixels) * 100) if total_pixels > 0 else 0.0
 
         is_valid_road, val_msg = validate_road_image(img_norm)
-        is_non_road = (not is_valid_road) or (total_pixels == 0) or (float(np.std(gray)) < 3.0) or (asphalt_coverage_pct < 10.0)
+        is_non_road = (not is_valid_road) or (total_pixels == 0) or (float(np.std(gray)) < 3.0) or (asphalt_coverage_pct < 8.0)
 
         if is_blurry or is_non_road:
             rejection_reason = "The image is too blurry to extract pavement features." if is_blurry else (val_msg if not is_valid_road else "Image does not appear to contain a supported asphalt roadway pavement surface.")
@@ -316,7 +369,7 @@ class RoadFeatureExtractor:
                 "damage_severity_label": "None"
             }
 
-        # 4. Pavement Defect Extraction (Within asphalt mask)
+        # 4. Pavement Defect Extraction (Within asphalt mask in ground plane)
         road_gray = gray[asphalt_mask]
         road_mean = float(np.mean(road_gray)) if len(road_gray) > 0 else 128.0
         road_std = float(np.std(road_gray)) if len(road_gray) > 0 else 20.0
@@ -324,18 +377,19 @@ class RoadFeatureExtractor:
         grad_y = np.abs(np.diff(gray, axis=0, append=gray[-1:, :]))
         grad_x = np.abs(np.diff(gray, axis=1, append=gray[:, -1:]))
         grad_mag = np.sqrt(grad_x**2 + grad_y**2)
+        asphalt_grad_mean = float(np.mean(grad_mag[asphalt_mask])) if len(road_gray) > 0 else 10.0
 
         # Cavity (Pothole) and Crack Detection:
-        # Smooth roads (road_std < 14.0) exhibit uniform texture with zero cavitation defects
-        if road_std < 14.0:
+        # Smooth roads (road_std < 16.0 or asphalt_grad_mean < 10.5) exhibit uniform texture with zero cavitation defects
+        if road_std < 16.0 or asphalt_grad_mean < 10.5:
             cavity_dark_mask = np.zeros_like(asphalt_mask, dtype=bool)
             crack_candidate_mask = np.zeros_like(asphalt_mask, dtype=bool)
         else:
-            cavity_threshold = max(20.0, road_mean - 2.1 * road_std)
-            cavity_dark_mask = asphalt_mask & (gray < cavity_threshold) & (gray < 52.0) & (grad_mag > 14.0)
+            cavity_threshold = max(20.0, road_mean - 2.4 * road_std)
+            cavity_dark_mask = asphalt_mask & (gray < cavity_threshold) & (gray < 48.0) & (grad_mag > 18.0)
 
-            crack_grad_thresh = max(16.0, road_std * 1.5)
-            crack_candidate_mask = asphalt_mask & (grad_mag > crack_grad_thresh) & (gray < road_mean - 1.15 * road_std) & (~cavity_dark_mask)
+            crack_grad_thresh = max(20.0, road_std * 1.6)
+            crack_candidate_mask = asphalt_mask & (grad_mag > crack_grad_thresh) & (gray < road_mean - 1.4 * road_std) & (~cavity_dark_mask)
 
         # Spatial Grid Localization for Feature Aggregation
         grid_rows = 6
@@ -361,7 +415,7 @@ class RoadFeatureExtractor:
                 cell_asphalt_sum = int(np.sum(cell_asphalt))
                 cell_total_pixels = (y2 - y1) * (x2 - x1)
 
-                if cell_asphalt_sum < 0.15 * cell_total_pixels:
+                if cell_asphalt_sum < 0.20 * cell_total_pixels:
                     continue
 
                 cell_cavity = cavity_dark_mask[y1:y2, x1:x2]
@@ -385,7 +439,7 @@ class RoadFeatureExtractor:
                 is_linear_fissure = (mean_gx > mean_gy * 1.30) or (mean_gy > mean_gx * 1.30)
 
                 # 1. Pothole Cavitation Check (2D cavity density with high local contrast)
-                if cavity_ratio >= 0.05 and not is_linear_fissure and cell_contrast >= 10.0:
+                if cavity_ratio >= 0.05 and not is_linear_fissure and cell_contrast >= 16.0:
                     is_severe = cavity_ratio >= 0.14 or cell_contrast >= 22.0
                     if is_severe:
                         severe_defect_count += 1
@@ -413,8 +467,8 @@ class RoadFeatureExtractor:
                         det_id += 1
 
                 # 2. Crack / Fissure Check
-                elif (crack_ratio >= 0.04 or (cavity_ratio >= 0.04 and is_linear_fissure)) and cell_contrast >= 6.0:
-                    if crack_ratio >= 0.12 or (cell_contrast >= 18.0 and crack_ratio >= 0.07):
+                elif (crack_ratio >= 0.05 or (cavity_ratio >= 0.05 and is_linear_fissure)) and cell_contrast >= 12.0:
+                    if crack_ratio >= 0.12 or (cell_contrast >= 20.0 and crack_ratio >= 0.07):
                         severe_defect_count += 1
                         label = "Alligator Crack (Structural Fatigue)"
                         conf = min(96.5, round(84.0 + crack_ratio * 35.0, 1))
@@ -461,9 +515,15 @@ class RoadFeatureExtractor:
 
         total_potholes = pothole_count + severe_defect_count
         pothole_detected = 1 if total_potholes > 0 else 0
-        crack_detected = 1 if (crack_cell_count > 0 or raw_crack_area_ratio > 0.005) else 0
+        crack_detected = 1 if (crack_cell_count > 0 or raw_crack_area_ratio > 0.008) else 0
 
-        damage_severity = round(float(np.clip((raw_damage_area_ratio * 2.5) + (raw_pothole_area_ratio * 3.0) + (total_potholes * 0.04), 0.0, 1.0)), 3)
+        if total_potholes == 0 and crack_detected == 0:
+            damage_severity = 0.0
+            raw_damage_area_ratio = 0.0
+            raw_pothole_area_ratio = 0.0
+            raw_crack_area_ratio = 0.0
+        else:
+            damage_severity = round(float(np.clip((raw_damage_area_ratio * 2.5) + (raw_pothole_area_ratio * 3.0) + (total_potholes * 0.04), 0.0, 1.0)), 3)
 
         # Average confidence
         if confidences:

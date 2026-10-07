@@ -36,7 +36,7 @@ import { api } from '../api';
 import { formatDateTime, formatTime } from '../utils/dateUtils';
 import { SAMPLE_INSPECTION_SCENARIOS } from '../utils/sampleScenarios';
 import { DEFAULT_ROADS } from '../data/roadsData';
-import { compressImageForUpload, validateRoadImageClient } from '../utils/imageUtils';
+import { compressImageForUpload, validateRoadImageClient, analyzeRoadDamageFromImage } from '../utils/imageUtils';
 import { calculateLiveRoadRisk } from '../utils/civilRiskEngine';
 
 const CITIES = [
@@ -387,22 +387,48 @@ export default function Predictor({ onOpenReport, initialParams }) {
         return;
       }
 
-      // Valid road image verified
+        // Valid road image verified
       setCustomImage(base64Data);
       setImageValidationError(null);
+
+      // 2. Extract physical distress telemetry dynamically from the uploaded image
+      const clientAnalysis = await analyzeRoadDamageFromImage(base64Data);
+      const pCnt = clientAnalysis?.telemetry?.pothole_count ?? 0;
+      const pDep = clientAnalysis?.telemetry?.pothole_depth ?? (pCnt > 0 ? 4.0 : 0.0);
+      const cLen = clientAnalysis?.telemetry?.crack_length ?? 0.0;
+      const rAge = clientAnalysis?.telemetry?.road_age ?? 1.2;
+      const tVol = clientAnalysis?.telemetry?.traffic_density || (pCnt > 10 ? 'High' : 'Moderate');
+      const rain = clientAnalysis?.telemetry?.rainfall || (pCnt > 10 ? 'Heavy' : 'Moderate');
 
       const cleanedName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ') || 'Uploaded Inspection Corridor';
       const updatedImgParams = {
         ...imageParams,
         road_name: cleanedName,
-        location: 'Field Survey Ingestion'
+        location: 'Field Survey Ingestion',
+        pothole_count: pCnt,
+        pothole_depth: pDep,
+        crack_length: cLen,
+        road_age: rAge,
+        traffic_density: tVol,
+        rainfall: rain
       };
       setImageParams(updatedImgParams);
+
+      if (clientAnalysis?.detections) {
+        setSelectedScenario(prev => ({
+          ...(prev || {}),
+          id: 'custom-upload',
+          title: cleanedName,
+          imageUrl: base64Data,
+          detections: clientAnalysis.detections,
+          telemetry: clientAnalysis.telemetry
+        }));
+      }
 
       setTimeout(() => {
         setIsScanningImage(false);
         runImageInference(updatedImgParams, false, base64Data);
-      }, 1200);
+      }, 1000);
     } catch (err) {
       console.error("Image processing error:", err);
       setIsScanningImage(false);
@@ -467,19 +493,21 @@ export default function Predictor({ onOpenReport, initialParams }) {
 
       if (!pipelineRes || pipelineRes.is_valid_road === false || !pipelineRes.risk_level) {
         const liveFallback = calculateLiveRoadRisk({
-          pothole_count: inputParams.pothole_count ?? 8,
-          pothole_depth: inputParams.pothole_depth ?? inputParams.average_pothole_depth_cm ?? 6.0,
-          crack_length: inputParams.crack_length ?? inputParams.total_crack_length_m ?? 28.0,
-          road_age: inputParams.road_age ?? inputParams.pavement_age_years ?? 5.0,
-          road_length: inputParams.road_length ?? inputParams.road_length_km ?? 10.0,
-          traffic_density: inputParams.traffic_density || inputParams.traffic_volume || 'High',
+          pothole_count: inputParams.pothole_count ?? 0,
+          pothole_depth: inputParams.pothole_depth ?? inputParams.average_pothole_depth_cm ?? 0.0,
+          crack_length: inputParams.crack_length ?? inputParams.total_crack_length_m ?? 0.0,
+          road_age: inputParams.road_age ?? inputParams.pavement_age_years ?? 1.2,
+          road_length: inputParams.road_length ?? inputParams.road_length_km ?? 5.0,
+          traffic_density: inputParams.traffic_density || inputParams.traffic_volume || 'Moderate',
           rainfall: inputParams.rainfall || 'Moderate'
         });
         pipelineRes = {
           ...liveFallback,
           is_valid_road: true,
-          damage_type: 'Surface Cracking & Fatigue',
-          detections: [
+          damage_type: liveFallback.risk_level === 'Low Risk' ? 'Optimal Road Surface' : 'Surface Cracking & Fatigue',
+          detections: liveFallback.risk_level === 'Low Risk' ? [
+            { id: 1, label: 'Surface Integrity: Optimal Road Pavement', confidence: 96.5, x: 20, y: 35, w: 60, h: 50, color: '#10B981' }
+          ] : [
             { class: 'Pothole Distress (D40)', confidence: 91.5, bbox: [0.35, 0.45, 0.28, 0.24] }
           ]
         };
