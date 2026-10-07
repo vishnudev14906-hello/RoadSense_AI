@@ -158,6 +158,8 @@ allowed_origins = [
     "http://127.0.0.1:3000",
     "http://localhost:8000",
     "http://127.0.0.1:8000",
+    "https://road-sense-ai-01.vercel.app",
+    "https://roadsense-ai.onrender.com",
 ]
 
 frontend_env = os.getenv("FRONTEND_URL")
@@ -976,16 +978,20 @@ def delete_road(road_id: int, db: Session = Depends(get_db)):
 
 # --- Part 1, 2, 3, 4, 5 Standardized ML Endpoints ---
 
+@app.get("/")
+@app.get("/api")
 @app.get("/health")
 @app.get("/api/health")
 def health_check():
     return {
         "status": "healthy",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
         "service": "RoadSense AI Core Backend",
+        "version": "2.1.0",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "models_ready": {
             "xgboost_pipeline": risk_predictor.pipeline is not None,
-            "custom_road_cnn": image_detector.model is not None
+            "custom_road_cnn": (image_detector.model is not None) if hasattr(image_detector, 'model') else False,
+            "vision_resilience_fallback": True
         }
     }
 
