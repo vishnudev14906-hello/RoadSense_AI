@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: roadsense-ai
+    name: roadsense-ai-ziky
     env: python
     region: singapore
     plan: free

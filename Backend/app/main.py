@@ -159,6 +159,7 @@ allowed_origins = [
     "http://localhost:8000",
     "http://127.0.0.1:8000",
     "https://road-sense-ai-01.vercel.app",
+    "https://roadsense-ai-ziky.onrender.com",
     "https://roadsense-ai.onrender.com",
 ]
 
