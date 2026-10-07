@@ -147,7 +147,7 @@ from .modules import (
 app = FastAPI(
     title="RoadSense AI API",
     description="AI-Based Road Condition Risk Prediction & Intelligent Maintenance Recommendation System with Verified Real-World Indian Road Dataset",
-    version="2.1.0"
+    version="2.1.1"
 )
 
 # Safe CORS Configuration for Localhost & Production Deployments (Vercel & Render)
@@ -987,7 +987,7 @@ def health_check():
     return {
         "status": "healthy",
         "service": "RoadSense AI Core Backend",
-        "version": "2.1.0",
+        "version": "2.1.1",
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "models_ready": {
             "xgboost_pipeline": risk_predictor.pipeline is not None,
