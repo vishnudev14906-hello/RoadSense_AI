@@ -123,25 +123,43 @@ export const validateRoadImageClient = (imageSource) => {
         const data = imageData.data;
         const totalPixels = targetW * targetH;
 
+        const colorCounts = new Map();
         let sumGray = 0;
         let sumSqGray = 0;
         let pureWhiteBlackCount = 0;
         let skinCount = 0;
+        let upperSkinCount = 0;
         let foliageCount = 0;
         let sumSat = 0;
         let highSatCount = 0;
 
         const lowerStartY = Math.floor(targetH * 0.40);
+        const upperEndY = Math.floor(targetH * 0.70);
         let lowerTotal = 0;
         let lowerPavementCount = 0;
 
+        const top35H = Math.floor(targetH * 0.35);
+        let topTotal = 0;
+        let topOutdoorCues = 0;
+        let topSpotlights = 0;
+        let topWarmIndoor = 0;
+
+        // Gray buffer for lower ground-plane Laplacian texture calculation
+        const lowerH = targetH - lowerStartY;
+        const lowerGray = new Float32Array(targetW * lowerH);
+
         for (let y = 0; y < targetH; y++) {
           const isLowerHalf = y >= lowerStartY;
+          const isTop35 = y < top35H;
           for (let x = 0; x < targetW; x++) {
             const idx = (y * targetW + x) * 4;
             const r = data[idx];
             const g = data[idx + 1];
             const b = data[idx + 2];
+
+            // 1. Digital Color Quantization for Screenshot Detection
+            const quantKey = ((r >> 2) << 12) | ((g >> 2) << 6) | (b >> 2);
+            colorCounts.set(quantKey, (colorCounts.get(quantKey) || 0) + 1);
 
             const gray = 0.299 * r + 0.587 * g + 0.114 * b;
             sumGray += gray;
@@ -171,22 +189,51 @@ export const validateRoadImageClient = (imageSource) => {
               h = ((h / 6) % 1 + 1) % 1;
             }
 
-            // Human Skin Tone Detection (Only check authentic skin lightness, ignoring dark gravel)
-            const isSkin = ((h <= 0.10 || h >= 0.90) && s >= 0.16 && s <= 0.70 && v >= 0.22 && v <= 0.96 && r > 95 && g > 40 && b > 20 && r > g && g > b && (r - g) > 8);
-            if (isSkin) skinCount++;
+            // Human Skin Tone Detection (Multi-space YCbCr + HSV + RGB across all ethnicities)
+            const yLum = gray;
+            const cb = -0.168736 * r - 0.331264 * g + 0.5 * b + 128;
+            const cr = 0.5 * r - 0.418688 * g - 0.081312 * b + 128;
+            const ycbcrSkin = cb >= 77 && cb <= 128 && cr >= 132 && cr <= 175 && yLum >= 35;
+            const hsvSkin = (h <= 0.13 || h >= 0.90) && s >= 0.14 && s <= 0.75 && v >= 0.18 && v <= 0.96;
+            const rgbSkin = r > g && g >= b && (r - g) >= 6 && r > 60;
+            const isSkin = ycbcrSkin && hsvSkin && rgbSkin;
+
+            if (isSkin) {
+              skinCount++;
+              if (y < upperEndY) upperSkinCount++;
+            }
 
             // Foliage / Vegetation
             const isFoliage = (h >= 0.18 && h <= 0.48 && s > 0.18 && g > r + 6 && g > b + 6);
             if (isFoliage) foliageCount++;
 
+            // Upper environmental cues (sky / trees / indoor lighting)
+            if (isTop35) {
+              topTotal++;
+              const isSky = ((b > r - 8 && b > g - 20 && v > 0.35) || (s < 0.15 && v > 0.60));
+              if (isSky || isFoliage) topOutdoorCues++;
+              if (v > 0.95 && s < 0.25) topSpotlights++;
+              if (r > g + 8 && g > b + 12) topWarmIndoor++;
+            }
+
             // Ground Plane (Lower 60%) Road Pavement Presence
             if (isLowerHalf) {
+              const lowerY = y - lowerStartY;
+              lowerGray[lowerY * targetW + x] = gray;
               lowerTotal++;
-              const neutralChroma = Math.abs(r - g) < 45 && Math.abs(g - b) < 45;
-              const isPavement = neutralChroma && s < 0.44 && v >= 0.05 && v <= 0.92;
+              const neutralChroma = Math.abs(r - g) < 36 && Math.abs(g - b) < 36 && Math.abs(r - b) < 36;
+              const isPavement = neutralChroma && s < 0.38 && v >= 0.08 && v <= 0.88;
               if (isPavement) lowerPavementCount++;
             }
           }
+        }
+
+        // 1. Digital screenshot / UI graphic check (Top-5 color dominance)
+        const sortedCounts = Array.from(colorCounts.values()).sort((a, b) => b - a);
+        const top5Sum = sortedCounts.slice(0, 5).reduce((acc, c) => acc + c, 0);
+        if ((top5Sum / totalPixels) > 0.40) {
+          resolve({ isValid: false, error: "Please upload a valid image" });
+          return;
         }
 
         const meanGray = sumGray / totalPixels;
@@ -194,33 +241,68 @@ export const validateRoadImageClient = (imageSource) => {
         const stdDev = Math.sqrt(variance);
         const meanSat = sumSat / totalPixels;
         const lowerPavementPct = lowerTotal > 0 ? (lowerPavementCount / lowerTotal) * 100 : 0;
+        const upperTotal = targetW * upperEndY;
+        const upperSkinPct = upperTotal > 0 ? (upperSkinCount / upperTotal) * 100 : 0;
+        const totalSkinPct = (skinCount / totalPixels) * 100;
 
-        // 1. Blank or single solid color canvas check
+        // 2. Blank or single solid color canvas check
         if (stdDev < 3.0 || (pureWhiteBlackCount / totalPixels) > 0.50) {
           resolve({ isValid: false, error: "Please upload a valid image" });
           return;
         }
 
-        // 2. Reject human face / selfie / portrait (> 16% skin pixels)
-        if ((skinCount / totalPixels) > 0.16 && lowerPavementPct < 25.0) {
+        // 3. Reject human face / selfie / portrait (upper skin > 4.0% or total skin > 5.5%, no bypass)
+        if (upperSkinPct > 4.0 || totalSkinPct > 5.5) {
           resolve({ isValid: false, error: "Please upload a valid image" });
           return;
         }
 
-        // 3. Reject high-saturation cartoon, meme, food, or artwork
+        // 4. Reject high-saturation cartoon, meme, food, or artwork
         if (meanSat > 0.44 || (highSatCount / totalPixels) > 0.38) {
           resolve({ isValid: false, error: "Please upload a valid image" });
           return;
         }
 
-        // 4. Reject pure dense greenery without roadway (> 70% foliage)
-        if ((foliageCount / totalPixels) > 0.70) {
+        // 5. Reject pure dense greenery without roadway (> 68% foliage)
+        if ((foliageCount / totalPixels) > 0.68) {
           resolve({ isValid: false, error: "Please upload a valid image" });
           return;
         }
 
-        // 5. Must have authentic roadway pavement in the lower ground plane (>= 14%)
-        if (lowerPavementPct < 14.0) {
+        // 6. Must have authentic roadway pavement in the lower ground plane (>= 16%)
+        if (lowerPavementPct < 16.0) {
+          resolve({ isValid: false, error: "Please upload a valid image" });
+          return;
+        }
+
+        // 7. Indoor scene vs outdoor roadway discrimination
+        const outdoorCueRatio = topTotal > 0 ? (topOutdoorCues / topTotal) : 0;
+        const spotlightRatio = topTotal > 0 ? (topSpotlights / topTotal) : 0;
+        const indoorWarmRatio = topTotal > 0 ? (topWarmIndoor / topTotal) : 0;
+
+        // Compute Laplacian variance on lower ground plane for micro-roughness
+        let lapSum = 0;
+        let lapSqSum = 0;
+        let lapCount = 0;
+        for (let ly = 1; ly < lowerH - 1; ly++) {
+          for (let lx = 1; lx < targetW - 1; lx++) {
+            const cIdx = ly * targetW + lx;
+            const lapVal = (
+              lowerGray[cIdx - targetW] +
+              lowerGray[cIdx + targetW] +
+              lowerGray[cIdx - 1] +
+              lowerGray[cIdx + 1] -
+              4.0 * lowerGray[cIdx]
+            );
+            lapSum += lapVal;
+            lapSqSum += lapVal * lapVal;
+            lapCount++;
+          }
+        }
+        const lapMean = lapCount > 0 ? lapSum / lapCount : 0;
+        const paveTextureVar = lapCount > 0 ? Math.max(0, (lapSqSum / lapCount) - (lapMean * lapMean)) : 0;
+
+        if (outdoorCueRatio < 0.04 && (spotlightRatio > 0.005 || indoorWarmRatio > 0.25 || paveTextureVar < 10.0)) {
           resolve({ isValid: false, error: "Please upload a valid image" });
           return;
         }
@@ -381,40 +463,7 @@ export const analyzeRoadDamageFromImage = (imageSource) => {
 
         const totalAsphalt = asphaltPixels.length;
         if (totalAsphalt < 100) {
-          const cleanRisk = calculateLiveRoadRisk({
-            pothole_count: 0,
-            pothole_depth: 0,
-            crack_length: 0,
-            road_age: 1.2,
-            road_length: 5.0,
-            traffic_density: 'Moderate',
-            rainfall: 'Moderate'
-          });
-          resolve({
-            telemetry: {
-              pothole_count: 0,
-              pothole_depth: 0,
-              average_pothole_depth_cm: 0,
-              crack_length: 0,
-              total_crack_length_m: 0,
-              road_age: 1.2,
-              pavement_age_years: 1.2,
-              road_length: 5.0,
-              road_length_km: 5.0,
-              traffic_density: 'Moderate',
-              traffic_volume: 'Moderate',
-              rainfall: 'Moderate',
-              estimated_risk: cleanRisk.risk_level,
-              risk_level: cleanRisk.risk_level,
-              risk_score: cleanRisk.risk_score
-            },
-            detections: [
-              { id: 1, label: 'Surface Integrity: Optimal Road Pavement', confidence: 98.6, x: 20, y: 35, w: 60, h: 50, color: '#10B981' }
-            ],
-            description: 'Optimal asphalt pavement corridor with uniform wearing course friction and zero hazardous structural distress.',
-            risk_level: cleanRisk.risk_level,
-            risk_score: cleanRisk.risk_score
-          });
+          resolve(null);
           return;
         }
 

@@ -491,7 +491,14 @@ export default function Predictor({ onOpenReport, initialParams }) {
         }
       }
 
-      if (!pipelineRes || pipelineRes.is_valid_road === false || !pipelineRes.risk_level) {
+      if (pipelineRes && pipelineRes.is_valid_road === false) {
+        setImagePrediction(null);
+        setImageValidationError(pipelineRes.message || "Please upload a valid image");
+        if (saveToDb) setLoadingImage(false);
+        return;
+      }
+
+      if (!pipelineRes || !pipelineRes.risk_level) {
         const liveFallback = calculateLiveRoadRisk({
           pothole_count: inputParams.pothole_count ?? 0,
           pothole_depth: inputParams.pothole_depth ?? inputParams.average_pothole_depth_cm ?? 0.0,
