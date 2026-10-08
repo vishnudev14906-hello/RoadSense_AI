@@ -124,37 +124,7 @@ def validate_road_image(img: Image.Image) -> Tuple[bool, str]:
     if std_gray < 3.0 or pure_wb_ratio > 0.50:
         return False, "Please upload a valid image"
 
-    # 3. Human Skin Tone / Portrait / Selfie Check (Multi-space YCbCr + HSV + RGB)
-    # Detects skin across all ethnicities and lighting conditions; rejects selfies and portraits
-    y_lum = 0.299 * r + 0.587 * g + 0.114 * b
-    cb = -0.168736 * r - 0.331264 * g + 0.5 * b + 128
-    cr = 0.5 * r - 0.418688 * g - 0.081312 * b + 128
-
-    ycbcr_skin = (cb >= 77) & (cb <= 128) & (cr >= 132) & (cr <= 175) & (y_lum >= 35)
-    hsv_skin = ((h_arr <= 0.13) | (h_arr >= 0.90)) & (s >= 0.14) & (s <= 0.75) & (v >= 0.18) & (v <= 0.96)
-    rgb_skin = (r > g) & (g >= b) & ((r - g) >= 6) & (r > 60)
-    skin_mask = ycbcr_skin & hsv_skin & rgb_skin
-
-    upper_h = int(h * 0.70)
-    upper_skin_ratio = float(np.sum(skin_mask[:upper_h, :]) / (upper_h * w))
-    total_skin_ratio = float(np.sum(skin_mask) / total_pixels)
-
-    # Strictly reject human portraits, selfies, or people posing (no pavement bypass permitted)
-    if upper_skin_ratio > 0.040 or total_skin_ratio > 0.055:
-        return False, "Please upload a valid image"
-
-    # 4. High-Saturation Cartoon / Meme / Artwork / Food Check
-    mean_sat = float(np.mean(s))
-    high_sat_ratio = float(np.sum(s > 0.55) / total_pixels)
-    if mean_sat > 0.44 or high_sat_ratio > 0.38:
-        return False, "Please upload a valid image"
-
-    # 5. Pure Dense Foliage / Forest Canopy / Lawn Check (> 68% foliage)
-    foliage_mask = (h_arr >= 0.18) & (h_arr <= 0.48) & (s > 0.18) & (g > r + 6) & (g > b + 6)
-    if float(np.sum(foliage_mask) / total_pixels) > 0.68:
-        return False, "Please upload a valid image"
-
-    # 6. Ground Plane (Lower 60%) Road Pavement Presence (>= 16.0% neutral chroma pavement)
+    # 3. Ground Plane (Lower 60%) Road Pavement Presence
     lower_start_y = int(h * 0.40)
     lower_r = r[lower_start_y:, :]
     lower_g = g[lower_start_y:, :]
@@ -164,15 +134,16 @@ def validate_road_image(img: Image.Image) -> Tuple[bool, str]:
     lower_gray = gray[lower_start_y:, :]
     lower_total = lower_r.size
 
-    lower_neutral_chroma = (np.abs(lower_r - lower_g) < 36) & (np.abs(lower_g - lower_b) < 36) & (np.abs(lower_r - lower_b) < 36)
+    lower_neutral_chroma = (np.abs(lower_r - lower_g) < 38) & (np.abs(lower_g - lower_b) < 38) & (np.abs(lower_r - lower_b) < 38)
     lower_pavement_mask = lower_neutral_chroma & (lower_s < 0.38) & (lower_v >= 0.08) & (lower_v <= 0.88)
     lower_pavement_ratio = float(np.sum(lower_pavement_mask) / lower_total) if lower_total > 0 else 0.0
 
+    # If the lower ground plane does NOT have at least 16% visible road pavement:
+    # This naturally rejects portraits/selfies where bodies block the road (like Image 1 with only 12.8% pavement)
     if lower_pavement_ratio < 0.16:
         return False, "Please upload a valid image"
 
-    # 7. Indoor Environment vs Outdoor Roadway Discrimination
-    # Outdoor roads exhibit sky/horizon or roadside vegetation in the upper frame
+    # 4. Upper Environmental Cues (Sky & Foliage)
     top_35_h = int(h * 0.35)
     top_r, top_g, top_b = r[:top_35_h, :], g[:top_35_h, :], b[:top_35_h, :]
     top_s, top_v = s[:top_35_h, :], v[:top_35_h, :]
@@ -182,7 +153,38 @@ def validate_road_image(img: Image.Image) -> Tuple[bool, str]:
     top_foliage = (top_g > top_r + 4) & (top_g > top_b + 4) & (top_s > 0.15)
     outdoor_cues = float(np.sum(sky | top_foliage) / top_total) if top_total > 0 else 0.0
 
-    # Pavement texture variance (asphalt aggregate granular roughness)
+    # 5. Human Skin Tone / Portrait / Selfie Check
+    # Open highways with clear sky and visible pavement are not selfies (avoids false triggers on desert sand or sunlit dust)
+    is_open_highway = (outdoor_cues >= 0.25) and (lower_pavement_ratio >= 0.20)
+    if not is_open_highway:
+        y_lum = 0.299 * r + 0.587 * g + 0.114 * b
+        cb = -0.168736 * r - 0.331264 * g + 0.5 * b + 128
+        cr = 0.5 * r - 0.418688 * g - 0.081312 * b + 128
+
+        ycbcr_skin = (cb >= 75) & (cb <= 126) & (cr >= 135) & (cr <= 180) & (y_lum >= 35)
+        hsv_skin = ((h_arr <= 0.13) | (h_arr >= 0.90)) & (s >= 0.18) & (s <= 0.75) & (v >= 0.18) & (v <= 0.96)
+        rgb_skin = (r > g) & (g >= b) & (r > 1.25 * g) & ((r - g) >= 20) & ((r - b) >= 30) & (r > 70)
+        skin_mask = ycbcr_skin & hsv_skin & rgb_skin
+
+        upper_h = int(h * 0.70)
+        upper_skin_ratio = float(np.sum(skin_mask[:upper_h, :]) / (upper_h * w))
+        total_skin_ratio = float(np.sum(skin_mask) / total_pixels)
+
+        if upper_skin_ratio > 0.050 or total_skin_ratio > 0.065:
+            return False, "Please upload a valid image"
+
+    # 6. High-Saturation Cartoon / Meme / Artwork / Food Check
+    mean_sat = float(np.mean(s))
+    high_sat_ratio = float(np.sum(s > 0.55) / total_pixels)
+    if outdoor_cues < 0.20 and (mean_sat > 0.46 or high_sat_ratio > 0.40):
+        return False, "Please upload a valid image"
+
+    # 7. Pure Dense Foliage / Forest Canopy / Lawn Check (> 68% foliage)
+    foliage_mask = (h_arr >= 0.18) & (h_arr <= 0.48) & (s > 0.18) & (g > r + 6) & (g > b + 6)
+    if float(np.sum(foliage_mask) / total_pixels) > 0.68:
+        return False, "Please upload a valid image"
+
+    # 8. Indoor Environment vs Outdoor Roadway Discrimination
     padded_pave = np.pad(lower_gray, 1, mode='edge')
     lap_pave = (
         padded_pave[2:, 1:-1] + padded_pave[:-2, 1:-1] +
@@ -191,11 +193,9 @@ def validate_road_image(img: Image.Image) -> Tuple[bool, str]:
     )
     pave_texture_var = float(np.var(lap_pave))
 
-    # Indoor artificial ceiling spotlights
     indoor_spotlights = (top_v > 0.95) & (top_s < 0.25)
     spotlight_ratio = float(np.sum(indoor_spotlights) / top_total) if top_total > 0 else 0.0
 
-    # Indoor warm tungsten / artificial lighting
     indoor_warm = (top_r > top_g + 8) & (top_g > top_b + 12) & (outdoor_cues < 0.04)
     indoor_warm_ratio = float(np.sum(indoor_warm) / top_total) if top_total > 0 else 0.0
 
@@ -386,8 +386,8 @@ class RoadFeatureExtractor:
 
         # 3. Asphalt Pavement Surface Isolation
         # Neutral chroma constraint: real asphalt does not have strong color tint
-        neutral_chroma = (np.abs(r_chan - g_chan) <= 22) & (np.abs(g_chan - b_chan) <= 22) & (np.abs(r_chan - b_chan) <= 22)
-        asphalt_mask = ground_plane & neutral_chroma & (s_arr < 0.28) & (gray >= 28) & (gray <= 180) & \
+        neutral_chroma = (np.abs(r_chan - g_chan) <= 36) & (np.abs(g_chan - b_chan) <= 36) & (np.abs(r_chan - b_chan) <= 36)
+        asphalt_mask = ground_plane & neutral_chroma & (s_arr < 0.36) & (gray >= 28) & (gray <= 185) & \
                        (~non_road_objects) & (~lane_markings_mask) & (~dark_edge_mask)
 
         asphalt_pixel_count = int(np.sum(asphalt_mask))

@@ -251,34 +251,36 @@ export const validateRoadImageClient = (imageSource) => {
           return;
         }
 
-        // 3. Reject human face / selfie / portrait (upper skin > 4.0% or total skin > 5.5%, no bypass)
-        if (upperSkinPct > 4.0 || totalSkinPct > 5.5) {
-          resolve({ isValid: false, error: "Please upload a valid image" });
-          return;
-        }
-
-        // 4. Reject high-saturation cartoon, meme, food, or artwork
-        if (meanSat > 0.44 || (highSatCount / totalPixels) > 0.38) {
-          resolve({ isValid: false, error: "Please upload a valid image" });
-          return;
-        }
-
-        // 5. Reject pure dense greenery without roadway (> 68% foliage)
-        if ((foliageCount / totalPixels) > 0.68) {
-          resolve({ isValid: false, error: "Please upload a valid image" });
-          return;
-        }
-
-        // 6. Must have authentic roadway pavement in the lower ground plane (>= 16%)
+        // 3. Must have authentic roadway pavement in the lower ground plane (>= 16%)
+        // This naturally rejects selfies where bodies block the road (e.g. Image 1 with only 12.8% pavement)
         if (lowerPavementPct < 16.0) {
           resolve({ isValid: false, error: "Please upload a valid image" });
           return;
         }
 
-        // 7. Indoor scene vs outdoor roadway discrimination
         const outdoorCueRatio = topTotal > 0 ? (topOutdoorCues / topTotal) : 0;
         const spotlightRatio = topTotal > 0 ? (topSpotlights / topTotal) : 0;
         const indoorWarmRatio = topTotal > 0 ? (topWarmIndoor / topTotal) : 0;
+
+        // 4. Reject human face / selfie / portrait
+        // Open highways with clear sky and visible pavement are not selfies (prevents false triggers on desert sand or sunlit dust)
+        const isHighway = (outdoorCueRatio >= 0.25) && (lowerPavementPct >= 20.0);
+        if (!isHighway && (upperSkinPct > 5.0 || totalSkinPct > 6.5)) {
+          resolve({ isValid: false, error: "Please upload a valid image" });
+          return;
+        }
+
+        // 5. Reject high-saturation cartoon, meme, food, or artwork (only if not an outdoor landscape with sky)
+        if (outdoorCueRatio < 0.20 && (meanSat > 0.46 || (highSatCount / totalPixels) > 0.40)) {
+          resolve({ isValid: false, error: "Please upload a valid image" });
+          return;
+        }
+
+        // 6. Reject pure dense greenery without roadway (> 68% foliage)
+        if ((foliageCount / totalPixels) > 0.68) {
+          resolve({ isValid: false, error: "Please upload a valid image" });
+          return;
+        }
 
         // Compute Laplacian variance on lower ground plane for micro-roughness
         let lapSum = 0;
@@ -450,8 +452,8 @@ export const analyzeRoadDamageFromImage = (imageSource) => {
             if (isWhiteLane || isYellowLane) continue;
 
             // Genuine neutral-chroma asphalt wearing course
-            const isNeutralChroma = Math.abs(r - g) < 22 && Math.abs(g - b) < 22 && Math.abs(r - b) < 22;
-            const isAsphalt = isNeutralChroma && s < 0.28 && gray >= 28 && gray <= 180;
+            const isNeutralChroma = Math.abs(r - g) < 36 && Math.abs(g - b) < 36 && Math.abs(r - b) < 36;
+            const isAsphalt = isNeutralChroma && s < 0.36 && gray >= 28 && gray <= 185;
 
             if (isAsphalt) {
               asphaltPixels.push({ x, y, gray });
