@@ -1,11 +1,24 @@
 import { calculateLiveRoadRisk } from './civilRiskEngine';
 
+// High-performance LRU cache maps to eliminate duplicate client-side pixel processing
+const clientValidationCache = new Map();
+const clientAnalysisCache = new Map();
+const MAX_CACHE_ENTRIES = 50;
+
+function getImageCacheKey(imageSource) {
+  if (typeof imageSource !== 'string') return null;
+  if (imageSource.length > 500) {
+    return `${imageSource.length}_${imageSource.slice(0, 80)}_${imageSource.slice(-80)}`;
+  }
+  return imageSource;
+}
+
 /**
  * High-Performance Client-Side Image Preprocessing & Compression Utility
- * Resizes large mobile phone camera images (12MP-48MP) to reasonable dimensions (max 1280px)
- * preserving aspect ratio, EXIF orientation, and crisp quality before Base64 upload.
+ * Resizes large camera photos (12MP-48MP) to snappy dimensions (max 800px)
+ * yielding lightweight 80KB-160KB payloads for near-instant upload and zero lag.
  */
-export const compressImageForUpload = (file, maxDimension = 1280, quality = 0.88) => {
+export const compressImageForUpload = (file, maxDimension = 800, quality = 0.80) => {
   return new Promise((resolve, reject) => {
     if (!file) {
       resolve(null);
@@ -28,8 +41,8 @@ export const compressImageForUpload = (file, maxDimension = 1280, quality = 0.88
         let width = img.naturalWidth || img.width;
         let height = img.naturalHeight || img.height;
 
-        // If image is already smaller than maxDimension and file size is <= 800KB, preserve original
-        if (width <= maxDimension && height <= maxDimension && file.size <= 800 * 1024) {
+        // If image is already smaller than maxDimension and file size is <= 150KB, preserve original
+        if (width <= maxDimension && height <= maxDimension && file.size <= 150 * 1024) {
           resolve(readerEvent.target.result);
           return;
         }
@@ -56,12 +69,12 @@ export const compressImageForUpload = (file, maxDimension = 1280, quality = 0.88
           return;
         }
 
-        // High quality image smoothing
+        // Fast image smoothing for responsive browser rendering
         ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
+        ctx.imageSmoothingQuality = 'medium';
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Compress to high-quality JPEG
+        // Compress to high-speed JPEG
         const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
         resolve(compressedBase64);
       };
@@ -90,11 +103,28 @@ export const compressImageForUpload = (file, maxDimension = 1280, quality = 0.88
  * Returns: { isValid: boolean, error: string | null }
  */
 export const validateRoadImageClient = (imageSource) => {
-  return new Promise((resolve) => {
+  return new Promise((origResolve) => {
     if (!imageSource) {
-      resolve({ isValid: false, error: "Please upload a valid image" });
+      origResolve({ isValid: false, error: "Please upload a valid image" });
       return;
     }
+
+    const cacheKey = getImageCacheKey(imageSource);
+    if (cacheKey && clientValidationCache.has(cacheKey)) {
+      origResolve(clientValidationCache.get(cacheKey));
+      return;
+    }
+
+    const resolve = (result) => {
+      if (cacheKey) {
+        if (clientValidationCache.size >= MAX_CACHE_ENTRIES) {
+          const oldestKey = clientValidationCache.keys().next().value;
+          clientValidationCache.delete(oldestKey);
+        }
+        clientValidationCache.set(cacheKey, result);
+      }
+      origResolve(result);
+    };
 
     const processImageElement = (img) => {
       try {
@@ -352,7 +382,29 @@ export const validateRoadImageClient = (imageSource) => {
  * then evaluates through the shared MoRTH / IRC:82 civil engineering risk engine.
  */
 export const analyzeRoadDamageFromImage = (imageSource) => {
-  return new Promise((resolve) => {
+  return new Promise((origResolve) => {
+    if (!imageSource) {
+      origResolve(null);
+      return;
+    }
+
+    const cacheKey = getImageCacheKey(imageSource);
+    if (cacheKey && clientAnalysisCache.has(cacheKey)) {
+      origResolve(clientAnalysisCache.get(cacheKey));
+      return;
+    }
+
+    const resolve = (result) => {
+      if (cacheKey && result) {
+        if (clientAnalysisCache.size >= MAX_CACHE_ENTRIES) {
+          const oldestKey = clientAnalysisCache.keys().next().value;
+          clientAnalysisCache.delete(oldestKey);
+        }
+        clientAnalysisCache.set(cacheKey, result);
+      }
+      origResolve(result);
+    };
+
     const processImage = (img) => {
       try {
         const canvas = document.createElement('canvas');

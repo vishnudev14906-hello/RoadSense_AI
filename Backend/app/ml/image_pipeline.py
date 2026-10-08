@@ -107,42 +107,8 @@ class RoadImageRiskPipelineService:
                 "location": location
             }
 
-        # Step 2: CNN Damage Classification & Out-of-Domain Check
-        cnn_res = image_detector.detect_damage(image_input=img, road_name=road_name)
-        if not cnn_res.get("is_road_damage", True) and cnn_res.get("detected_class") in ["Uncertain / Non-Road", "Uncertain / Blurry Image", "Invalid Image"]:
-            return {
-                "success": False,
-                "is_valid_road": False,
-                "error": "Please upload a valid image",
-                "message": "Please upload a valid image",
-                "risk_level": None,
-                "risk_score": None,
-                "confidence": 0.0,
-                "confidence_ratio": 0.0,
-                "probabilities": {},
-                "damage_type": "Invalid Image",
-                "damage_severity": "None",
-                "features": {col: 0 for col in self.feature_cols},
-                "measurable_features": {col: 0 for col in self.feature_cols},
-                "detections": [],
-                "recommendation": None,
-                "priority": None,
-                "estimated_budget": None,
-                "inspection_timeline": None,
-                "timestamp": timestamp,
-                "road_name": road_name,
-                "location": location
-            }
-
-        cnn_class = cnn_res.get("detected_class", "Normal Road")
-        cnn_conf = cnn_res.get("confidence", 0.95)
-
-        # Step 3: Structured Physical Feature Extraction Layer
-        feat_res = road_feature_extractor.extract_features(
-            img=img,
-            cnn_damage_class=cnn_class,
-            cnn_confidence=cnn_conf
-        )
+        # Step 2: Structured Physical Feature Extraction Layer (Calculated ONCE)
+        feat_res = road_feature_extractor.extract_features(img=img)
 
         if not feat_res.get("is_valid_road", True):
             return {
@@ -164,6 +130,37 @@ class RoadImageRiskPipelineService:
                 "priority": "None",
                 "estimated_budget": "₹0",
                 "inspection_timeline": "N/A",
+                "timestamp": timestamp,
+                "road_name": road_name,
+                "location": location
+            }
+
+        # Step 3: CNN Damage Classification & Out-of-Domain Check (Reusing precomputed features)
+        cnn_res = image_detector.detect_damage(
+            image_input=img,
+            road_name=road_name,
+            precomputed_features=feat_res
+        )
+        if not cnn_res.get("is_road_damage", True) and cnn_res.get("detected_class") in ["Uncertain / Non-Road", "Uncertain / Blurry Image", "Invalid Image"]:
+            return {
+                "success": False,
+                "is_valid_road": False,
+                "error": "Please upload a valid image",
+                "message": "Please upload a valid image",
+                "risk_level": None,
+                "risk_score": None,
+                "confidence": 0.0,
+                "confidence_ratio": 0.0,
+                "probabilities": {},
+                "damage_type": "Invalid Image",
+                "damage_severity": "None",
+                "features": {col: 0 for col in self.feature_cols},
+                "measurable_features": {col: 0 for col in self.feature_cols},
+                "detections": [],
+                "recommendation": None,
+                "priority": None,
+                "estimated_budget": None,
+                "inspection_timeline": None,
                 "timestamp": timestamp,
                 "road_name": road_name,
                 "location": location

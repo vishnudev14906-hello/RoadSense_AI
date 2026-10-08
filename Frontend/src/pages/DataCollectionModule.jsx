@@ -125,7 +125,7 @@ export default function DataCollectionModule({ onInspectRoad, onTransferToPredic
     const file = e.target.files?.[0];
     if (file) {
       try {
-        const dataUrl = await compressImageForUpload(file, 1280, 0.88);
+        const dataUrl = await compressImageForUpload(file, 800, 0.80);
         if (!dataUrl) return;
 
         const valResult = await validateRoadImageClient(dataUrl);

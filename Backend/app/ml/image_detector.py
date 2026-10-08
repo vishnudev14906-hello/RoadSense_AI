@@ -86,15 +86,29 @@ class RoadImageDetectorService:
             print(f"[WARN] Error loading CNN weights ({e}). Operating in resilient vision mode.")
             self.model = None
 
-    def detect_damage(self, image_input: Union[str, bytes], road_name: Optional[str] = None) -> Dict[str, Any]:
+    def detect_damage(
+        self,
+        image_input: Union[str, bytes, Image.Image],
+        road_name: Optional[str] = None,
+        precomputed_features: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
         """
         Executes CNN Image Damage Inference pipeline:
         Image Validation -> Preprocess/Normalize -> CNN Forward Pass -> Confidence Thresholding.
+        Reuses precomputed physical features if provided to accelerate end-to-end response time.
         """
         if self.model is None:
             self.load_model()
 
-        img, err_msg = decode_and_validate_image(image_input)
+        if isinstance(image_input, Image.Image):
+            img = image_input
+            err_msg = None
+        else:
+            img, err_msg = decode_and_validate_image(
+                image_input,
+                validate_road=(precomputed_features is None)
+            )
+
         if err_msg or img is None:
             return {
                 "detected_class": "Invalid Image",
@@ -128,19 +142,8 @@ class RoadImageDetectorService:
                 "model_version": "Custom-CNN-Scratch-v1.0"
             }
 
-        # Check for non-road out-of-distribution features
-        r = img_arr[:, :, 0]
-        g = img_arr[:, :, 1]
-        b = img_arr[:, :, 2]
-
-        max_c = np.maximum(np.maximum(r, g), b)
-        min_c = np.minimum(np.minimum(r, g), b)
-        delta = max_c - min_c
-        saturation = np.divide(delta, max_c, out=np.zeros_like(delta), where=max_c > 1e-5)
-        mean_sat = float(np.mean(saturation))
-        std_val = float(np.std(img_arr))
-
         # Reject only completely blank uniform canvases
+        std_val = float(np.std(img_arr))
         if std_val < 0.5:
             return {
                 "detected_class": "Uncertain / Non-Road",
@@ -153,8 +156,12 @@ class RoadImageDetectorService:
                 "model_version": "Custom-CNN-Scratch-v1.0"
             }
 
-        # Extract physically measurable distress indicators for grounding
-        feat_res = road_feature_extractor.extract_features(img)
+        # Extract physically measurable distress indicators for grounding (or reuse precomputed)
+        if precomputed_features is not None:
+            feat_res = precomputed_features
+        else:
+            feat_res = road_feature_extractor.extract_features(img)
+
         meas = feat_res.get("measurable_features", {})
         p_cnt = meas.get("pothole_count", 0)
         sev = meas.get("damage_severity", 0.0)

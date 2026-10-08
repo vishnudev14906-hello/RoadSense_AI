@@ -370,9 +370,11 @@ export default function Predictor({ onOpenReport, initialParams }) {
     try {
       setImageValidationError(null);
       setIsScanningImage(true);
-      const base64Data = await compressImageForUpload(file, 1280, 0.88);
+      setLoadingImage(true);
+      const base64Data = await compressImageForUpload(file, 800, 0.80);
       if (!base64Data) {
         setIsScanningImage(false);
+        setLoadingImage(false);
         return;
       }
 
@@ -380,6 +382,7 @@ export default function Predictor({ onOpenReport, initialParams }) {
       const valCheck = await validateRoadImageClient(base64Data);
       if (!valCheck.isValid) {
         setIsScanningImage(false);
+        setLoadingImage(false);
         setCustomImage(null);
         setImagePrediction(null);
         setImageValidationError("Please upload a valid image");
@@ -387,7 +390,7 @@ export default function Predictor({ onOpenReport, initialParams }) {
         return;
       }
 
-        // Valid road image verified
+      // Valid road image verified
       setCustomImage(base64Data);
       setImageValidationError(null);
 
@@ -425,13 +428,12 @@ export default function Predictor({ onOpenReport, initialParams }) {
         }));
       }
 
-      setTimeout(() => {
-        setIsScanningImage(false);
-        runImageInference(updatedImgParams, false, base64Data);
-      }, 1000);
+      // Execute network inference immediately without artificial delays
+      runImageInference(updatedImgParams, false, base64Data, true);
     } catch (err) {
       console.error("Image processing error:", err);
       setIsScanningImage(false);
+      setLoadingImage(false);
       setCustomImage(null);
       setImagePrediction(null);
       setImageValidationError("Please upload a valid image");
@@ -441,25 +443,26 @@ export default function Predictor({ onOpenReport, initialParams }) {
   };
 
   // --- Run End-to-End Road Image Risk Pipeline (Image Analysis + 8 Features + XGBoost) ---
-  const runImageInference = async (inputParams, saveToDb = false, overrideImage = null) => {
+  const runImageInference = async (inputParams, saveToDb = false, overrideImage = null, alreadyValidated = false) => {
     const reqId = ++latestImageReqId.current;
     setImageValidationError(null);
-    if (saveToDb) {
-      setLoadingImage(true);
-    }
+    setLoadingImage(true);
     setImageSaveSuccess(false);
     try {
       const imgB64 = overrideImage || customImage || selectedScenario?.imageUrl;
       let pipelineRes = null;
 
       if (imgB64) {
-        // Validate image before sending to pipeline
-        const valCheck = await validateRoadImageClient(imgB64);
-        if (!valCheck.isValid) {
-          setImagePrediction(null);
-          setImageValidationError("Please upload a valid image");
-          if (saveToDb) setLoadingImage(false);
-          return;
+        // Validate image before sending to pipeline if not already checked
+        if (!alreadyValidated) {
+          const valCheck = await validateRoadImageClient(imgB64);
+          if (!valCheck.isValid) {
+            setImagePrediction(null);
+            setImageValidationError("Please upload a valid image");
+            setLoadingImage(false);
+            setIsScanningImage(false);
+            return;
+          }
         }
 
         try {
@@ -472,6 +475,8 @@ export default function Predictor({ onOpenReport, initialParams }) {
           if (detail.includes("Invalid image") || detail.includes("valid image") || pipeErr?.response?.status === 400) {
             setImagePrediction(null);
             setImageValidationError("Please upload a valid image");
+            setLoadingImage(false);
+            setIsScanningImage(false);
             return;
           }
           try {
@@ -485,6 +490,8 @@ export default function Predictor({ onOpenReport, initialParams }) {
             if (e2Detail.includes("Invalid image") || e2Detail.includes("valid image") || e2?.response?.status === 400) {
               setImagePrediction(null);
               setImageValidationError("Please upload a valid image");
+              setLoadingImage(false);
+              setIsScanningImage(false);
               return;
             }
           }
@@ -494,7 +501,8 @@ export default function Predictor({ onOpenReport, initialParams }) {
       if (pipelineRes && pipelineRes.is_valid_road === false) {
         setImagePrediction(null);
         setImageValidationError(pipelineRes.message || "Please upload a valid image");
-        if (saveToDb) setLoadingImage(false);
+        setLoadingImage(false);
+        setIsScanningImage(false);
         return;
       }
 
@@ -546,9 +554,8 @@ export default function Predictor({ onOpenReport, initialParams }) {
       setImagePrediction(null);
       setImageValidationError("Please upload a valid image");
     } finally {
-      if (saveToDb) {
-        setLoadingImage(false);
-      }
+      setLoadingImage(false);
+      setIsScanningImage(false);
     }
   };
 
@@ -630,10 +637,7 @@ export default function Predictor({ onOpenReport, initialParams }) {
     };
     setImageParams(updated);
     setIsScanningImage(true);
-    setTimeout(() => {
-      setIsScanningImage(false);
-      runImageInference(updated, false);
-    }, 1200);
+    runImageInference(updated, false, scenario.imageUrl, true);
   };
 
 

@@ -50,7 +50,7 @@ export default function VisionScanner({ onTransferToPredictor }) {
       try {
         setValidationError(null);
         setIsScanning(true);
-        const dataUrl = await compressImageForUpload(file, 1280, 0.88);
+        const dataUrl = await compressImageForUpload(file, 800, 0.80);
         if (!dataUrl) {
           setIsScanning(false);
           return;
